@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی حدس کلمه | Word Game</title>
+    
+    <!-- فونت Vazirmatn -->
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- استایل‌های اختصاصی -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- اسپینر لودینگ -->
+    <div id="loading" class="loading-container">
+        <div class="spinner">
+            <div class="spinner-circle"></div>
+            <div class="spinner-circle"></div>
+            <div class="spinner-circle"></div>
+            <div class="spinner-circle"></div>
+        </div>
+        <div class="loading-text">
+            <h2>در حال آماده‌سازی بازی...</h2>
+            <p>لطفاً چند لحظه صبر کنید</p>
+        </div>
+    </div>
+
+    <!-- صفحه اصلی -->
+    <div id="main-content" class="main-container hidden">
+        <!-- هدر با گرادینت -->
+        <header class="hero-section">
+            <div class="hero-bg"></div>
+            <div class="container">
+                <div class="logo">
+                    <i class="fas fa-puzzle-piece"></i>
+                </div>
+                <h1 class="hero-title">
+                    به بازی <span class="gradient-text">حدس کلمه</span> خوش آمدید!
+                </h1>
+                <p class="hero-subtitle">
+                    بازی جذاب و آموزشی برای تقویت دایره لغات فارسی
+                </p>
+            </div>
+        </header>
+
+        <!-- بخش ویژگی‌ها -->
+        <section class="features-section">
+            <div class="container">
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3>تقویت حافظه</h3>
+                        <p>تمرین عالی برای تقویت حافظه و دایره لغات</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>سیستم امتیاز</h3>
+                        <p>امتیازگیری بر اساس سطح سختی و سرعت پاسخ</p>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h3>سطح‌بندی</h3>
+                        <p>سه سطح مختلف برای چالش‌های متنوع</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- دکمه شروع بازی -->
+        <section class="cta-section">
+            <div class="container">
+                <button id="start-game" class="start-btn">
+                    <i class="fas fa-play-circle"></i>
+                    شروع بازی
+                </button>
+                
+                <div class="game-stats">
+                    <div class="stat">
+                        <i class="fas fa-users"></i>
+                        <span>+۱۰۰۰ بازیکن</span>
+                    </div>
+                    <div class="stat">
+                        <i class="fas fa-star"></i>
+                        <span>امتیاز ۴.۹</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- فوتر -->
+        <footer class="footer">
+            <div class="container">
+                <p>ساخته شده با <i class="fas fa-heart"></i> برای علاقه‌مندان به بازی‌های فکری</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
