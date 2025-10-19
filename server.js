@@ -3,13 +3,11 @@ const http = require('http');
 const socketIo = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
-const path = require('path');
-const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io with proper CORS for Telegram
+// Socket.io with proper CORS for your frontend domain
 const io = socketIo(server, {
   cors: {
     origin: ["https://web.telegram.org", "https://wordlybot.xo.je"],
@@ -26,20 +24,20 @@ const pool = new Pool({
   }
 });
 
-// Middleware
+// Middleware - Allow requests from your frontend domain
 app.use(cors({
   origin: ["https://web.telegram.org", "https://wordlybot.xo.je"],
   credentials: true
 }));
 app.use(express.json());
-app.use(express.static('public'));
 
-// Serve the main HTML file
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Remove the static file serving since index.html is on a different server
+// app.use(express.static('public'));
 
-// Initialize Database Tables
+// Remove the root route that serves index.html
+// app.get('/', (req, res) => { ... });
+
+// Initialize Database Tables (keep the same as before)
 async function initializeDatabase() {
   try {
     console.log('🗃️ Clearing and creating database tables...');
@@ -188,8 +186,7 @@ app.post('/api/auth', async (req, res) => {
   try {
     const { initData } = req.body;
     
-    // In a real app, you should validate the initData signature
-    // For now, we'll parse it directly
+    // Parse initData from Telegram
     const params = new URLSearchParams(initData);
     const userParam = params.get('user');
     
@@ -594,6 +591,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Wordly Game API Server is running!',
+    frontend: 'https://wordlybot.xo.je',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Socket.io for real-time two-player games
 io.on('connection', (socket) => {
   console.log('🔌 User connected:', socket.id);
@@ -670,7 +677,9 @@ async function startServer() {
   const PORT = process.env.PORT || 3000;
   server.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📱 Telegram Mini App ready at: https://wordlybot.xo.je`);
+    console.log(`📱 Telegram Mini App ready!`);
+    console.log(`🔗 Frontend: https://wordlybot.xo.je`);
+    console.log(`🔗 Backend API: http://localhost:${PORT}`);
   });
 }
 
