@@ -4,13 +4,17 @@ const socketIo = require('socket.io');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
+
+// Socket.io with proper CORS for Telegram
 const io = socketIo(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
+    origin: ["https://web.telegram.org", "https://wordlybot.xo.je"],
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
@@ -23,14 +27,22 @@ const pool = new Pool({
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: ["https://web.telegram.org", "https://wordlybot.xo.je"],
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.static('public'));
+
+// Serve the main HTML file
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Initialize Database Tables
 async function initializeDatabase() {
   try {
-    console.log('Clearing and creating database tables...');
+    console.log('🗃️ Clearing and creating database tables...');
     
     // Drop all tables
     await pool.query(`
@@ -165,40 +177,62 @@ async function initializeDatabase() {
       ('taco', 'تاکو', 3, 1);
     `);
 
-    console.log('Database initialized successfully!');
+    console.log('✅ Database initialized successfully!');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('❌ Error initializing database:', error);
   }
 }
 
-// User authentication
+// Telegram Mini App authentication
 app.post('/api/auth', async (req, res) => {
   try {
-    const { telegram_id, username, first_name, last_name } = req.body;
+    const { initData } = req.body;
     
+    // In a real app, you should validate the initData signature
+    // For now, we'll parse it directly
+    const params = new URLSearchParams(initData);
+    const userParam = params.get('user');
+    
+    if (!userParam) {
+      return res.status(400).json({ error: 'Invalid initData' });
+    }
+
+    const userData = JSON.parse(userParam);
+    const { id, username, first_name, last_name } = userData;
+
+    console.log('🔐 Authenticating user:', { id, username, first_name });
+
     let user = await pool.query(
       'SELECT * FROM users WHERE telegram_id = $1',
-      [telegram_id]
+      [id]
     );
 
     if (user.rows.length === 0) {
       user = await pool.query(
         `INSERT INTO users (telegram_id, username, first_name, last_name) 
          VALUES ($1, $2, $3, $4) RETURNING *`,
-        [telegram_id, username, first_name, last_name]
+        [id, username, first_name, last_name]
       );
+      console.log('👤 New user created:', user.rows[0].id);
     } else {
       user = await pool.query(
         `UPDATE users SET username = $1, first_name = $2, last_name = $3 
          WHERE telegram_id = $4 RETURNING *`,
-        [username, first_name, last_name, telegram_id]
+        [username, first_name, last_name, id]
       );
+      console.log('👤 User updated:', user.rows[0].id);
     }
 
-    res.json(user.rows[0]);
+    res.json({
+      success: true,
+      user: user.rows[0]
+    });
   } catch (error) {
-    console.error('Auth error:', error);
-    res.status(500).json({ error: 'Authentication failed' });
+    console.error('❌ Auth error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Authentication failed' 
+    });
   }
 });
 
@@ -206,9 +240,16 @@ app.post('/api/auth', async (req, res) => {
 app.get('/api/categories', async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM categories ORDER BY name_fa');
-    res.json(result.rows);
+    res.json({
+      success: true,
+      categories: result.rows
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Categories error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
@@ -220,20 +261,30 @@ app.get('/api/words/:categoryId', async (req, res) => {
       'SELECT * FROM words WHERE category_id = $1 ORDER BY word_fa',
       [categoryId]
     );
-    res.json(result.rows);
+    res.json({
+      success: true,
+      words: result.rows
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Words error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
 // Create challenge game
 app.post('/api/challenge-game', async (req, res) => {
   try {
-    const { word_id, creator_id, guesser_id } = req.body;
+    const { word_id, user_id } = req.body;
     
     const word = await pool.query('SELECT * FROM words WHERE id = $1', [word_id]);
     if (word.rows.length === 0) {
-      return res.status(404).json({ error: 'Word not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Word not found' 
+      });
     }
 
     const wordText = word.rows[0].word;
@@ -245,12 +296,21 @@ app.post('/api/challenge-game', async (req, res) => {
       `INSERT INTO challenge_games 
        (word_id, creator_id, guesser_id, current_state, remaining_attempts, total_attempts) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [word_id, creator_id, guesser_id, currentState, totalAttempts, totalAttempts]
+      [word_id, user_id, user_id, currentState, totalAttempts, totalAttempts]
     );
 
-    res.json(game.rows[0]);
+    console.log('🎮 Challenge game created:', game.rows[0].id);
+
+    res.json({
+      success: true,
+      game: game.rows[0]
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Create game error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
@@ -261,29 +321,49 @@ app.post('/api/challenge-game/:id/guess', async (req, res) => {
     const { letter, user_id } = req.body;
 
     const game = await pool.query(
-      'SELECT cg.*, w.word FROM challenge_games cg JOIN words w ON cg.word_id = w.id WHERE cg.id = $1',
+      `SELECT cg.*, w.word, w.word_fa 
+       FROM challenge_games cg 
+       JOIN words w ON cg.word_id = w.id 
+       WHERE cg.id = $1`,
       [id]
     );
 
     if (game.rows.length === 0) {
-      return res.status(404).json({ error: 'Game not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Game not found' 
+      });
     }
 
     const gameData = game.rows[0];
+    
+    if (gameData.status !== 'active') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Game is not active' 
+      });
+    }
+
     const word = gameData.word.toLowerCase();
     const letterLower = letter.toLowerCase();
     let currentState = gameData.current_state;
     let isCorrect = false;
     let newState = '';
+    let correctPositions = [];
 
     // Check if letter is in word
     for (let i = 0; i < word.length; i++) {
       if (word[i] === letterLower && currentState[i] === '_') {
         newState += letterLower;
         isCorrect = true;
+        correctPositions.push(i);
       } else {
         newState += currentState[i];
       }
+    }
+
+    if (!isCorrect) {
+      newState = currentState;
     }
 
     // Update game state
@@ -291,7 +371,10 @@ app.post('/api/challenge-game/:id/guess', async (req, res) => {
       `UPDATE challenge_games 
        SET current_state = $1, 
            remaining_attempts = remaining_attempts - $2,
-           guessed_letters = guessed_letters || $3
+           guessed_letters = CASE 
+             WHEN guessed_letters = '' THEN $3 
+             ELSE guessed_letters || ',' || $3 
+           END
        WHERE id = $4 RETURNING *`,
       [newState, isCorrect ? 0 : 1, letterLower, id]
     );
@@ -303,39 +386,60 @@ app.post('/api/challenge-game/:id/guess', async (req, res) => {
       [id, user_id, letterLower, isCorrect]
     );
 
+    let gameCompleted = false;
+    let finalScore = 0;
+
     // Check if game is completed
     if (newState === word) {
+      gameCompleted = true;
       const endTime = new Date();
       const startTime = new Date(gameData.start_time);
-      const timeTaken = (endTime - startTime) / 1000; // in seconds
+      const timeTaken = (endTime - startTime) / 1000;
       
-      // Calculate score: base score + time bonus
+      // Calculate score
       const baseScore = word.length * 10;
-      const timeBonus = Math.max(0, 300 - timeTaken); // 5 minutes max
-      const totalScore = baseScore + Math.floor(timeBonus);
+      const timeBonus = Math.max(0, 300 - timeTaken);
+      const attemptsBonus = gameData.remaining_attempts * 2;
+      finalScore = baseScore + Math.floor(timeBonus) + attemptsBonus;
       
       await pool.query(
         `UPDATE challenge_games 
          SET status = 'completed', end_time = $1, score = $2 
          WHERE id = $3`,
-        [endTime, totalScore, id]
+        [endTime, finalScore, id]
       );
 
       // Update user score
       await pool.query(
         'UPDATE users SET total_score = total_score + $1, games_played = games_played + 1 WHERE id = $2',
-        [totalScore, user_id]
+        [finalScore, user_id]
+      );
+    } else if (updatedGame.rows[0].remaining_attempts <= 0) {
+      gameCompleted = true;
+      await pool.query(
+        `UPDATE challenge_games 
+         SET status = 'failed', end_time = $1 
+         WHERE id = $2`,
+        [new Date(), id]
       );
     }
 
     res.json({
+      success: true,
       game: updatedGame.rows[0],
       isCorrect,
-      isCompleted: newState === word
+      correctPositions,
+      gameCompleted,
+      finalScore,
+      word_fa: gameData.word_fa
     });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Guess error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
@@ -351,24 +455,44 @@ app.post('/api/challenge-game/:id/help', async (req, res) => {
     );
 
     if (game.rows.length === 0) {
-      return res.status(404).json({ error: 'Game not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'Game not found' 
+      });
     }
 
     const gameData = game.rows[0];
     
     // Check if help is allowed
     if (gameData.help_used >= 3) {
-      return res.status(400).json({ error: 'حداکثر کمک استفاده شده است' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'حداکثر کمک استفاده شده است' 
+      });
     }
     if (gameData.remaining_attempts < 2) {
-      return res.status(400).json({ error: 'تعداد حدس‌های باقی‌مانده برای کمک کافی نیست' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'تعداد حدس‌های باقی‌مانده برای کمک کافی نیست' 
+      });
     }
 
     const word = gameData.word.toLowerCase();
     const positionIndex = position - 1;
     
     if (positionIndex < 0 || positionIndex >= word.length) {
-      return res.status(400).json({ error: 'موقعیت نامعتبر' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'موقعیت نامعتبر' 
+      });
+    }
+
+    // Check if position is already revealed
+    if (gameData.current_state[positionIndex] !== '_') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'این حرف قبلاً آشکار شده است' 
+      });
     }
 
     let currentState = gameData.current_state.split('');
@@ -392,9 +516,49 @@ app.post('/api/challenge-game/:id/help', async (req, res) => {
       [id, user_id, word[positionIndex], position]
     );
 
-    res.json(updatedGame.rows[0]);
+    res.json({
+      success: true,
+      game: updatedGame.rows[0],
+      revealedLetter: word[positionIndex],
+      revealedPosition: position
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Help error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+// Cancel challenge game
+app.post('/api/challenge-game/:id/cancel', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { user_id } = req.body;
+
+    const game = await pool.query(
+      'UPDATE challenge_games SET status = $1 WHERE id = $2 AND guesser_id = $3 RETURNING *',
+      ['cancelled', id, user_id]
+    );
+
+    if (game.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Game not found' 
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Game cancelled successfully'
+    });
+  } catch (error) {
+    console.error('❌ Cancel error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
 });
 
@@ -408,15 +572,31 @@ app.get('/api/rankings', async (req, res) => {
        ORDER BY total_score DESC 
        LIMIT 100`
     );
-    res.json(result.rows);
+    res.json({
+      success: true,
+      rankings: result.rows
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Rankings error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
   }
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Server is running!',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Socket.io for real-time two-player games
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  console.log('🔌 User connected:', socket.id);
 
   socket.on('create-room', async (data) => {
     try {
@@ -430,9 +610,17 @@ io.on('connection', (socket) => {
       );
 
       socket.join(roomCode);
-      socket.emit('room-created', { roomCode, game: game.rows[0] });
+      socket.emit('room-created', { 
+        success: true,
+        roomCode, 
+        game: game.rows[0] 
+      });
     } catch (error) {
-      socket.emit('error', { message: 'خطا در ایجاد اتاق' });
+      console.error('❌ Create room error:', error);
+      socket.emit('error', { 
+        success: false,
+        message: 'خطا در ایجاد اتاق' 
+      });
     }
   });
 
@@ -447,26 +635,43 @@ io.on('connection', (socket) => {
       );
 
       if (game.rows.length === 0) {
-        return socket.emit('error', { message: 'اتاق پیدا نشد' });
+        return socket.emit('error', { 
+          success: false,
+          message: 'اتاق پیدا نشد یا پر است' 
+        });
       }
 
       socket.join(data.roomCode);
-      socket.to(data.roomCode).emit('player-joined', { playerId: data.user_id });
-      io.to(data.roomCode).emit('game-started', { game: game.rows[0] });
+      socket.to(data.roomCode).emit('player-joined', { 
+        playerId: data.user_id 
+      });
+      io.to(data.roomCode).emit('game-started', { 
+        success: true,
+        game: game.rows[0] 
+      });
     } catch (error) {
-      socket.emit('error', { message: 'خطا در پیوستن به اتاق' });
+      console.error('❌ Join room error:', error);
+      socket.emit('error', { 
+        success: false,
+        message: 'خطا در پیوستن به اتاق' 
+      });
     }
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    console.log('🔌 User disconnected:', socket.id);
   });
 });
 
-// Initialize database on startup
-initializeDatabase();
+// Initialize database and start server
+async function startServer() {
+  await initializeDatabase();
+  
+  const PORT = process.env.PORT || 3000;
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📱 Telegram Mini App ready at: https://wordlybot.xo.je`);
+  });
+}
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+startServer().catch(console.error);
