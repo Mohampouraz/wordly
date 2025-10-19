@@ -559,6 +559,207 @@ bot.onText(/\/start/, (msg) => {
   });
 });
 
+
+app.get('/api/challenge/game/:gameId', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const { userId } = req.query;
+    
+    const gameResult = await pool.query(
+      `SELECT cg.*, w.word 
+       FROM challenge_games cg 
+       JOIN words w ON cg.word_id = w.id 
+       WHERE cg.id = $1 AND cg.user_id = $2`,
+      [gameId, userId]
+    );
+    
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    const game = gameResult.rows[0];
+    const word = game.word;
+    const correctLetters = game.correct_letters || [];
+    
+    // Create word display with revealed letters
+    const wordDisplay = Array.from(word).map((letter, index) => {
+      return {
+        position: index,
+        letter: correctLetters.includes(letter) ? letter : null,
+        isRevealed: correctLetters.includes(letter)
+      };
+    });
+    
+    res.json({
+      gameId: game.id,
+      wordLength: word.length,
+      wordDisplay: wordDisplay,
+      correctLetters: correctLetters,
+      guessedLetters: game.guessed_letters || [],
+      attemptsLeft: game.attempts_left,
+      score: game.score,
+      completed: game.completed,
+      usedHints: game.used_hints
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Also update the guess endpoint to return word positions
+app.post('/api/challenge/guess', async (req, res) => {
+  try {
+    const { gameId, letter, userId } = req.body;
+    
+    // Get game and word
+    const gameResult = await pool.query(
+      `SELECT cg.*, w.word 
+       FROM challenge_games cg 
+       JOIN words w ON cg.word_id = w.id 
+       WHERE cg.id = $1 AND cg.user_id = $2 AND cg.completed = FALSE`,
+      [gameId, userId]
+    );
+    
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    
+    const game = gameResult.rows[0];
+    const word = game.word;
+    const guessedLetters = game.guessed_letters || [];
+    const correctLetters = game.correct_letters || [];
+    let attemptsLeft = game.attempts_left;
+    
+    // Check if letter was already guessed
+    if (guessedLetters.includes(letter) || correctLetters.includes(letter)) {
+      return res.json({
+        success: false,
+        message: 'این حرف قبلاً حدس زده شده است',
+        attemptsLeft: attemptsLeft,
+        gameCompleted: false
+      });
+    }
+    
+    // Check if letter is in the word and get positions
+    const positions = [];
+    Array.from(word).forEach((char, index) => {
+      if (char === letter) {
+        positions.push(index);
+      }
+    });
+    
+    const isCorrect = positions.length > 0;
+    
+    if (isCorrect) {
+      // Add to correct letters
+      if (!correctLetters.includes(letter)) {
+        correctLetters.push(letter);
+      }
+      
+      // Calculate score based on time and correct guesses
+      const startTime = new Date(game.start_time);
+      const currentTime = new Date();
+      const timeDiff = Math.floor((currentTime - startTime) / 1000);
+      
+      const baseScore = 1000;
+      const timeBonus = Math.max(0, 500 - timeDiff);
+      const correctBonus = correctLetters.length * 50;
+      const score = baseScore + timeBonus + correctBonus;
+      
+      // Update game
+      await pool.query(
+        `UPDATE challenge_games 
+         SET correct_letters = $1, score = $2 
+         WHERE id = $3`,
+        [correctLetters, score, gameId]
+      );
+      
+      // Create word display with revealed letters
+      const wordDisplay = Array.from(word).map((char, index) => {
+        return {
+          position: index,
+          letter: correctLetters.includes(char) ? char : null,
+          isRevealed: correctLetters.includes(char)
+        };
+      });
+      
+      // Check if game is completed
+      const allLettersGuessed = Array.from(word).every(char => 
+        correctLetters.includes(char)
+      );
+      
+      if (allLettersGuessed) {
+        await pool.query(
+          `UPDATE challenge_games 
+           SET completed = TRUE, end_time = CURRENT_TIMESTAMP 
+           WHERE id = $1`,
+          [gameId]
+        );
+        
+        // Save score to leaderboard
+        await pool.query(
+          `INSERT INTO user_scores (user_id, game_type, score, game_id) 
+           VALUES ($1, 'challenge', $2, $3)`,
+          [userId, score, gameId]
+        );
+      }
+      
+      res.json({
+        success: true,
+        isCorrect: true,
+        positions: positions,
+        correctLetters: correctLetters,
+        wordDisplay: wordDisplay,
+        attemptsLeft: attemptsLeft,
+        score: score,
+        gameCompleted: allLettersGuessed,
+        message: allLettersGuessed ? 'تبریک! شما برنده شدید!' : 'حدس درست بود!'
+      });
+    } else {
+      // Incorrect guess
+      attemptsLeft--;
+      guessedLetters.push(letter);
+      
+      await pool.query(
+        `UPDATE challenge_games 
+         SET guessed_letters = $1, attempts_left = $2 
+         WHERE id = $3`,
+        [guessedLetters, attemptsLeft, gameId]
+      );
+      
+      // Check if game is over
+      if (attemptsLeft <= 0) {
+        await pool.query(
+          `UPDATE challenge_games 
+           SET completed = TRUE, end_time = CURRENT_TIMESTAMP 
+           WHERE id = $1`,
+          [gameId]
+        );
+        
+        res.json({
+          success: false,
+          isCorrect: false,
+          guessedLetters: guessedLetters,
+          attemptsLeft: attemptsLeft,
+          gameCompleted: true,
+          message: 'متاسفانه بازی تمام شد!'
+        });
+      } else {
+        res.json({
+          success: false,
+          isCorrect: false,
+          guessedLetters: guessedLetters,
+          attemptsLeft: attemptsLeft,
+          gameCompleted: false,
+          message: 'حدس نادرست بود'
+        });
+      }
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start server
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
