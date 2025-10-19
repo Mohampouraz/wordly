@@ -99,53 +99,77 @@ app.post(`/webhook/${BOT_TOKEN}`, async (req, res) => {
 });
 
 // ------------------------
+// 🔹 API تست اصلی
+// ------------------------
+app.get("/api", (req, res) => {
+  res.send("WordlyGame API ✅");
+});
+
+// ------------------------
 // 🔹 API بازی
 // ------------------------
 
 // دریافت کلمه تصادفی
 app.get("/api/random-word", async (req, res) => {
-  const { rows } = await pool.query("SELECT * FROM words ORDER BY RANDOM() LIMIT 1");
-  res.json(rows[0]);
+  try {
+    const { rows } = await pool.query("SELECT * FROM words ORDER BY RANDOM() LIMIT 1");
+    res.json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "خطا در دریافت کلمه" });
+  }
 });
 
 // ثبت امتیاز
 app.post("/api/submit-score", async (req, res) => {
-  const { telegram_id, username, score } = req.body;
-  if (!telegram_id) return res.status(400).json({ error: "telegram_id required" });
+  try {
+    const { telegram_id, username, score } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: "telegram_id required" });
 
-  const existing = await pool.query("SELECT * FROM users WHERE telegram_id = $1", [telegram_id]);
-  if (existing.rowCount === 0) {
-    await pool.query("INSERT INTO users (telegram_id, username, score) VALUES ($1, $2, $3)", [
-      telegram_id,
-      username || "ناشناس",
-      score,
-    ]);
-  } else {
-    await pool.query("UPDATE users SET score = GREATEST(score, $2) WHERE telegram_id = $1", [
-      telegram_id,
-      score,
-    ]);
+    const existing = await pool.query("SELECT * FROM users WHERE telegram_id = $1", [telegram_id]);
+    if (existing.rowCount === 0) {
+      await pool.query(
+        "INSERT INTO users (telegram_id, username, score) VALUES ($1, $2, $3)",
+        [telegram_id, username || "ناشناس", score]
+      );
+    } else {
+      await pool.query(
+        "UPDATE users SET score = GREATEST(score, $2) WHERE telegram_id = $1",
+        [telegram_id, score]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "خطا در ثبت امتیاز" });
   }
-
-  res.json({ success: true });
 });
 
 // رتبه‌بندی
 app.get("/api/leaderboard", async (req, res) => {
-  const { rows } = await pool.query("SELECT username, score FROM users ORDER BY score DESC LIMIT 10");
-  res.json(rows);
+  try {
+    const { rows } = await pool.query("SELECT username, score FROM users ORDER BY score DESC LIMIT 10");
+    res.json(rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "خطا در گرفتن رتبه‌بندی" });
+  }
 });
 
 // اضافه کردن کلمه توسط کاربر
 app.post("/api/add-word", async (req, res) => {
-  const { word, category, creator } = req.body;
-  if (!word || !category || !creator) return res.status(400).json({ error: "Missing data" });
+  try {
+    const { word, category, creator } = req.body;
+    if (!word || !category || !creator) return res.status(400).json({ error: "Missing data" });
 
-  await pool.query("INSERT INTO words (word, category, creator) VALUES ($1, $2, $3)", [
-    word, category, creator
-  ]);
-
-  res.json({ success: true });
+    await pool.query("INSERT INTO words (word, category, creator) VALUES ($1, $2, $3)", [
+      word, category, creator
+    ]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "خطا در اضافه کردن کلمه" });
+  }
 });
 
 // ------------------------
