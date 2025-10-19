@@ -36,13 +36,12 @@ const io = new Server(server, { cors: corsOptions });
 // ----------------------------------------------------------------
 const pool = new Pool({
     connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // لازم برای Render
+    ssl: { rejectUnauthorized: false } 
 });
 
-// تابع اجرای کوئری
 const dbQuery = (text, params) => pool.query(text, params);
 
-// ایجاد جداول (در صورت عدم وجود)
+// تابع ایجاد جداول (می‌تواند در زمان استقرار اجرا شود)
 async function setupDatabase() {
     console.log("Setting up database...");
     const client = await pool.connect();
@@ -55,14 +54,12 @@ async function setupDatabase() {
                 total_score INT DEFAULT 0,
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
-
             CREATE TABLE IF NOT EXISTS word_bank (
                 id SERIAL PRIMARY KEY,
                 word VARCHAR(255) UNIQUE NOT NULL,
                 category VARCHAR(100) NOT NULL,
                 length INT NOT NULL
             );
-
             CREATE TABLE IF NOT EXISTS challenge_games (
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id),
@@ -84,15 +81,13 @@ async function setupDatabase() {
         client.release();
     }
 }
+// setupDatabase(); 
 
-// setupDatabase(); // برای اجرای setup در production/deployment فعال کنید
 
 // ----------------------------------------------------------------
 // ۳. Middleware احراز هویت تلگرام
 // ----------------------------------------------------------------
-/**
- * تایید داده‌های هش شده تلگرام
- */
+
 function checkSignature({ hash, ...data }) {
     const checkString = Object.keys(data)
         .sort()
@@ -105,12 +100,15 @@ function checkSignature({ hash, ...data }) {
     return hashCheck === hash;
 }
 
-/**
- * Middleware: تایید داده‌های تلگرام، ایجاد/دریافت کاربر و افزودن به req.user
- */
 async function verifyTelegramAuth(req, res, next) {
-    // داده‌های احراز هویت از header یا body دریافت می‌شوند
     const authDataRaw = req.headers['x-telegram-auth'] || req.body.authData;
+
+    // // برای محیط توسعه محلی (باید در محیط production حذف شود)
+    // if (process.env.NODE_ENV !== 'production' && !authDataRaw) {
+    //      console.warn("Skipping real auth for development environment.");
+    //      req.user = { id: 9999, telegram_id: 123456789, username: "DevUser", total_score: 500 };
+    //      return next();
+    // }
 
     if (!authDataRaw) {
         return res.status(401).json({ message: 'Authentication data is missing.' });
@@ -119,20 +117,16 @@ async function verifyTelegramAuth(req, res, next) {
     try {
         const data = JSON.parse(authDataRaw);
         
-        // اگر دیتا شامل فیلد user نباشد (مانند داده‌های خام تلگرام)
         if (!data.user) {
             return res.status(401).json({ message: 'Invalid Telegram data format (missing user).' });
         }
 
-        // بررسی اعتبار سنجی هش
-        if (!checkSignature(data)) {
-             // در محیط عملیاتی، این لاین باید فعال شود:
-             // return res.status(401).json({ message: 'Invalid Telegram data signature.' });
-             // برای تست محلی موقتاً غیرفعال می‌کنیم:
-             console.warn("Signature check skipped for testing!");
-        }
+        // // در محیط عملیاتی، این لاین باید فعال باشد:
+        // if (!checkSignature(data)) {
+        //     return res.status(401).json({ message: 'Invalid Telegram data signature.' });
+        // }
 
-        // احراز هویت موفق: ثبت یا به‌روزرسانی کاربر در دیتابیس
+
         const userData = data.user;
         const result = await dbQuery(
             `INSERT INTO users (telegram_id, username) 
@@ -143,7 +137,7 @@ async function verifyTelegramAuth(req, res, next) {
             [userData.id, userData.username || userData.first_name]
         );
 
-        req.user = result.rows[0]; // ذخیره اطلاعات دیتابیس کاربر
+        req.user = result.rows[0]; 
         next();
 
     } catch (error) {
@@ -154,10 +148,16 @@ async function verifyTelegramAuth(req, res, next) {
 
 
 // ----------------------------------------------------------------
-// ۴. منطق API برای بازی چالشی (/api/challenge)
+// ۴. مسیرهای عمومی
+// ----------------------------------------------------------------
+app.get('/', (req, res) => {
+    res.send('Wordly Game API is running successfully on Render.');
+});
+
+// ----------------------------------------------------------------
+// ۵. منطق API برای بازی چالشی (/api/challenge)
 // ----------------------------------------------------------------
 
-// تمام مسیرهای /api/challenge از Middleware احراز هویت عبور می‌کنند.
 
 // POST /api/challenge/start - شروع بازی جدید
 app.post('/api/challenge/start', verifyTelegramAuth, async (req, res) => {
@@ -165,7 +165,7 @@ app.post('/api/challenge/start', verifyTelegramAuth, async (req, res) => {
     const { category } = req.body;
 
     try {
-        // ۱. انتخاب کلمه تصادفی بر اساس دسته‌بندی
+        // ۱. انتخاب کلمه تصادفی
         const wordResult = await dbQuery(
             `SELECT id, word, length FROM word_bank 
              WHERE category = $1 
@@ -175,12 +175,12 @@ app.post('/api/challenge/start', verifyTelegramAuth, async (req, res) => {
         );
 
         if (wordResult.rowCount === 0) {
-            return res.status(404).json({ message: "Category not found or empty." });
+            return res.status(404).json({ message: "دسته بندی یافت نشد یا خالی است." });
         }
 
         const wordData = wordResult.rows[0];
         const wordLength = wordData.word.length;
-        const maxGuesses = Math.floor(wordLength * 1.5); // ۱.۵ برابر طول کلمه
+        const maxGuesses = Math.floor(wordLength * 1.5); 
 
         // ۲. ایجاد رکورد بازی
         const gameResult = await dbQuery(
@@ -202,12 +202,12 @@ app.post('/api/challenge/start', verifyTelegramAuth, async (req, res) => {
             startTime: newGame.start_time,
             creatorName: "Wordly Bot",
             guesserName: req.user.username,
-            currentScore: req.user.total_score // نمایش امتیاز کلی کاربر
+            currentScore: req.user.total_score
         });
 
     } catch (error) {
         console.error('Error starting game:', error);
-        res.status(500).json({ message: 'Error starting game.' });
+        res.status(500).json({ message: 'خطا در شروع بازی.' });
     }
 });
 
@@ -233,17 +233,15 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
         );
 
         if (gameQuery.rowCount === 0) {
-            return res.status(404).json({ message: "بازی یافت نشد یا غیرفعال است." });
+            return res.status(404).json({ message: "بازی یافت نشد یا فعال نیست." });
         }
 
         const game = gameQuery.rows[0];
         const actualWord = game.word;
         let revealedWord = game.revealed_word.split('');
         let guessedLetters = game.guessed_letters || {};
-        let correctLettersCount = revealedWord.filter(l => l !== '_').length;
         let isCorrectGuess = false;
-        let scoreUpdate = 0; // امتیازی که در این دور به total_score اضافه می‌شود
-
+        
         if (guessedLetters[char]) {
             return res.status(400).json({ message: `حرف "${char}" قبلا حدس زده شده.` });
         }
@@ -253,10 +251,6 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
             guessedLetters[char] = 'correct';
             for (let i = 0; i < actualWord.length; i++) {
                 if (actualWord[i] === char) {
-                    // فقط اگر قبلاً حدس زده نشده باشد، شمارش می‌شود
-                    if (revealedWord[i] === '_') { 
-                        correctLettersCount++;
-                    }
                     revealedWord[i] = char;
                 }
             }
@@ -268,13 +262,14 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
 
         const newRevealedWord = revealedWord.join('');
         let newStatus = 'IN_PROGRESS';
-        let finalScore = game.score;
+        let finalScore = 0;
+        let scoreUpdate = 0; 
 
         // بررسی پایان بازی
         if (newRevealedWord === actualWord) {
             newStatus = 'WON';
             const timeElapsed = (new Date() - new Date(game.start_time)) / 1000;
-            // فرمول امتیاز: (تعداد حروف صحیح * 100) + max(0, 5000 - زمان سپری شده * 5)
+            // فرمول امتیاز: (طول کلمه * 100) + max(0, 5000 - زمان سپری شده * 5)
             finalScore = (actualWord.length * 100) + Math.max(0, 5000 - Math.floor(timeElapsed) * 5);
             scoreUpdate = finalScore;
         } else if (game.guesses_left <= 0) {
@@ -283,7 +278,7 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
             scoreUpdate = 0;
         }
 
-        // به‌روزرسانی دیتابیس
+        // به‌روزرسانی دیتابیس بازی
         await dbQuery(
             `UPDATE challenge_games 
              SET revealed_word = $1, 
@@ -296,8 +291,8 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
             [newRevealedWord, game.guesses_left, guessedLetters, newStatus, finalScore, gameId]
         );
 
-        // به‌روزرسانی total_score کاربر
-        if (newStatus !== 'IN_PROGRESS' && scoreUpdate > 0) {
+        // به‌روزرسانی total_score کاربر (فقط در صورت برد/باخت)
+        if (newStatus !== 'IN_PROGRESS') {
              await dbQuery(
                 `UPDATE users 
                  SET total_score = total_score + $1 
@@ -314,13 +309,12 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
             guessedLetters: guessedLetters,
             score: finalScore,
             isCorrect: isCorrectGuess,
-            correctLettersCount: correctLettersCount,
-            message: newStatus === 'WON' ? `آفرین! شما بردید! امتیاز: ${finalScore}` : newStatus === 'LOST' ? 'متاسفانه باختید!' : 'حدس ثبت شد.'
+            message: newStatus === 'WON' ? `آفرین! شما بردید! امتیاز: ${finalScore}` : newStatus === 'LOST' ? `متاسفانه باختید! کلمه: ${actualWord}` : 'حدس ثبت شد.'
         });
 
     } catch (error) {
         console.error('Error guessing letter:', error);
-        res.status(500).json({ message: 'Error processing guess.' });
+        res.status(500).json({ message: 'خطا در پردازش حدس.' });
     }
 });
 
@@ -329,7 +323,7 @@ app.post('/api/challenge/:gameId/guess', verifyTelegramAuth, async (req, res) =>
 app.post('/api/challenge/:gameId/hint', verifyTelegramAuth, async (req, res) => {
     const { gameId } = req.params;
     const userId = req.user.id;
-    const { position } = req.body; // موقعیت (index) کلمه برای راهنمایی
+    // موقعیت (position) در این نسخه از منطق سرور نادیده گرفته شده و اولین حرف مخفی افشا می‌شود.
 
     try {
         const gameQuery = await dbQuery(
@@ -341,14 +335,13 @@ app.post('/api/challenge/:gameId/hint', verifyTelegramAuth, async (req, res) => 
         );
 
         if (gameQuery.rowCount === 0) {
-            return res.status(404).json({ message: "بازی یافت نشد یا غیرفعال است." });
+            return res.status(404).json({ message: "بازی یافت نشد یا فعال نیست." });
         }
 
         const game = gameQuery.rows[0];
 
-        // بررسی شرایط راهنمایی
         if (game.hints_left <= 0) {
-            return res.status(400).json({ message: "تمام راهنمایی‌ها استفاده شده است. مجاز: ۳" });
+            return res.status(400).json({ message: "تمام راهنمایی‌ها استفاده شده است." });
         }
         if (game.guesses_left < 2) {
             return res.status(400).json({ message: "فرصت‌های باقی‌مانده کافی نیست (حداقل ۲ فرصت نیاز است)." });
@@ -359,20 +352,13 @@ app.post('/api/challenge/:gameId/hint', verifyTelegramAuth, async (req, res) => 
         let hintLetter = '';
         let hintIndex = -1;
         
-        // پیدا کردن اولین حرف مخفی در موقعیت درخواست شده
-        if (position !== undefined && position >= 0 && position < actualWord.length) {
-            if (revealedWord[position] === '_') {
-                hintIndex = position;
-            }
-        }
-        
-        // اگر موقعیت مشخص نشده یا موقعیت مشخص شده قبلا افشا شده، اولین حرف مخفی را پیدا کن
-        if (hintIndex === -1) {
-            for (let i = 0; i < actualWord.length; i++) {
-                if (revealedWord[i] === '_') {
-                    hintIndex = i;
-                    break;
-                }
+        // پیدا کردن اولین حرف مخفی
+        for (let i = 0; i < actualWord.length; i++) {
+            if (revealedWord[i] === '_') {
+                hintIndex = i;
+                hintLetter = actualWord[i];
+                revealedWord[i] = actualWord[i]; // فاش کردن حرف
+                break;
             }
         }
 
@@ -380,12 +366,8 @@ app.post('/api/challenge/:gameId/hint', verifyTelegramAuth, async (req, res) => 
             return res.status(400).json({ message: "کلمه قبلا به طور کامل افشا شده است." });
         }
         
-        // اعمال راهنمایی
-        hintLetter = actualWord[hintIndex];
-        revealedWord[hintIndex] = hintLetter;
-        
         game.hints_left -= 1;
-        game.guesses_left -= 2; // کسر دو حدس به ازای راهنمایی
+        game.guesses_left -= 2; // کسر دو حدس
 
         // به‌روزرسانی دیتابیس
         const newRevealedWord = revealedWord.join('');
@@ -410,37 +392,59 @@ app.post('/api/challenge/:gameId/hint', verifyTelegramAuth, async (req, res) => 
 
     } catch (error) {
         console.error('Error requesting hint:', error);
-        res.status(500).json({ message: 'Error processing hint request.' });
+        res.status(500).json({ message: 'خطا در پردازش راهنمایی.' });
+    }
+});
+
+
+// POST /api/challenge/:gameId/cancel - انصراف از بازی
+app.post('/api/challenge/:gameId/cancel', verifyTelegramAuth, async (req, res) => {
+    const { gameId } = req.params;
+    const userId = req.user.id;
+    
+    try {
+        const result = await dbQuery(
+            `UPDATE challenge_games 
+             SET status = 'CANCELED',
+                 score = 0,
+                 end_time = NOW()
+             WHERE id = $1 AND user_id = $2 AND status = 'IN_PROGRESS'
+             RETURNING id`,
+            [gameId, userId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "بازی فعال برای انصراف یافت نشد." });
+        }
+
+        res.json({ message: "بازی با موفقیت لغو شد. امتیاز صفر ثبت گردید." });
+
+    } catch (error) {
+        console.error('Error canceling game:', error);
+        res.status(500).json({ message: 'خطا در لغو بازی.' });
     }
 });
 
 
 // ----------------------------------------------------------------
-// ۵. منطق WebSocket (Socket.IO)
+// ۶. منطق WebSocket (Socket.IO) - بازی دو نفره
 // ----------------------------------------------------------------
 io.on('connection', (socket) => {
     console.log(`Socket connected: ${socket.id}`);
 
-    // [ROOM] کاربر به اتاق مورد نظر ملحق می‌شود
+    // [ROOM] کاربر به اتاق ملحق می‌شود
     socket.on('joinRoom', (roomId, userId) => {
         socket.join(roomId);
         console.log(`User ${userId} joined room ${roomId}`);
+        // به تمامی افراد اتاق خبر می‌دهد
         io.to(roomId).emit('userJoined', userId); 
     });
 
     // [GAME] مدیریت حدس‌های بازیکن در حالت دونفره
     socket.on('playerGuess', ({ roomId, guessData }) => {
-        // این بخش باید منطق پیچیده بازی دونفره را در خود داشته باشد
-        // (مثل نوبت‌دهی، بررسی کلمه، و امتیازدهی لحظه‌ای)
-        
-        // در حال حاضر فقط حدس را به بازیکن مقابل ارسال می‌کنیم
+        // در بازی دونفره، سرور باید منطق نوبت و اعتبار سنجی را چک کند.
+        // در حال حاضر فقط به بازیکن مقابل اطلاع رسانی می‌شود.
         socket.to(roomId).emit('opponentGuess', guessData); 
-    });
-
-    socket.on('cancelGame', (roomId, userId) => {
-        io.to(roomId).emit('gameCanceled', { userId, message: "بازی توسط کاربر لغو شد." });
-        // خروج کاربر از اتاق
-        socket.leave(roomId); 
     });
 
     socket.on('disconnect', () => {
@@ -450,7 +454,7 @@ io.on('connection', (socket) => {
 
 
 // ----------------------------------------------------------------
-// ۶. راه‌اندازی سرور
+// ۷. راه‌اندازی سرور
 // ----------------------------------------------------------------
 server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
