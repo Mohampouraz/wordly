@@ -1,499 +1,472 @@
-/**
- * server.js
- * Node + Express + pg + Socket.IO + Axios (برای تماس با Telegram API)
- *
- * نصب وابستگی‌ها:
- *   npm i express pg socket.io axios cors uuid
- *
- * راه‌اندازی:
- *   PORT, DATABASE_URL, TELEGRAM_BOT_TOKEN, WEB_APP_URL را تنظیم کنید.
- *
- * توضیح: اگر CLEAR_DB=true باشد، همهٔ جداول پاک شده و اسکیمای جدید ایجاد می‌شود.
- */
-
 const express = require('express');
 const http = require('http');
-const { Pool } = require('pg');
-const axios = require('axios');
+const socketIo = require('socket.io');
 const cors = require('cors');
-const { v4: uuidv4 } = require('uuid');
-const { Server } = require('socket.io');
+const { Pool } = require('pg');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
 });
 
-app.use(express.json());
-app.use(cors());
-
-// ENV
-const PORT = process.env.PORT || 3000;
-const DATABASE_URL = process.env.DATABASE_URL || process.env.DATABASE || '';
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const WEB_APP_URL = process.env.WEB_APP_URL || 'https://wordlybot.xo.je';
-const CLEAR_DB = (process.env.CLEAR_DB || 'false').toLowerCase() === 'true';
-
-if (!DATABASE_URL) {
-  console.error('ERROR: DATABASE_URL not set.');
-  process.exit(1);
-}
-if (!TELEGRAM_BOT_TOKEN) {
-  console.warn('Warning: TELEGRAM_BOT_TOKEN not set — telegram webhook disabled until provided.');
-}
-
+// Database connection
 const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false }
+  connectionString: "postgresql://abolfazl:gecrw6BsIFRJfASXUuG3NTepMnv1Hqpx@dpg-d3qbq8d6ubrc73fqfim0-a.frankfurt-postgres.render.com/wordlygame",
+  ssl: {
+    rejectUnauthorized: false
+  }
 });
 
-// ---------- Database setup / reset ----------
-async function resetAndSeedDB() {
-  const client = await pool.connect();
-  try {
-    console.log('Resetting database...');
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-    // drop all user tables (safe-ish approach: drop known tables)
-    await client.query(`
-      drop table if exists guesses cascade;
-      drop table if exists game_players cascade;
-      drop table if exists games cascade;
-      drop table if exists words cascade;
-      drop table if exists categories cascade;
-      drop table if exists users cascade;
+// Initialize Database Tables
+async function initializeDatabase() {
+  try {
+    console.log('Clearing and creating database tables...');
+    
+    // Drop all tables
+    await pool.query(`
+      DROP TABLE IF EXISTS game_moves CASCADE;
+      DROP TABLE IF EXISTS challenge_games CASCADE;
+      DROP TABLE IF EXISTS two_player_games CASCADE;
+      DROP TABLE IF EXISTS words CASCADE;
+      DROP TABLE IF EXISTS categories CASCADE;
+      DROP TABLE IF EXISTS users CASCADE;
     `);
 
-    // create tables
-    await client.query(`
-      create table users (
-        id uuid primary key,
-        telegram_id text,
-        name text,
-        created_at timestamptz default now()
-      );
-
-      create table categories (
-        id uuid primary key,
-        name text not null
-      );
-
-      create table words (
-        id uuid primary key,
-        category_id uuid references categories(id) on delete cascade,
-        word text not null,
-        created_by uuid references users(id),
-        created_at timestamptz default now()
-      );
-
-      create table games (
-        id uuid primary key,
-        word_id uuid references words(id),
-        creator_id uuid references users(id),
-        started_at timestamptz,
-        finished_at timestamptz,
-        attempts_allowed int,
-        attempts_left int,
-        guessed_letters text[], -- array of letters guessed
-        revealed boolean[], -- parallel to letters of word (true if revealed)
-        hints_used int default 0,
-        score int default 0,
-        status text default 'waiting', -- waiting, playing, finished
-        created_at timestamptz default now()
-      );
-
-      create table game_players (
-        id uuid primary key,
-        game_id uuid references games(id) on delete cascade,
-        user_id uuid references users(id),
-        role text, -- creator | guesser | player
-        joined_at timestamptz default now()
-      );
-
-      create table guesses (
-        id uuid primary key,
-        game_id uuid references games(id) on delete cascade,
-        user_id uuid references users(id),
-        letter text,
-        correct boolean,
-        created_at timestamptz default now()
+    // Create users table
+    await pool.query(`
+      CREATE TABLE users (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT UNIQUE NOT NULL,
+        username VARCHAR(255),
+        first_name VARCHAR(255),
+        last_name VARCHAR(255),
+        total_score INTEGER DEFAULT 0,
+        games_played INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
 
-    // seed categories + words (مثال)
-    const cat1 = uuidv4();
-    const cat2 = uuidv4();
-    await client.query(`insert into categories (id, name) values ($1,$2),($3,$4)`, [cat1,'Animals', cat2,'Everyday']);
+    // Create categories table
+    await pool.query(`
+      CREATE TABLE categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        name_fa VARCHAR(255) NOT NULL,
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-    // insert some sample words (lowercase)
-    const sampleWords = [
-      { cat: cat1, w: 'elephant' },
-      { cat: cat1, w: 'giraffe' },
-      { cat: cat2, w: 'computer' },
-      { cat: cat2, w: 'notebook' },
-      { cat: cat2, w: 'bicycle' }
-    ];
-    for (let s of sampleWords) {
-      const id = uuidv4();
-      await client.query(`insert into words (id, category_id, word) values ($1,$2,$3)`, [id, s.cat, s.w]);
-    }
+    // Create words table
+    await pool.query(`
+      CREATE TABLE words (
+        id SERIAL PRIMARY KEY,
+        word VARCHAR(255) NOT NULL,
+        word_fa VARCHAR(255) NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        difficulty INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
 
-    console.log('DB reset + seeded.');
-  } finally {
-    client.release();
+    // Create challenge games table
+    await pool.query(`
+      CREATE TABLE challenge_games (
+        id SERIAL PRIMARY KEY,
+        word_id INTEGER REFERENCES words(id),
+        creator_id INTEGER REFERENCES users(id),
+        guesser_id INTEGER REFERENCES users(id),
+        current_state VARCHAR(255) NOT NULL,
+        guessed_letters VARCHAR(255) DEFAULT '',
+        remaining_attempts INTEGER NOT NULL,
+        total_attempts INTEGER NOT NULL,
+        help_used INTEGER DEFAULT 0,
+        score INTEGER DEFAULT 0,
+        start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        end_time TIMESTAMP,
+        status VARCHAR(50) DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create two-player games table
+    await pool.query(`
+      CREATE TABLE two_player_games (
+        id SERIAL PRIMARY KEY,
+        room_code VARCHAR(10) UNIQUE NOT NULL,
+        word_id INTEGER REFERENCES words(id),
+        player1_id INTEGER REFERENCES users(id),
+        player2_id INTEGER REFERENCES users(id),
+        creator_id INTEGER REFERENCES users(id),
+        current_state VARCHAR(255) NOT NULL,
+        guessed_letters VARCHAR(255) DEFAULT '',
+        current_turn INTEGER REFERENCES users(id),
+        remaining_attempts INTEGER NOT NULL,
+        status VARCHAR(50) DEFAULT 'waiting',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Create game moves table
+    await pool.query(`
+      CREATE TABLE game_moves (
+        id SERIAL PRIMARY KEY,
+        game_id INTEGER NOT NULL,
+        game_type VARCHAR(20) NOT NULL,
+        user_id INTEGER REFERENCES users(id),
+        letter VARCHAR(1) NOT NULL,
+        position INTEGER,
+        is_correct BOOLEAN,
+        is_help BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Insert Persian categories
+    await pool.query(`
+      INSERT INTO categories (name, name_fa, description) VALUES 
+      ('Animals', 'حیوانات', 'نام حیوانات مختلف'),
+      ('Countries', 'کشورها', 'نام کشورهای جهان'),
+      ('Food', 'غذا', 'انواع غذا و خوراکی'),
+      ('Sports', 'ورزش', 'ورزش‌ها و فعالیت‌های ورزشی'),
+      ('Technology', 'تکنولوژی', 'اصطلاحات تکنولوژی و شرکت‌ها');
+    `);
+
+    // Insert Persian words
+    await pool.query(`
+      INSERT INTO words (word, word_fa, category_id, difficulty) VALUES
+      -- Animals
+      ('elephant', 'فیل', 1, 1),
+      ('giraffe', 'زرافه', 1, 2),
+      ('kangaroo', 'کانگورو', 1, 3),
+      ('penguin', 'پنگوئن', 1, 1),
+      ('dolphin', 'دلفین', 1, 2),
+      -- Countries
+      ('canada', 'کانادا', 2, 1),
+      ('japan', 'ژاپن', 2, 1),
+      ('brazil', 'برزیل', 2, 2),
+      ('australia', 'استرالیا', 2, 3),
+      ('germany', 'آلمان', 2, 2),
+      -- Food
+      ('pizza', 'پیتزا', 3, 1),
+      ('sushi', 'سوشی', 3, 2),
+      ('pasta', 'پاستا', 3, 1),
+      ('burger', 'برگر', 3, 1),
+      ('taco', 'تاکو', 3, 1);
+    `);
+
+    console.log('Database initialized successfully!');
+  } catch (error) {
+    console.error('Error initializing database:', error);
   }
 }
 
-// Run DB reset if requested
-(async () => {
+// User authentication
+app.post('/api/auth', async (req, res) => {
   try {
-    await pool.connect();
-    if (CLEAR_DB) await resetAndSeedDB();
-  } catch (err) {
-    console.error('DB init error:', err);
-    process.exit(1);
-  }
-})();
+    const { telegram_id, username, first_name, last_name } = req.body;
+    
+    let user = await pool.query(
+      'SELECT * FROM users WHERE telegram_id = $1',
+      [telegram_id]
+    );
 
-// ---------- Utility functions ----------
-function maskWord(word, revealed) {
-  // revealed: boolean[] same length; if undefined -> all false
-  if (!revealed) revealed = Array.from({length: word.length}, ()=>false);
-  let arr = word.split('');
-  return arr.map((ch, i) => (revealed[i] ? ch : '_')).join('');
-}
-
-function computeScore(wordLength, correctCount, elapsedSeconds, attemptsLeft, attemptsAllowed) {
-  // Example formula:
-  // timeFactor: faster => higher => clamp between 0.1..1
-  const maxTime = Math.max(10, wordLength * 10); // seconds baseline
-  let timeFactor = Math.max(0.1, (maxTime - Math.min(elapsedSeconds, maxTime)) / maxTime);
-  // correctnessFactor: fraction of letters revealed
-  let correctnessFactor = correctCount / wordLength;
-  // attemptsFactor: some bonus for remaining attempts
-  let attemptsFactor = 1 + (attemptsLeft / Math.max(1, attemptsAllowed)) * 0.5;
-  const base = 100 * wordLength;
-  const raw = Math.round(base * correctnessFactor * (0.6 + 0.4 * timeFactor) * attemptsFactor);
-  return Math.max(0, raw);
-}
-
-// ---------- API: categories / words ----------
-app.get('/api/categories', async (req, res) => {
-  const { rows } = await pool.query('select id, name from categories order by name');
-  res.json(rows);
-});
-
-app.get('/api/words', async (req, res) => {
-  // for challenge list - we only return id, category, masked length
-  const { category } = req.query;
-  const q = category
-    ? 'select w.id, w.word, c.name as category from words w join categories c on w.category_id=c.id where c.id=$1'
-    : 'select w.id, w.word, c.name as category from words w join categories c on w.category_id=c.id';
-  const params = category ? [category] : [];
-  const { rows } = await pool.query(q, params);
-  // do NOT send raw words to client in production for real challenges; here we send only length
-  const out = rows.map(r => ({ id: r.id, length: r.word.length, category: r.category }));
-  res.json(out);
-});
-
-// ---------- API: start game ----------
-app.post('/api/game/start', async (req, res) => {
-  // body: { wordId, creatorTelegramId (optional), creatorName(optional) }
-  const { wordId, creatorTelegramId, creatorName } = req.body;
-  if (!wordId) return res.status(400).json({ error: 'wordId required' });
-
-  // ensure user exists (simple)
-  let userId = null;
-  if (creatorTelegramId) {
-    const r = await pool.query('select id from users where telegram_id=$1', [creatorTelegramId]);
-    if (r.rows.length) userId = r.rows[0].id;
-    else {
-      userId = uuidv4();
-      await pool.query('insert into users (id, telegram_id, name) values ($1,$2,$3)', [userId, creatorTelegramId, creatorName || null]);
-    }
-  }
-
-  const wordRow = await pool.query('select word from words where id=$1', [wordId]);
-  if (!wordRow.rows.length) return res.status(404).json({ error: 'word not found' });
-  const word = wordRow.rows[0].word.toLowerCase();
-
-  const attemptsAllowed = Math.ceil(1.5 * word.length);
-  const revealed = Array.from({length: word.length}, ()=>false);
-  const gameId = uuidv4();
-  await pool.query(`insert into games (id, word_id, creator_id, attempts_allowed, attempts_left, guessed_letters, revealed, status, started_at)
-                   values ($1,$2,$3,$4,$5,$6,$7,$8, now())`,
-                   [gameId, wordId, userId, attemptsAllowed, attemptsAllowed, [], revealed, 'playing']);
-
-  // add creator as player
-  if (userId) {
-    await pool.query(`insert into game_players (id, game_id, user_id, role) values ($1,$2,$3,$4)`, [uuidv4(), gameId, userId, 'creator']);
-  }
-
-  res.json({ gameId, length: word.length, attemptsAllowed });
-});
-
-// ---------- API: get game state ----------
-app.get('/api/game/:gameId', async (req, res) => {
-  const { gameId } = req.params;
-  const g = await pool.query('select * from games where id=$1', [gameId]);
-  if (!g.rows.length) return res.status(404).json({ error: 'game not found' });
-  const game = g.rows[0];
-  // fetch word text
-  const w = await pool.query('select word from words where id=$1', [game.word_id]);
-  const word = w.rows[0].word;
-  const revealed = game.revealed || Array.from({length: word.length}, ()=>false);
-  const masked = maskWord(word, revealed);
-  // players
-  const players = (await pool.query('select gp.*, u.name from game_players gp left join users u on gp.user_id=u.id where gp.game_id=$1', [gameId])).rows;
-  res.json({
-    id: game.id,
-    masked,
-    length: word.length,
-    attemptsAllowed: game.attempts_allowed,
-    attemptsLeft: game.attempts_left,
-    guessedLetters: game.guessed_letters || [],
-    hintsUsed: game.hints_used,
-    status: game.status,
-    score: game.score,
-    players
-  });
-});
-
-// ---------- API: guess letter ----------
-app.post('/api/game/:gameId/guess', async (req, res) => {
-  // body: { letter, userTelegramId, userName }
-  const { gameId } = req.params;
-  const { letter, userTelegramId, userName } = req.body;
-  if (!letter || letter.length !== 1) return res.status(400).json({ error: 'single letter required' });
-  const ch = letter.toLowerCase();
-
-  const client = await pool.connect();
-  try {
-    await client.query('begin');
-
-    // ensure user
-    let userId = null;
-    if (userTelegramId) {
-      const r = await client.query('select id from users where telegram_id=$1', [userTelegramId]);
-      if (r.rows.length) userId = r.rows[0].id;
-      else { userId = uuidv4(); await client.query('insert into users (id, telegram_id, name) values ($1,$2,$3)', [userId, userTelegramId, userName || null]); }
-    }
-
-    const gq = await client.query('select * from games where id=$1 for update', [gameId]);
-    if (!gq.rows.length) { await client.query('rollback'); return res.status(404).json({ error: 'game not found' }); }
-    const game = gq.rows[0];
-    if (game.status !== 'playing') { await client.query('rollback'); return res.status(400).json({ error: 'game not active' }); }
-    if (game.attempts_left <= 0) { await client.query('rollback'); return res.status(400).json({ error: 'no attempts left' }); }
-
-    const wr = await client.query('select word from words where id=$1', [game.word_id]);
-    const word = wr.rows[0].word.toLowerCase();
-
-    const guessed = new Set((game.guessed_letters || []).map(x => x.toLowerCase()));
-    if (guessed.has(ch)) {
-      await client.query('rollback');
-      return res.status(400).json({ error: 'letter already guessed' });
-    }
-
-    // check correct positions
-    let correctPositions = [];
-    for (let i=0;i<word.length;i++){
-      if (word[i] === ch) correctPositions.push(i);
-    }
-    const isCorrect = correctPositions.length > 0;
-    // update guessed_letters
-    const newGuessed = [...(game.guessed_letters || []), ch];
-
-    // update revealed if correct
-    let revealed = game.revealed || Array.from({length: word.length}, ()=>false);
-    if (isCorrect) {
-      for (let pos of correctPositions) revealed[pos] = true;
+    if (user.rows.length === 0) {
+      user = await pool.query(
+        `INSERT INTO users (telegram_id, username, first_name, last_name) 
+         VALUES ($1, $2, $3, $4) RETURNING *`,
+        [telegram_id, username, first_name, last_name]
+      );
     } else {
-      // reduce attempts
-      game.attempts_left = Math.max(0, game.attempts_left - 1);
+      user = await pool.query(
+        `UPDATE users SET username = $1, first_name = $2, last_name = $3 
+         WHERE telegram_id = $4 RETURNING *`,
+        [username, first_name, last_name, telegram_id]
+      );
     }
 
-    // store guess
-    await client.query(`insert into guesses (id, game_id, user_id, letter, correct) values ($1,$2,$3,$4,$5)`, [uuidv4(), gameId, userId, ch, isCorrect]);
-
-    // compute whether finished
-    const finished = revealed.every(Boolean) || game.attempts_left <= 0;
-    let status = finished ? 'finished' : 'playing';
-
-    // compute score if finished or partial update
-    const startedAt = game.started_at ? new Date(game.started_at) : new Date();
-    const elapsedSeconds = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-    const correctCount = revealed.filter(Boolean).length;
-    const attemptsAllowed = game.attempts_allowed;
-    const attemptsLeft = game.attempts_left;
-    const score = computeScore(word.length, correctCount, elapsedSeconds, attemptsLeft, attemptsAllowed);
-
-    // update games row
-    await client.query(`update games set guessed_letters=$1, revealed=$2, attempts_left=$3, status=$4, finished_at = CASE WHEN $5 THEN now() ELSE finished_at END, score=$6 where id=$7`,
-      [newGuessed, revealed, game.attempts_left, status, finished, score, gameId]);
-
-    await client.query('commit');
-
-    // broadcast via socket.io
-    io.to(gameId).emit('game:update', { gameId, masked: maskWord(word, revealed), attemptsLeft: game.attempts_left, guessedLetters: newGuessed, score, status });
-
-    res.json({ correct: isCorrect, positions: correctPositions, masked: maskWord(word, revealed), attemptsLeft: game.attempts_left, score, status });
-  } catch (err) {
-    await client.query('rollback');
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
-  } finally {
-    client.release();
+    res.json(user.rows[0]);
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
   }
 });
 
-// ---------- API: hint ----------
-app.post('/api/game/:gameId/hint', async (req, res) => {
-  // body: { position (1-based), userTelegramId, userName }
-  const { gameId } = req.params;
-  const { position, userTelegramId, userName } = req.body;
-  if (position === undefined) return res.status(400).json({ error: 'position required (1-based)' });
-
-  const client = await pool.connect();
+// Get categories
+app.get('/api/categories', async (req, res) => {
   try {
-    await client.query('begin');
-
-    // ensure user exists
-    let userId = null;
-    if (userTelegramId) {
-      const r = await client.query('select id from users where telegram_id=$1', [userTelegramId]);
-      if (r.rows.length) userId = r.rows[0].id;
-      else { userId = uuidv4(); await client.query('insert into users (id, telegram_id, name) values ($1,$2,$3)', [userId, userTelegramId, userName || null]); }
-    }
-
-    const gq = await client.query('select * from games where id=$1 for update', [gameId]);
-    if (!gq.rows.length) { await client.query('rollback'); return res.status(404).json({ error: 'game not found' }); }
-    const game = gq.rows[0];
-    if (game.status !== 'playing') { await client.query('rollback'); return res.status(400).json({ error: 'game not active' }); }
-
-    if ((game.hints_used || 0) >= 3) { await client.query('rollback'); return res.status(400).json({ error: 'no hints left (max 3)' }); }
-    if (game.attempts_left < 2) { await client.query('rollback'); return res.status(400).json({ error: 'not enough attempts to use hint' }); }
-
-    const wr = await client.query('select word from words where id=$1', [game.word_id]);
-    const word = wr.rows[0].word.toLowerCase();
-
-    const posIdx = position - 1;
-    if (posIdx<0 || posIdx>=word.length) { await client.query('rollback'); return res.status(400).json({ error: 'invalid position' }); }
-
-    // reveal that position
-    let revealed = game.revealed || Array.from({length: word.length}, ()=>false);
-    revealed[posIdx] = true;
-
-    const newHintsUsed = (game.hints_used || 0) + 1;
-    const newAttemptsLeft = Math.max(0, game.attempts_left - 2);
-
-    // recompute score quickly
-    const startedAt = game.started_at ? new Date(game.started_at) : new Date();
-    const elapsedSeconds = Math.floor((Date.now() - startedAt.getTime()) / 1000);
-    const correctCount = revealed.filter(Boolean).length;
-    const score = computeScore(word.length, correctCount, elapsedSeconds, newAttemptsLeft, game.attempts_allowed);
-
-    const finished = revealed.every(Boolean) || newAttemptsLeft <= 0;
-    const status = finished ? 'finished' : 'playing';
-
-    await client.query(`update games set revealed=$1, hints_used=$2, attempts_left=$3, status=$4, finished_at = CASE WHEN $5 THEN now() ELSE finished_at END, score=$6 where id=$7`,
-      [revealed, newHintsUsed, newAttemptsLeft, status, finished, score, gameId]);
-
-    await client.query('commit');
-
-    io.to(gameId).emit('game:update', { gameId, masked: maskWord(word, revealed), attemptsLeft: newAttemptsLeft, hintsUsed: newHintsUsed, score, status });
-
-    res.json({ revealedPosition: position, letter: word[posIdx], attemptsLeft: newAttemptsLeft, hintsUsed: newHintsUsed, score, status });
-  } catch (err) {
-    await client.query('rollback');
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
-  } finally {
-    client.release();
+    const result = await pool.query('SELECT * FROM categories ORDER BY name_fa');
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
-// ---------- Multiplayer: join/leave (socket.io) ----------
-io.on('connection', (socket) => {
-  console.log('socket connected', socket.id);
-  socket.on('join', (data) => {
-    // data: { gameId, userId (optional), name (optional) }
-    const { gameId, name } = data || {};
-    if (!gameId) return;
-    socket.join(gameId);
-    socket.to(gameId).emit('player:joined', { socketId: socket.id, name });
-  });
-  socket.on('leave', (data) => {
-    const { gameId } = data || {};
-    if (gameId) {
-      socket.leave(gameId);
-      socket.to(gameId).emit('player:left', { socketId: socket.id });
-    }
-  });
+// Get words by category
+app.get('/api/words/:categoryId', async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const result = await pool.query(
+      'SELECT * FROM words WHERE category_id = $1 ORDER BY word_fa',
+      [categoryId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// ---------- Telegram webhook handling ----------
-async function telegramSendMessage(chatId, text, extra = {}) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const payload = {
-    chat_id: chatId,
-    text,
-    parse_mode: 'HTML',
-    ...extra
-  };
+// Create challenge game
+app.post('/api/challenge-game', async (req, res) => {
   try {
-    const resp = await axios.post(url, payload);
-    return resp.data;
-  } catch (err) {
-    console.error('telegram send error', err?.response?.data || err.message);
-    throw err;
-  }
-}
+    const { word_id, creator_id, guesser_id } = req.body;
+    
+    const word = await pool.query('SELECT * FROM words WHERE id = $1', [word_id]);
+    if (word.rows.length === 0) {
+      return res.status(404).json({ error: 'Word not found' });
+    }
 
-app.post('/telegram-webhook', async (req, res) => {
-  // expects Telegram update
-  const update = req.body;
-  if (!update) return res.sendStatus(200);
+    const wordText = word.rows[0].word;
+    const wordLength = wordText.length;
+    const totalAttempts = Math.floor(wordLength * 1.5);
+    const currentState = '_'.repeat(wordLength);
+
+    const game = await pool.query(
+      `INSERT INTO challenge_games 
+       (word_id, creator_id, guesser_id, current_state, remaining_attempts, total_attempts) 
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [word_id, creator_id, guesser_id, currentState, totalAttempts, totalAttempts]
+    );
+
+    res.json(game.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Guess letter in challenge game
+app.post('/api/challenge-game/:id/guess', async (req, res) => {
   try {
-    // handle messages with /start
-    if (update.message && update.message.text && update.message.chat) {
-      const text = update.message.text.trim();
-      const chatId = update.message.chat.id;
-      const from = update.message.from || {};
-      if (text.startsWith('/start')) {
-        // reply with Web App button to open mini-app
-        const keyboard = {
-          reply_markup: {
-            inline_keyboard: [
-              [
-                {
-                  text: 'باز کردن Wordly (مینی‌اپ)',
-                  web_app: { url: WEB_APP_URL }
-                }
-              ]
-            ]
-          }
-        };
-        await telegramSendMessage(chatId, `سلام ${from.first_name || ''}! برای شروع بازی روی دکمهٔ زیر کلیک کنید.`, keyboard);
+    const { id } = req.params;
+    const { letter, user_id } = req.body;
+
+    const game = await pool.query(
+      'SELECT cg.*, w.word FROM challenge_games cg JOIN words w ON cg.word_id = w.id WHERE cg.id = $1',
+      [id]
+    );
+
+    if (game.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    const gameData = game.rows[0];
+    const word = gameData.word.toLowerCase();
+    const letterLower = letter.toLowerCase();
+    let currentState = gameData.current_state;
+    let isCorrect = false;
+    let newState = '';
+
+    // Check if letter is in word
+    for (let i = 0; i < word.length; i++) {
+      if (word[i] === letterLower && currentState[i] === '_') {
+        newState += letterLower;
+        isCorrect = true;
       } else {
-        // other messages: send help
-        await telegramSendMessage(chatId, `برای شروع بازی از /start استفاده کنید.`);
+        newState += currentState[i];
       }
     }
-  } catch (err) {
-    console.error('telegram webhook handler error', err);
+
+    // Update game state
+    const updatedGame = await pool.query(
+      `UPDATE challenge_games 
+       SET current_state = $1, 
+           remaining_attempts = remaining_attempts - $2,
+           guessed_letters = guessed_letters || $3
+       WHERE id = $4 RETURNING *`,
+      [newState, isCorrect ? 0 : 1, letterLower, id]
+    );
+
+    // Record move
+    await pool.query(
+      `INSERT INTO game_moves (game_id, game_type, user_id, letter, is_correct) 
+       VALUES ($1, 'challenge', $2, $3, $4)`,
+      [id, user_id, letterLower, isCorrect]
+    );
+
+    // Check if game is completed
+    if (newState === word) {
+      const endTime = new Date();
+      const startTime = new Date(gameData.start_time);
+      const timeTaken = (endTime - startTime) / 1000; // in seconds
+      
+      // Calculate score: base score + time bonus
+      const baseScore = word.length * 10;
+      const timeBonus = Math.max(0, 300 - timeTaken); // 5 minutes max
+      const totalScore = baseScore + Math.floor(timeBonus);
+      
+      await pool.query(
+        `UPDATE challenge_games 
+         SET status = 'completed', end_time = $1, score = $2 
+         WHERE id = $3`,
+        [endTime, totalScore, id]
+      );
+
+      // Update user score
+      await pool.query(
+        'UPDATE users SET total_score = total_score + $1, games_played = games_played + 1 WHERE id = $2',
+        [totalScore, user_id]
+      );
+    }
+
+    res.json({
+      game: updatedGame.rows[0],
+      isCorrect,
+      isCompleted: newState === word
+    });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
-  res.sendStatus(200);
 });
 
-// ---------- Basic health + static (if needed) ----------
-app.get('/', (req, res) => res.send('Wordly game server is running'));
+// Use help in challenge game
+app.post('/api/challenge-game/:id/help', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { position, user_id } = req.body;
 
-// start server
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-  if (TELEGRAM_BOT_TOKEN) {
-    console.log('Telegram webhook endpoint ready at /telegram-webhook — set via setWebhook to point here.');
-    console.log(`To set webhook (example):`);
-    console.log(`curl -F "url=https://your-app-url/telegram-webhook" https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook`);
+    const game = await pool.query(
+      'SELECT cg.*, w.word FROM challenge_games cg JOIN words w ON cg.word_id = w.id WHERE cg.id = $1',
+      [id]
+    );
+
+    if (game.rows.length === 0) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+
+    const gameData = game.rows[0];
+    
+    // Check if help is allowed
+    if (gameData.help_used >= 3) {
+      return res.status(400).json({ error: 'حداکثر کمک استفاده شده است' });
+    }
+    if (gameData.remaining_attempts < 2) {
+      return res.status(400).json({ error: 'تعداد حدس‌های باقی‌مانده برای کمک کافی نیست' });
+    }
+
+    const word = gameData.word.toLowerCase();
+    const positionIndex = position - 1;
+    
+    if (positionIndex < 0 || positionIndex >= word.length) {
+      return res.status(400).json({ error: 'موقعیت نامعتبر' });
+    }
+
+    let currentState = gameData.current_state.split('');
+    currentState[positionIndex] = word[positionIndex];
+    const newState = currentState.join('');
+
+    // Update game with help
+    const updatedGame = await pool.query(
+      `UPDATE challenge_games 
+       SET current_state = $1, 
+           remaining_attempts = remaining_attempts - 2,
+           help_used = help_used + 1
+       WHERE id = $2 RETURNING *`,
+      [newState, id]
+    );
+
+    // Record help move
+    await pool.query(
+      `INSERT INTO game_moves (game_id, game_type, user_id, letter, position, is_help) 
+       VALUES ($1, 'challenge', $2, $3, $4, true)`,
+      [id, user_id, word[positionIndex], position]
+    );
+
+    res.json(updatedGame.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
+});
+
+// Get rankings
+app.get('/api/rankings', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT first_name, last_name, username, total_score, games_played 
+       FROM users 
+       WHERE total_score > 0 
+       ORDER BY total_score DESC 
+       LIMIT 100`
+    );
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Socket.io for real-time two-player games
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('create-room', async (data) => {
+    try {
+      const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      
+      const game = await pool.query(
+        `INSERT INTO two_player_games 
+         (room_code, creator_id, player1_id, status) 
+         VALUES ($1, $2, $3, 'waiting') RETURNING *`,
+        [roomCode, data.user_id, data.user_id]
+      );
+
+      socket.join(roomCode);
+      socket.emit('room-created', { roomCode, game: game.rows[0] });
+    } catch (error) {
+      socket.emit('error', { message: 'خطا در ایجاد اتاق' });
+    }
+  });
+
+  socket.on('join-room', async (data) => {
+    try {
+      const game = await pool.query(
+        `UPDATE two_player_games 
+         SET player2_id = $1, status = 'active' 
+         WHERE room_code = $2 AND status = 'waiting' 
+         RETURNING *`,
+        [data.user_id, data.roomCode]
+      );
+
+      if (game.rows.length === 0) {
+        return socket.emit('error', { message: 'اتاق پیدا نشد' });
+      }
+
+      socket.join(data.roomCode);
+      socket.to(data.roomCode).emit('player-joined', { playerId: data.user_id });
+      io.to(data.roomCode).emit('game-started', { game: game.rows[0] });
+    } catch (error) {
+      socket.emit('error', { message: 'خطا در پیوستن به اتاق' });
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});
+
+// Initialize database on startup
+initializeDatabase();
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
