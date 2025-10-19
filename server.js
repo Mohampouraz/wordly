@@ -21,7 +21,7 @@ async function query(text, params) {
   return pool.query(text, params);
 }
 
-// ---------- ساخت جداول اگر موجود نباشند ----------
+// ---------- ایجاد جداول ----------
 async function initDB() {
   await query(`
     CREATE TABLE IF NOT EXISTS words (
@@ -63,9 +63,9 @@ async function initDB() {
 }
 initDB();
 
-// ---------- API ها ----------
+// ---------- API ----------
 
-// گرفتن کلمه تصادفی
+// کلمه تصادفی
 app.get('/api/random-word', async (req,res)=>{
   try{
     const {rows} = await query('SELECT * FROM words ORDER BY RANDOM() LIMIT 1');
@@ -130,10 +130,26 @@ app.post('/api/join-game', async (req,res)=>{
   } catch(e){ console.error(e); res.status(500).json({error:'DB error'});}
 });
 
-// وبهوک تلگرام
+// ---------- Webhook تلگرام ----------
 app.post(`/webhook/${BOT_TOKEN}`, async (req,res)=>{
   const update = req.body;
-  console.log("Telegram update:", update);
+
+  // اگر کاربر /start زد، دکمه WebApp را ارسال کن
+  if(update.message && update.message.text === '/start'){
+    const chat_id = update.message.chat.id;
+    const username = update.message.from.username || update.message.from.first_name;
+
+    await axios.post(`${TELEGRAM_API}/sendMessage`, {
+      chat_id: chat_id,
+      text: `سلام ${username}! برای شروع بازی روی دکمه زیر کلیک کن 🎮`,
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "🎮 شروع بازی", web_app: { url: "https://wordlybot.xo.je/index.html" } }
+        ]]
+      }
+    }).catch(err => console.error("Telegram sendMessage failed:", err.message));
+  }
+
   res.sendStatus(200);
 });
 
