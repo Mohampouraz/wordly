@@ -4,10 +4,10 @@ const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const axios = require('axios');
 const cors = require('cors');
-app.use(cors()); // به کل API اجازه می‌دهد از فرانت فراخوانی شود
 
 const app = express();
 app.use(bodyParser.json());
+app.use(cors()); // ✅ فعال کردن CORS برای همه دامنه‌ها
 
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -61,6 +61,11 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT NOW()
     );
   `);
+  // افزودن یک رکورد اولیه برای تست
+  const {rows} = await query('SELECT * FROM words LIMIT 1');
+  if(rows.length === 0){
+    await query(`INSERT INTO words(word, category, creator) VALUES('دانشگاه','مکان','مدیر سیستم')`);
+  }
   console.log("✅ Database initialized");
 }
 initDB();
@@ -71,6 +76,7 @@ initDB();
 app.get('/api/random-word', async (req,res)=>{
   try{
     const {rows} = await query('SELECT * FROM words ORDER BY RANDOM() LIMIT 1');
+    if(rows.length===0) return res.status(404).json({error:'No words found'});
     res.json(rows[0]);
   } catch(e){ console.error(e); res.status(500).json({error:'DB error'});}
 });
