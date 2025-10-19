@@ -3,6 +3,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const axios = require('axios');
+const cors = require('cors');
+app.use(cors()); // به کل API اجازه می‌دهد از فرانت فراخوانی شود
 
 const app = express();
 app.use(bodyParser.json());
