@@ -41,8 +41,26 @@ const pool = new Pool({
       category TEXT,
       creator TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS rooms (
+      id SERIAL PRIMARY KEY,
+      host_telegram_id TEXT,
+      guest_telegram_id TEXT,
+      word_id INT,
+      status TEXT DEFAULT 'waiting'
+    );
+
+    CREATE TABLE IF NOT EXISTS guesses (
+      id SERIAL PRIMARY KEY,
+      room_id INT,
+      telegram_id TEXT,
+      letter TEXT,
+      correct BOOLEAN,
+      timestamp TIMESTAMP DEFAULT NOW()
+    );
   `);
 
+  // اضافه کردن چند کلمه نمونه
   const { rows } = await pool.query("SELECT COUNT(*) FROM words");
   if (parseInt(rows[0].count) === 0) {
     await pool.query(`
@@ -57,20 +75,16 @@ const pool = new Pool({
 })();
 
 // ------------------------
-// 🔹 API ربات تلگرام
+// 🔹 Telegram Webhook
 // ------------------------
-
-// webhook endpoint
 app.post(`/webhook/${BOT_TOKEN}`, async (req, res) => {
   const update = req.body;
 
-  // اگر پیام متنی باشد
   if (update.message) {
     const chat_id = update.message.chat.id;
     const text = update.message.text;
 
     if (text === "/start") {
-      // خوش‌آمدگویی و ارسال دکمه مینی‌اپ
       await axios.post(`${TELEGRAM_API}/sendMessage`, {
         chat_id,
         text: "🎮 خوش آمدید به WordlyGame!\nبرای بازی روی دکمه زیر بزنید:",
@@ -87,11 +101,14 @@ app.post(`/webhook/${BOT_TOKEN}`, async (req, res) => {
 // ------------------------
 // 🔹 API بازی
 // ------------------------
+
+// دریافت کلمه تصادفی
 app.get("/api/random-word", async (req, res) => {
   const { rows } = await pool.query("SELECT * FROM words ORDER BY RANDOM() LIMIT 1");
   res.json(rows[0]);
 });
 
+// ثبت امتیاز
 app.post("/api/submit-score", async (req, res) => {
   const { telegram_id, username, score } = req.body;
   if (!telegram_id) return res.status(400).json({ error: "telegram_id required" });
@@ -113,9 +130,22 @@ app.post("/api/submit-score", async (req, res) => {
   res.json({ success: true });
 });
 
+// رتبه‌بندی
 app.get("/api/leaderboard", async (req, res) => {
   const { rows } = await pool.query("SELECT username, score FROM users ORDER BY score DESC LIMIT 10");
   res.json(rows);
+});
+
+// اضافه کردن کلمه توسط کاربر
+app.post("/api/add-word", async (req, res) => {
+  const { word, category, creator } = req.body;
+  if (!word || !category || !creator) return res.status(400).json({ error: "Missing data" });
+
+  await pool.query("INSERT INTO words (word, category, creator) VALUES ($1, $2, $3)", [
+    word, category, creator
+  ]);
+
+  res.json({ success: true });
 });
 
 // ------------------------
