@@ -4,14 +4,17 @@
 import pkg from "pg";
 const { Client } = pkg;
 
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const { Pool } = require("pg");
-const axios = require("axios");
-const path = require("path");
-const http = require("http");
-const { Server } = require("socket.io");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import pkg from "pg";
+import TelegramBot from "node-telegram-bot-api";
+import { Server as SocketIOServer } from "socket.io";
+import http from "http";
+
+dotenv.config(); // ✅ جایگزین require("dotenv").config()
+const { Client } = pkg;
+
 
 const TELEGRAM_TOKEN =
   process.env.TELEGRAM_TOKEN ||
