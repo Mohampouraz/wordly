@@ -1,6 +1,8 @@
 // server.js
 // Telegram Mini App backend with socket.io
 // Drops entire public schema on startup (no table creation)
+import pkg from "pg";
+const { Client } = pkg;
 
 require("dotenv").config();
 const express = require("express");
