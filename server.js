@@ -1,6 +1,7 @@
 // server.js
-// Telegram Mini App backend with socket.io
-// Drops entire public schema on startup (no table creation)
+// Telegram Mini App backend (ESM) with Socket.io
+// Clears all tables on startup (safe, no schema drop)
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -9,7 +10,7 @@ import axios from "axios";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 
-
+dotenv.config();
 
 const TELEGRAM_TOKEN =
   process.env.TELEGRAM_TOKEN ||
@@ -24,27 +25,31 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
+const io = new SocketIOServer(server, {
   cors: { origin: CORS_ORIGIN },
 });
 
-app.use(express.json());
 app.use(cors({ origin: CORS_ORIGIN }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+app.use(express.static("public"));
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
   ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
 });
 
-// پاک کردن ایمن دیتابیس بدون Drop Schema
+// ----------------------------
+// Wipe all tables safely
+// ----------------------------
 async function wipeDatabase() {
   console.log("🧨 Wiping all tables from database...");
-  const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+  const client = new Client({
+    connectionString: DATABASE_URL,
+    ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
+  });
 
   try {
     await client.connect();
-
     const res = await client.query(`
       SELECT tablename FROM pg_tables WHERE schemaname='public';
     `);
@@ -62,23 +67,26 @@ async function wipeDatabase() {
   }
 }
 
-
+// ----------------------------
+// Telegram message helper
+// ----------------------------
 const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
 async function sendTelegramMessage(chat_id, text, extra = {}) {
   try {
-    const res = await axios.post(`${TELEGRAM_API_BASE}/sendMessage`, {
+    await axios.post(`${TELEGRAM_API_BASE}/sendMessage`, {
       chat_id,
       text,
       ...extra,
     });
-    return res.data;
   } catch (err) {
     console.error("Error sending telegram message:", err.response?.data || err.message);
   }
 }
 
+// ----------------------------
 // Telegram webhook
+// ----------------------------
 app.post("/telegram/webhook", async (req, res) => {
   try {
     const update = req.body;
@@ -105,14 +113,16 @@ app.post("/telegram/webhook", async (req, res) => {
   }
 });
 
-// Socket.io connection
+// ----------------------------
+// Socket.io
+// ----------------------------
 io.on("connection", (socket) => {
   console.log("⚡ New client connected");
 
   socket.on("user_data", async (data) => {
     console.log("📩 Received user data:", data);
 
-    // send welcome message to Telegram user (optional)
+    // Send welcome message to Telegram user if id exists
     if (data?.id) {
       await sendTelegramMessage(data.id, `🌙 سلام ${data.first_name || ""}! خوش اومدی به Mini App ✨`);
     }
@@ -129,6 +139,9 @@ io.on("connection", (socket) => {
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
+// ----------------------------
+// Start server
+// ----------------------------
 (async () => {
   await wipeDatabase();
   server.listen(PORT, () => {
