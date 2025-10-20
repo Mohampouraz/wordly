@@ -1,1 +1,86 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wordly — خوش‌آمد</title>
+  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      height: 100%;
+    }
+    .container {
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      height: 100vh; text-align: center;
+      padding: 20px;
+    }
+    h1 { font-size: 2rem; margin-bottom:0.5rem; }
+    p { font-size: 1rem; margin-bottom: 1.5rem; color:#ccc; }
+    .status { margin-top:20px; font-weight:bold; color:#00ffae; }
+    button {
+      background-color:#1e88e5; border:none; border-radius:10px;
+      color:#fff; padding:12px 25px; font-size:1rem;
+      cursor:pointer; transition:0.3s;
+    }
+    button:hover { background-color:#1565c0; }
+    .footer { position:absolute; bottom:10px; font-size:0.8rem; color:#888; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Wordly — خوش‌آمد</h1>
+    <p>یک تجربه کوچک و زیبا — وارد شو تا ادامه بدیم</p>
+    <p id="loading">در حال دریافت اطلاعات حساب تلگرام...</p>
+    <p class="status" id="status"></p>
+    <button id="startButton" style="display:none;">ورود به Mini App</button>
+    <div class="footer">این صفحه با Telegram Web Apps کار می‌کند.</div>
+  </div>
 
+  <script>
+    const tg = window.Telegram?.WebApp;
+
+    if (!tg) {
+      document.getElementById("loading").innerText =
+        "❌ این صفحه فقط از داخل تلگرام باز می‌شود!";
+    } else {
+      tg.ready();
+
+      const socket = io();
+
+      function sendUserData() {
+        const user = tg.initDataUnsafe?.user;
+        if (!user) {
+          document.getElementById("loading").innerText =
+            "❌ اطلاعات کاربر آماده نیست، لطفاً Web App تلگرام را باز کنید.";
+          return;
+        }
+
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("startButton").style.display = "inline-block";
+
+        socket.emit("user_data", { user });
+
+        socket.on("welcome", (data) => {
+          document.getElementById("status").innerText = data.message;
+        });
+      }
+
+      document.getElementById("startButton").addEventListener("click", () => {
+        tg.expand();
+        sendUserData();
+        document.getElementById("startButton").style.display = "none";
+      });
+
+      // خودکار اگر داده آماده بود
+      if (tg.initDataUnsafe?.user) {
+        sendUserData();
+      }
+    }
+  </script>
+</body>
+</html>
