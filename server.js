@@ -142,8 +142,9 @@ io.on("connection", (socket) => {
 // Route for Mini App
 // ----------------------------
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.redirect("https://wordlybot.xo.je/index.html");
 });
+
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
