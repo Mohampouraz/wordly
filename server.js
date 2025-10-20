@@ -1,60 +1,50 @@
-// server.js
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import http from "http";
-import { Server as SocketIOServer } from "socket.io";
-import path from "path";
-import { fileURLToPath } from "url";
-
-dotenv.config();
-
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "YOUR_TELEGRAM_TOKEN";
+const express = require('express');
+const axios = require('axios');
+const app = express();
 const PORT = process.env.PORT || 3000;
 
-const app = express();
-const server = http.createServer(app);
-const io = new SocketIOServer(server, {
-  cors: { origin: "*" },
-});
+// آدرس دقیق فایل HTML روی هاست جداگانه شما
+const EXTERNAL_HTML_URL = 'https://wordlybot.xo.je/index.html'; 
 
-// ESM path helpers
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// تعریف مسیر اصلی
+app.get('/', async (req, res) => {
+    try {
+        console.log(`Fetching HTML from: ${EXTERNAL_HTML_URL}`);
+        
+        // **دریافت محتوای HTML از هاست جداگانه**
+        const response = await axios.get(EXTERNAL_HTML_URL, {
+            // برای اطمینان از دریافت کامل محتوای باینری
+            responseType: 'text' 
+        });
 
-// Serve static files
-app.use(express.static("public"));
+        // تنظیم نوع محتوا برای مرورگر
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        
+        // **ارسال محتوای HTML دریافتی به کاربر**
+        res.send(response.data);
 
-// Main route
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Socket.io
-io.on("connection", (socket) => {
-  console.log("⚡ New client connected");
-
-  socket.on("user_data", (data) => {
-    if (!data || !data.user) {
-      socket.emit("welcome", { message: "❌ اطلاعات کاربر دریافت نشد!" });
-      return;
+    } catch (error) {
+        console.error('Error fetching HTML from external host:', error.message);
+        
+        // نمایش خطای عمومی در صورت عدم دسترسی به هاست خارجی
+        res.status(502).send(`
+            <!DOCTYPE html>
+            <html lang="fa" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <title>خطای سرویس</title>
+                <style>body { font-family: Tahoma, sans-serif; text-align: center; direction: rtl; margin-top: 50px; background-color: #fcebeb; color: #cc0000; }</style>
+            </head>
+            <body>
+                <h1>🛑 خطا در راه‌اندازی مینی‌اپ</h1>
+                <p>سرور واسط (Render) نتوانست به فایل index.html روی هاست wordlybot.xo.je دسترسی پیدا کند.</p>
+                <p>لطفاً از فعال بودن هاست wordlybot.xo.je/index.html مطمئن شوید.</p>
+            </body>
+            </html>
+        `);
     }
-
-    const user = data.user;
-    console.log("📩 User connected:", user);
-
-    // Welcome message
-    socket.emit("welcome", {
-      message: `🌙 سلام ${user.first_name}! خوش آمدی به Wordly!`,
-    });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("❌ Client disconnected");
-  });
 });
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Reverse Proxy Server running on port ${PORT}`);
 });
