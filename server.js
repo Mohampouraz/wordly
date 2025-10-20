@@ -37,22 +37,31 @@ const pool = new Pool({
   ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
 });
 
+// پاک کردن ایمن دیتابیس بدون Drop Schema
 async function wipeDatabase() {
-  const client = await pool.connect();
+  console.log("🧨 Wiping all tables from database...");
+  const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });
+
   try {
-    console.warn("⚠️  Dropping public schema (this deletes ALL data)");
-    await client.query("BEGIN");
-    await client.query("DROP SCHEMA public CASCADE");
-    await client.query("CREATE SCHEMA public");
-    await client.query("COMMIT");
-    console.log("✅ Database wiped successfully (no tables created).");
+    await client.connect();
+
+    const res = await client.query(`
+      SELECT tablename FROM pg_tables WHERE schemaname='public';
+    `);
+
+    for (const row of res.rows) {
+      await client.query(`DROP TABLE IF EXISTS "${row.tablename}" CASCADE;`);
+      console.log(`❌ Dropped table: ${row.tablename}`);
+    }
+
+    console.log("✅ Database wiped successfully!");
   } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("❌ Error wiping DB:", err);
+    console.error("Database wipe error:", err.message);
   } finally {
-    client.release();
+    await client.end();
   }
 }
+
 
 const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
