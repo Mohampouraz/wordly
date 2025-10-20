@@ -1,19 +1,14 @@
 // server.js
 // Telegram Mini App backend with socket.io
 // Drops entire public schema on startup (no table creation)
-import pkg from "pg";
-const { Client } = pkg;
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import pkg from "pg";
-import TelegramBot from "node-telegram-bot-api";
-import { Server as SocketIOServer } from "socket.io";
+import { Client, Pool } from "pg";
+import axios from "axios";
 import http from "http";
+import { Server as SocketIOServer } from "socket.io";
 
-dotenv.config(); // ✅ جایگزین require("dotenv").config()
-const { Client } = pkg;
 
 
 const TELEGRAM_TOKEN =
