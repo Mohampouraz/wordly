@@ -1,7 +1,4 @@
 // server.js
-// Telegram Mini App backend (ESM) with Socket.io
-// Clears all tables on startup (safe, no schema drop)
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -9,6 +6,9 @@ import { Client, Pool } from "pg";
 import axios from "axios";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
+import crypto from "crypto";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -16,7 +16,7 @@ const TELEGRAM_TOKEN =
   process.env.TELEGRAM_TOKEN ||
   "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
 const WEB_APP_URL =
-  process.env.WEB_APP_URL || "https://wordlybot.xo.je";
+  process.env.WEB_APP_URL || "https://wordlygame.onrender.com";
 const DATABASE_URL =
   process.env.DATABASE_URL ||
   "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
@@ -33,10 +33,9 @@ app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 app.use(express.static("public"));
 
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
-});
+// --- Path helpers for ESM ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ----------------------------
 // Wipe all tables safely
@@ -85,33 +84,24 @@ async function sendTelegramMessage(chat_id, text, extra = {}) {
 }
 
 // ----------------------------
-// Telegram webhook
+// Telegram Auth verification
 // ----------------------------
-app.post("/telegram/webhook", async (req, res) => {
-  try {
-    const update = req.body;
-    console.log("Telegram update:", update);
+function verifyTelegramAuth(initData) {
+  const secretKey = crypto
+    .createHmac("sha256", TELEGRAM_TOKEN)
+    .update("WebAppData")
+    .digest();
 
-    if (update.message && update.message.text) {
-      const chatId = update.message.chat.id;
-      const text = update.message.text;
+  const dataCheckString = Object.keys(initData)
+    .filter(k => k !== "hash")
+    .sort()
+    .map(k => `${k}=${initData[k]}`)
+    .join("\n");
 
-      if (text.startsWith("/start")) {
-        await sendTelegramMessage(chatId, "👋 سلام! خوش اومدی به Wordly Mini App\nبرای شروع روی دکمه زیر بزن:", {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "🚀 شروع بازی", web_app: { url: WEB_APP_URL } }],
-            ],
-          },
-        });
-      }
-    }
-    res.sendStatus(200);
-  } catch (err) {
-    console.error("Webhook error:", err);
-    res.sendStatus(500);
-  }
-});
+  const hmac = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
+
+  return hmac === initData.hash;
+}
 
 // ----------------------------
 // Socket.io
@@ -122,19 +112,37 @@ io.on("connection", (socket) => {
   socket.on("user_data", async (data) => {
     console.log("📩 Received user data:", data);
 
-    // Send welcome message to Telegram user if id exists
-    if (data?.id) {
-      await sendTelegramMessage(data.id, `🌙 سلام ${data.first_name || ""}! خوش اومدی به Mini App ✨`);
+    if (!data.initData) {
+      socket.emit("welcome", { message: "❌ اطلاعات کاربر نامعتبر است!" });
+      return;
     }
 
-    socket.emit("welcome", {
-      message: `سلام ${data.first_name || "کاربر"} 👋 خوش اومدی!`,
-    });
+    const isValid = verifyTelegramAuth(data.initData);
+    if (!isValid) {
+      socket.emit("welcome", { message: "❌ احراز هویت تلگرام ناموفق!" });
+      return;
+    }
+
+    // موفق: پیام خوش آمد
+    const user = data.initData.user;
+    socket.emit("welcome", { message: `🌙 سلام ${user.first_name}! خوش آمدی به Wordly!` });
+
+    // اختیاری: ارسال پیام به تلگرام کاربر
+    try {
+      await sendTelegramMessage(user.id, `✨ سلام ${user.first_name}! خوش آمدی به Mini App`);
+    } catch (err) {}
   });
 
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected");
   });
+});
+
+// ----------------------------
+// Route for Mini App
+// ----------------------------
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
