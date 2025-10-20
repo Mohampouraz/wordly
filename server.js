@@ -1,64 +1,129 @@
 // server.js
-// Node/Express server that wipes the entire public schema on startup,
-// recreates it and creates some base tables. Also contains minimal
-// Telegram webhook & send endpoint, and serves static files from ./public.
-//
-// WARNING: This WILL DELETE ALL DATA in the public schema of the DATABASE_URL.
+// Telegram Mini App backend with socket.io
+// Drops entire public schema on startup (no table creation)
 
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const { Pool } = require('pg');
-const axios = require('axios');
-const path = require('path');
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const { Pool } = require("pg");
+const axios = require("axios");
+const path = require("path");
+const http = require("http");
+const { Server } = require("socket.io");
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
+const TELEGRAM_TOKEN =
+  process.env.TELEGRAM_TOKEN ||
+  "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+const WEB_APP_URL =
+  process.env.WEB_APP_URL || "https://wordlybot.xo.je";
+const DATABASE_URL =
+  process.env.DATABASE_URL ||
+  "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
 const PORT = process.env.PORT || 3000;
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: CORS_ORIGIN }));
-
-// Serve static files (put your index.html into ./public)
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Postgres pool
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  // If your host requires SSL (e.g. Render), enable it via ssl: { rejectUnauthorized: false }
-  // For many hosted Postgres providers, you need SSL:
-  ssl: process.env.PGSSLMODE === 'disable' ? false : { rejectUnauthorized: false },
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: CORS_ORIGIN },
 });
 
-async function wipeAndInitDatabase() {
+app.use(express.json());
+app.use(cors({ origin: CORS_ORIGIN }));
+app.use(express.static(path.join(__dirname, "public")));
+
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: process.env.PGSSLMODE === "disable" ? false : { rejectUnauthorized: false },
+});
+
+async function wipeDatabase() {
   const client = await pool.connect();
   try {
-    console.warn('⚠️  STARTING DATABASE WIPE: Dropping public schema (this deletes ALL data).');
-    // Drop public schema and recreate it
-    await client.query('BEGIN');
-    await client.query('DROP SCHEMA public CASCADE');
-    await client.query('CREATE SCHEMA public');
-    // Recreate extensions you rely on (if any). Example: uuid-ossp
-    // await client.query("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
-
-    console.log('✅ Database wiped and initial schema created successfully.');
+    console.warn("⚠️  Dropping public schema (this deletes ALL data)");
+    await client.query("BEGIN");
+    await client.query("DROP SCHEMA public CASCADE");
+    await client.query("CREATE SCHEMA public");
+    await client.query("COMMIT");
+    console.log("✅ Database wiped successfully (no tables created).");
   } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('❌ Error during DB wipe/init:', err);
-    throw err;
+    await client.query("ROLLBACK");
+    console.error("❌ Error wiping DB:", err);
   } finally {
     client.release();
   }
 }
 
+const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
+async function sendTelegramMessage(chat_id, text, extra = {}) {
+  try {
+    const res = await axios.post(`${TELEGRAM_API_BASE}/sendMessage`, {
+      chat_id,
+      text,
+      ...extra,
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Error sending telegram message:", err.response?.data || err.message);
+  }
+}
 
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully.');
-  try { await pool.end(); } catch (e) {}
-  process.exit(0);
+// Telegram webhook
+app.post("/telegram/webhook", async (req, res) => {
+  try {
+    const update = req.body;
+    console.log("Telegram update:", update);
+
+    if (update.message && update.message.text) {
+      const chatId = update.message.chat.id;
+      const text = update.message.text;
+
+      if (text.startsWith("/start")) {
+        await sendTelegramMessage(chatId, "👋 سلام! خوش اومدی به Wordly Mini App\nبرای شروع روی دکمه زیر بزن:", {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🚀 شروع بازی", web_app: { url: WEB_APP_URL } }],
+            ],
+          },
+        });
+      }
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Webhook error:", err);
+    res.sendStatus(500);
+  }
 });
+
+// Socket.io connection
+io.on("connection", (socket) => {
+  console.log("⚡ New client connected");
+
+  socket.on("user_data", async (data) => {
+    console.log("📩 Received user data:", data);
+
+    // send welcome message to Telegram user (optional)
+    if (data?.id) {
+      await sendTelegramMessage(data.id, `🌙 سلام ${data.first_name || ""}! خوش اومدی به Mini App ✨`);
+    }
+
+    socket.emit("welcome", {
+      message: `سلام ${data.first_name || "کاربر"} 👋 خوش اومدی!`,
+    });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected");
+  });
+});
+
+app.get("/health", (req, res) => res.json({ status: "ok" }));
+
+(async () => {
+  await wipeDatabase();
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🧩 Mini App URL: ${WEB_APP_URL}`);
+  });
+})();
