@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Telegram Mini App server with dark responsive UI and Socket.io integration",
   "main": "server.js",
-  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
