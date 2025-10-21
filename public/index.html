@@ -1,86 +1,126 @@
 <!DOCTYPE html>
-<html lang="fa">
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Wordly — خوش‌آمد</title>
-  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
-  <style>
-    html, body {
-      margin: 0; padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
-      color: #f0f0f0;
-      height: 100%;
-    }
-    .container {
-      display: flex; flex-direction: column;
-      justify-content: center; align-items: center;
-      height: 100vh; text-align: center;
-      padding: 20px;
-    }
-    h1 { font-size: 2rem; margin-bottom:0.5rem; }
-    p { font-size: 1rem; margin-bottom: 1.5rem; color:#ccc; }
-    .status { margin-top:20px; font-weight:bold; color:#00ffae; }
-    button {
-      background-color:#1e88e5; border:none; border-radius:10px;
-      color:#fff; padding:12px 25px; font-size:1rem;
-      cursor:pointer; transition:0.3s;
-    }
-    button:hover { background-color:#1565c0; }
-    .footer { position:absolute; bottom:10px; font-size:0.8rem; color:#888; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اطلاعات کاربر - Wordly Bot</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jalaali-js@1.2.7/jalaali.min.js"></script>
+    <style>
+        body {
+            font-family: 'Tahoma', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #ffd700;
+        }
+        .info-item {
+            background: rgba(255, 255, 255, 0.2);
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        .loading {
+            text-align: center;
+            font-size: 18px;
+        }
+        button {
+            background: #ffd700;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #ffed4e;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Wordly — خوش‌آمد</h1>
-    <p>یک تجربه کوچک و زیبا — وارد شو تا ادامه بدیم</p>
-    <p id="loading">در حال دریافت اطلاعات حساب تلگرام...</p>
-    <p class="status" id="status"></p>
-    <button id="startButton" style="display:none;">ورود به Mini App</button>
-    <div class="footer">این صفحه با Telegram Web Apps کار می‌کند.</div>
-  </div>
+    <div class="container">
+        <h1>خوش آمدید!</h1>
+        <div id="loading" class="loading">در حال بارگذاری اطلاعات...</div>
+        <div id="info" style="display: none;">
+            <div class="info-item">ID: <span id="userId"></span></div>
+            <div class="info-item">نام کاربری: <span id="username"></span></div>
+            <div class="info-item">نام: <span id="firstName"></span></div>
+            <div class="info-item">تاریخ و زمان (شمسی): <span id="persianDate"></span></div>
+            <button onclick="Telegram.WebApp.close()">بستن</button>
+        </div>
+    </div>
 
-  <script>
-    const tg = window.Telegram?.WebApp;
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); // Mini App رو آماده کن
 
-    if (!tg) {
-      document.getElementById("loading").innerText =
-        "❌ این صفحه فقط از داخل تلگرام باز می‌شود!";
-    } else {
-      tg.ready();
+        // اطلاعات initDataUnsafe از تلگرام (شامل user data)
+        const initData = tg.initDataUnsafe;
+        const user = initData.user;
 
-      const socket = io();
+        if (user) {
+            // اطلاعات اولیه کاربر
+            document.getElementById('userId').textContent = user.id;
+            document.getElementById('username').textContent = user.username || 'ندارد';
+            document.getElementById('firstName').textContent = user.first_name || 'ندارد';
 
-      function sendUserData() {
-        const user = tg.initDataUnsafe?.user;
-        if (!user) {
-          document.getElementById("loading").innerText =
-            "❌ اطلاعات کاربر آماده نیست، لطفاً Web App تلگرام را باز کنید.";
-          return;
+            // درخواست به سرور برای اطلاعات اضافی (اختیاری، مثلاً ذخیره در DB)
+            fetch('https://wordlygame.onrender.com/user-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData: tg.initData }) // initData رو بفرست برای اعتبارسنجی در سرور
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // تاریخ شمسی (از کتابخونه jalaali-js)
+                    const now = new Date();
+                    const persian = jalaali.toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+                    const persianTime = now.toLocaleTimeString('fa-IR');
+                    document.getElementById('persianDate').textContent = 
+                        `${persian.jy}/${persian.jm}/${persian.jd} - ${persianTime}`;
+                    
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('info').style.display = 'block';
+                }
+            })
+            .catch(err => {
+                console.error('خطا در اتصال به سرور:', err);
+                // fallback: بدون سرور، فقط تاریخ محلی
+                const now = new Date();
+                const persian = jalaali.toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+                document.getElementById('persianDate').textContent = `${persian.jy}/${persian.jm}/${persian.jd}`;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('info').style.display = 'block';
+            });
+        } else {
+            document.getElementById('loading').textContent = 'خطا در دریافت اطلاعات کاربر';
         }
 
-        document.getElementById("loading").style.display = "none";
-        document.getElementById("startButton").style.display = "inline-block";
-
-        socket.emit("user_data", { user });
-
-        socket.on("welcome", (data) => {
-          document.getElementById("status").innerText = data.message;
-        });
-      }
-
-      document.getElementById("startButton").addEventListener("click", () => {
-        tg.expand();
-        sendUserData();
-        document.getElementById("startButton").style.display = "none";
-      });
-
-      // خودکار اگر داده آماده بود
-      if (tg.initDataUnsafe?.user) {
-        sendUserData();
-      }
-    }
-  </script>
+        // تم تلگرام رو اعمال کن
+        tg.expand(); // تمام‌صفحه کن
+    </script>
 </body>
 </html>
