@@ -2,8 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const TelegramBot = require('node-telegram-bot-api');
-const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,33 +9,47 @@ const server = http.createServer(app);
 // WebSocket Configuration
 const io = socketIo(server, {
     cors: {
-        origin: ["https://wordlybot.xo.je", "http://localhost:3000", "https://web.telegram.org"],
+        origin: ["https://wordlybot.xo.je", "http://localhost:3000"],
         methods: ["GET", "POST"],
         credentials: true
-    }
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000
 });
 
 const PORT = process.env.PORT || 10000;
 
-// Telegram Bot Configuration
-const BOT_TOKEN = process.env.BOT_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-const bot = new TelegramBot(BOT_TOKEN, { 
-    polling: true,
+// Telegram Bot با تنظیمات بهینه
+const BOT_TOKEN = "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+
+// استفاده از polling با تنظیمات بهینه
+const TelegramBot = require('node-telegram-bot-api');
+const bot = new TelegramBot(BOT_TOKEN, {
+    polling: {
+        interval: 300,
+        autoStart: true,
+        params: {
+            timeout: 10,
+            limit: 100
+        }
+    },
     request: {
-        timeout: 10000
+        timeout: 15000,
+        agentOptions: {
+            keepAlive: true,
+            family: 4
+        },
+        gzip: true
     }
 });
 
-// Database Simulation (در صورت نیاز می‌تونی به PostgreSQL وصل شی)
+// دیتابیس ساده
 const userDatabase = new Map();
 const connectedSockets = new Map();
 
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve Static Files (اگر فرانت‌اند همینجا باشه)
-app.use(express.static('public'));
 
 // Routes
 app.get('/health', (req, res) => {
@@ -46,8 +58,7 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         usersOnline: connectedSockets.size,
         totalUsers: userDatabase.size,
-        bot: 'فعال و در حال اجرا',
-        platform: 'Telegram Bot Web App'
+        bot: 'فعال'
     });
 });
 
@@ -68,57 +79,25 @@ app.get('/api/user/:userId', (req, res) => {
     }
 });
 
-app.get('/api/online-users', (req, res) => {
-    const onlineUsers = Array.from(connectedSockets.values()).map(user => ({
-        id: user.id,
-        username: user.username,
-        first_name: user.first_name,
-        last_seen: user.last_seen
-    }));
-    
-    res.json({
-        success: true,
-        count: onlineUsers.length,
-        users: onlineUsers
-    });
-});
-
-// Web App Route
-app.get('/webapp', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// WebSocket Connection Handling
+// WebSocket Connection
 io.on('connection', (socket) => {
     console.log('🔗 کاربر جدید متصل شد:', socket.id);
 
     socket.on('user_connected', (userData) => {
-        const { id, first_name, username, last_name, language_code } = userData;
+        const { id, first_name, username } = userData;
         
-        // ذخیره اطلاعات کاربر
         const userInfo = {
             id,
             first_name,
             username,
-            last_name,
-            language_code,
             socketId: socket.id,
-            connectedAt: new Date(),
-            last_seen: new Date()
+            connectedAt: new Date()
         };
         
         connectedSockets.set(socket.id, userInfo);
         userDatabase.set(id.toString(), userInfo);
 
-        console.log(`👤 کاربر آنلاین: ${first_name} (@${username || 'no_username'})`);
-
-        // اطلاع به سایر کاربران
-        socket.broadcast.emit('user_joined', {
-            username: first_name,
-            telegramId: id,
-            timestamp: new Date(),
-            message: `کاربر جدید ${first_name} به ربات پیوست! 🎉`
-        });
+        console.log(`👤 کاربر آنلاین: ${first_name}`);
 
         // ارسال اطلاعات کاربر به خودش
         socket.emit('user_data', {
@@ -127,311 +106,200 @@ io.on('connection', (socket) => {
             onlineCount: connectedSockets.size
         });
 
-        // به‌روزرسانی آمار برای همه
+        // به‌روزرسانی آمار
         io.emit('users_online', { 
-            count: connectedSockets.size,
-            users: Array.from(connectedSockets.values()).map(u => ({
-                id: u.id,
-                name: u.first_name,
-                username: u.username
-            }))
-        });
-
-        // تأیید اتصال
-        socket.emit('connection_confirmed', {
-            message: 'اتصال شما تأیید شد',
-            user: userInfo
+            count: connectedSockets.size
         });
     });
 
     socket.on('disconnect', (reason) => {
         const user = connectedSockets.get(socket.id);
         if (user) {
-            console.log(`👤 کاربر قطع شد: ${user.first_name} (${reason})`);
+            console.log(`👤 کاربر قطع شد: ${user.first_name}`);
             connectedSockets.delete(socket.id);
             
-            // به‌روزرسانی آمار
             io.emit('users_online', { 
-                count: connectedSockets.size,
-                users: Array.from(connectedSockets.values()).map(u => ({
-                    id: u.id,
-                    name: u.first_name,
-                    username: u.username
-                }))
+                count: connectedSockets.size
             });
         }
     });
 
-    socket.on('user_message', (data) => {
-        console.log('📨 پیام از کاربر:', data);
-        // می‌تونی این پیام‌ها رو به ربات تلگرام فوروارد کنی
-    });
-
-    socket.on('get_user_info', (userId) => {
-        const userInfo = userDatabase.get(userId.toString());
-        if (userInfo) {
-            socket.emit('user_info_response', userInfo);
-        }
+    // هندل خطای socket
+    socket.on('error', (error) => {
+        console.log('❌ خطای Socket:', error);
     });
 });
 
-// Telegram Bot Handlers - بهینه شده
+// تابع ارسال پیام با retry
+async function sendMessageWithRetry(chatId, text, options = {}, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const result = await bot.sendMessage(chatId, text, options);
+            return result;
+        } catch (error) {
+            console.log(`⚠️ تلاش ${i + 1} از ${retries} ناموفق بود:`, error.message);
+            
+            if (i === retries - 1) {
+                throw error;
+            }
+            
+            // انتظار قبل از تلاش مجدد
+            await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+        }
+    }
+}
+
+// هندلر /start بهینه شده
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     const user = msg.from;
     
-    console.log('🎯 دستور /start دریافت شد:', {
-        userId: user.id,
-        username: user.username,
-        firstName: user.first_name,
-        chatId: chatId
-    });
+    console.log('🎯 /start از:', user.first_name);
 
     try {
-        // ذخیره اطلاعات کاربر
+        // ذخیره کاربر
         const userInfo = {
             id: user.id,
             first_name: user.first_name,
             last_name: user.last_name || '',
             username: user.username || '',
             language_code: user.language_code || 'fa',
-            is_bot: user.is_bot || false,
-            joined_at: new Date(),
-            last_activity: new Date()
+            joined_at: new Date()
         };
         
         userDatabase.set(user.id.toString(), userInfo);
 
-        // ایجاد دکمه وب اپ
-        const webAppUrl = `https://wordlybot.xo.je?startapp=${user.id}&ref=telegram_bot`;
-        
+        // ایجاد کیبورد ساده
         const keyboard = {
-            inline_keyboard: [
-                [{
-                    text: "📊 مشاهده داشبورد من",
-                    web_app: { url: webAppUrl }
-                }],
-                [{
-                    text: "🔄 بروزرسانی اطلاعات",
-                    callback_data: "refresh_info"
-                }]
-            ]
+            inline_keyboard: [[
+                {
+                    text: "📊 بازکردن داشبورد من",
+                    url: "https://wordlybot.xo.je"
+                }
+            ]]
         };
 
-        // پیام خوشآمدگویی با فرمت زیبا
-        const welcomeMessage = `🌟 <b>به ربات Wordly خوش آمدید ${user.first_name}!</b>
+        // پیام ساده و بهینه
+        const welcomeMessage = `سلام ${user.first_name}! 👋
 
-👤 <b>اطلاعات حساب شما:</b>
-🆔 <code>آیدی: ${user.id}</code>
-📛 <code>نام: ${user.first_name} ${user.last_name || ''}</code>
-🔗 <code>نام کاربری: @${user.username || 'ندارد'}</code>
-🌐 <code>زبان: ${user.language_code || 'فارسی'}</code>
+به ربات Wordly خوش آمدید.
 
-💫 <b>امکانات ربات:</b>
-• نمایش اطلاعات حساب در وب اپ
-• مشاهده آمار زنده
-• اعلان‌های لحظه‌ای
-• مدیریت فعالیت‌ها
+🆔 آیدی شما: ${user.id}
+👤 نام کاربری: @${user.username || 'ندارد'}
 
-📱 <b>برای مشاهده داشبورد کامل، روی دکمه زیر کلیک کنید:</b>`;
+برای مشاهده داشبورد روی دکمه زیر کلیک کنید:`;
 
-        // ارسال پیام اصلی
-        await bot.sendMessage(chatId, welcomeMessage, {
-            parse_mode: 'HTML',
-            reply_markup: keyboard,
-            disable_web_page_preview: true
+        // ارسال پیام با retry
+        await sendMessageWithRetry(chatId, welcomeMessage, {
+            reply_markup: keyboard
         });
 
-        console.log(`✅ پیام خوشآمدگویی برای ${user.first_name} ارسال شد`);
+        console.log(`✅ پیام برای ${user.first_name} ارسال شد`);
 
-        // اطلاع به کاربران آنلاین
+        // اطلاع به وب‌سوکت
         io.emit('new_user_joined', {
             userId: user.id,
             username: user.first_name,
-            telegramUsername: user.username,
-            timestamp: new Date(),
-            message: `کاربر جدید ${user.first_name} ربات را شروع کرد! 🎉`
-        });
-
-        // ارسال پیام تأیید
-        setTimeout(async () => {
-            await bot.sendMessage(chatId, 
-                `✅ <b>اطلاعات شما با موفقیت ثبت شد!</b>\n\n` +
-                `🌐 <b>آدرس داشبورد:</b>\n<code>https://wordlybot.xo.je</code>\n\n` +
-                `📊 می‌تونی همیشه از طریق دکمه "مشاهده داشبورد من" اطلاعاتت رو ببینی!`,
-                { parse_mode: 'HTML' }
-            );
-        }, 1000);
-
-    } catch (error) {
-        console.error('❌ خطا در پردازش /start:', error);
-        
-        // پیام خطای جایگزین
-        await bot.sendMessage(chatId,
-            `❌ متأسفانه خطایی رخ داد!\n\n` +
-            `لطفاً دوباره تلاش کنید یا با پشتیبانی تماس بگیرید.\n\n` +
-            `🌐 می‌تونی مستقیم به آدرس زیر بری:\n` +
-            `https://wordlybot.xo.je`,
-            { parse_mode: 'HTML' }
-        );
-    }
-});
-
-// هندلر دکمه‌های اینلاین
-bot.on('callback_query', async (callbackQuery) => {
-    const message = callbackQuery.message;
-    const user = callbackQuery.from;
-    const data = callbackQuery.data;
-
-    if (data === 'refresh_info') {
-        try {
-            const userInfo = userDatabase.get(user.id.toString());
-            
-            if (userInfo) {
-                const webAppUrl = `https://wordlybot.xo.je?startapp=${user.id}&ref=telegram_bot&refresh=true`;
-                
-                const updatedKeyboard = {
-                    inline_keyboard: [[
-                        {
-                            text: "🔄 بروزرسانی کردم - مشاهده داشبورد",
-                            web_app: { url: webAppUrl }
-                        }
-                    ]]
-                };
-
-                await bot.editMessageReplyMarkup(updatedKeyboard, {
-                    chat_id: message.chat.id,
-                    message_id: message.message_id
-                });
-
-                await bot.answerCallbackQuery(callbackQuery.id, {
-                    text: "✅ اطلاعات بروزرسانی شد! حالا روی دکمه کلیک کن"
-                });
-
-            }
-        } catch (error) {
-            console.error('Error handling callback:', error);
-            await bot.answerCallbackQuery(callbackQuery.id, {
-                text: "❌ خطا در بروزرسانی"
-            });
-        }
-    }
-});
-
-// هندلر پیام‌های معمولی
-bot.on('message', async (msg) => {
-    // فقط پیام‌های متنی که کامند نیستند
-    if (msg.text && !msg.text.startsWith('/')) {
-        const user = msg.from;
-        const chatId = msg.chat.id;
-        
-        console.log('💬 پیام معمولی:', {
-            from: user.first_name,
-            text: msg.text.substring(0, 100),
-            userId: user.id
-        });
-
-        // به‌روزرسانی آخرین فعالیت
-        const userInfo = userDatabase.get(user.id.toString());
-        if (userInfo) {
-            userInfo.last_activity = new Date();
-            userDatabase.set(user.id.toString(), userInfo);
-        }
-
-        // اطلاع به وب‌سوکت
-        io.emit('user_activity', {
-            userId: user.id,
-            username: user.first_name,
-            activity: 'message',
             timestamp: new Date()
         });
 
-        // پاسخ خودکار
-        if (msg.text.toLowerCase().includes('داشبورد') || msg.text.includes('dashboard')) {
-            const webAppUrl = `https://wordlybot.xo.je?startapp=${user.id}&ref=telegram_message`;
-            
+    } catch (error) {
+        console.error('❌ خطا در ارسال پیام:', error.message);
+        
+        // پیام خطای ساده
+        try {
             await bot.sendMessage(chatId,
-                `📱 <b>داشبورد شما آماده است!</b>\n\n` +
-                `روی لینک زیر کلیک کن یا از دکمه /start استفاده کن:\n` +
-                `🔗 <code>https://wordlybot.xo.je</code>`,
-                {
-                    parse_mode: 'HTML',
-                    reply_markup: {
-                        inline_keyboard: [[
-                            { text: "🚀 بازکردن داشبورد", web_app: { url: webAppUrl } }
-                        ]]
-                    }
-                }
+                `سلام ${user.first_name}! 👋\n\n` +
+                `ربات فعال شد.\n` +
+                `🌐 آدرس داشبورد: https://wordlybot.xo.je`
             );
+        } catch (fallbackError) {
+            console.error('❌ خطا در ارسال پیام جایگزین:', fallbackError.message);
         }
     }
 });
 
-// هندلر خطاها
+// هندلر پیام‌های ساده
+bot.on('message', async (msg) => {
+    if (msg.text && !msg.text.startsWith('/')) {
+        const user = msg.from;
+        
+        console.log('💬 پیام از:', user.first_name, '- متن:', msg.text.substring(0, 50));
+
+        // به‌روزرسانی فعالیت
+        const userInfo = userDatabase.get(user.id.toString());
+        if (userInfo) {
+            userInfo.last_activity = new Date();
+        }
+
+        // پاسخ به پیام‌های خاص
+        if (msg.text.includes('داشبورد') || msg.text.includes('dashboard')) {
+            try {
+                await sendMessageWithRetry(msg.chat.id,
+                    `📱 برای مشاهده داشبورد به این آدرس برید:\n` +
+                    `https://wordlybot.xo.je\n\n` +
+                    `یا از دستور /start استفاده کنید.`
+                );
+            } catch (error) {
+                console.log('خطا در پاسخ به پیام:', error.message);
+            }
+        }
+    }
+});
+
+// هندلر خطاهای تلگرام - ساده شده
 bot.on('polling_error', (error) => {
-    console.log('⚠️ خطای تلگرام:', error.code, error.message);
+    if (error.code === 'EFATAL' || error.code === 'ESOCKETTIMEDOUT') {
+        console.log('⚠️ خطای اتصال تلگرام - در حال ادامه کار...');
+    } else {
+        console.log('⚠️ خطای تلگرام:', error.code);
+    }
 });
 
-bot.on('error', (error) => {
-    console.log('❌ خطای ربات:', error.message);
+bot.on('webhook_error', (error) => {
+    console.log('⚠️ خطای Webhook:', error.message);
 });
 
-// تابع ارسال نوتیفیکیشن به کاربر
-async function sendUserNotification(userId, message) {
+// تابع بررسی سلامت بات
+async function checkBotHealth() {
     try {
-        await bot.sendMessage(userId, message, { parse_mode: 'HTML' });
-        console.log(`✅ نوتیفیکیشن ارسال شد به کاربر ${userId}`);
+        const me = await bot.getMe();
+        console.log('🤖 وضعیت بات:', me.first_name, '-', me.username);
+        return true;
     } catch (error) {
-        console.log(`❌ خطا در ارسال نوتیفیکیشن به ${userId}:`, error.message);
+        console.log('❌ بات به تلگرام متصل نیست:', error.message);
+        return false;
     }
 }
 
-// تابع بررسی کاربران آنلاین
-function getOnlineUsers() {
-    return Array.from(connectedSockets.values()).map(user => ({
-        id: user.id,
-        name: user.first_name,
-        username: user.username,
-        connectedAt: user.connectedAt
-    }));
-}
-
 // شروع سرور
-server.listen(PORT, () => {
-    console.log('='.repeat(60));
-    console.log('🚀 سرور Wordly Bot با موفقیت فعال شد!');
-    console.log(`📍 پورت: ${PORT}`);
-    console.log(`🤖 ربات: @WordlyGameBot`);
-    console.log(`🌐 فرانت‌اند: https://wordlybot.xo.je`);
-    console.log(`🔗 وب‌اپ: https://wordlybot.xo.je`);
-    console.log(`❤️ سلامت سرور: https://wordlygame.onrender.com/health`);
-    console.log(`📊 کاربران ثبت‌شده: ${userDatabase.size}`);
-    console.log('='.repeat(60));
+server.listen(PORT, async () => {
+    console.log('='.repeat(50));
+    console.log('🚀 سرور فعال شد روی پورت:', PORT);
     
-    // لاگ وضعیت هر 5 دقیقه
-    setInterval(() => {
-        console.log('📊 وضعیت فعلی:', {
-            usersOnline: connectedSockets.size,
-            totalUsers: userDatabase.size,
-            timestamp: new Date().toISOString()
-        });
-    }, 300000);
+    // بررسی سلامت بات
+    const isHealthy = await checkBotHealth();
+    if (isHealthy) {
+        console.log('✅ بات به تلگرام متصل است');
+    } else {
+        console.log('❌ بات به تلگرام متصل نیست - بررسی کنید');
+    }
+    
+    console.log('🌐 فرانت‌اند: https://wordlybot.xo.je');
+    console.log('='.repeat(50));
 });
 
-// هندلر خاموشی گراسیفول
+// تمیز کردن منابع
 process.on('SIGINT', () => {
-    console.log('\n🛑 در حال خاموش کردن سرور...');
-    console.log(`📊 جمع‌بندی: ${userDatabase.size} کاربر, ${connectedSockets.size} آنلاین`);
-    server.close(() => {
-        console.log('✅ سرور با موفقیت خاموش شد');
-        process.exit(0);
-    });
-});
-
-process.on('SIGTERM', () => {
-    console.log('\n🛑 درخواست خاموشی سرور...');
+    console.log('\n🛑 خاموش کردن سرور...');
+    console.log(`📊 جمع‌بندی: ${userDatabase.size} کاربر`);
     server.close(() => {
         console.log('✅ سرور خاموش شد');
         process.exit(0);
     });
 });
+
+// بررسی دوره‌ی سلامت
+setInterval(async () => {
+    await checkBotHealth();
+}, 300000); // هر 5 دقیقه
