@@ -28,22 +28,23 @@ async function wipeDatabase() {
         }
 
         console.log('🗑️ Starting to wipe database...');
+        console.log(`📊 Found ${result.rows.length} tables to clear`);
 
-        // Disable foreign key constraints temporarily
-        await client.query('SET session_replication_role = "replica"');
-
-        // Clear all tables
+        // Clear all tables using TRUNCATE with CASCADE to handle foreign keys
         for (const row of result.rows) {
             const tableName = row.tablename;
-            await client.query(`DELETE FROM "${tableName}"`);
-            console.log(`✅ Cleared table: ${tableName}`);
+            try {
+                await client.query(`TRUNCATE TABLE "${tableName}" CASCADE`);
+                console.log(`✅ Cleared table: ${tableName}`);
+            } catch (error) {
+                console.log(`⚠️ Could not TRUNCATE ${tableName}, trying DELETE...`);
+                // Fallback to DELETE if TRUNCATE fails
+                await client.query(`DELETE FROM "${tableName}"`);
+                console.log(`✅ Cleared table: ${tableName} (using DELETE)`);
+            }
         }
 
-        // Re-enable foreign key constraints
-        await client.query('SET session_replication_role = "origin"');
-
         console.log('🎉 Database wiped successfully!');
-        console.log(`📊 Cleared ${result.rows.length} tables`);
 
     } catch (error) {
         console.error('❌ Error wiping database:', error);
