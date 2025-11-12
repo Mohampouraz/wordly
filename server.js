@@ -1,140 +1,146 @@
-// تنظیمات
-const CONFIG = {
-    backendUrl: 'https://wordlygame.onrender.com'
-};
+require('dotenv').config();
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
+const TelegramBot = require('node-telegram-bot-api');
 
-// وضعیت اپلیکیشن
-const AppState = {
-    tg: null,
-    userData: null,
-    socket: null
-};
+const app = express();
+const server = http.createServer(app);
 
-// المنت‌های DOM
-const elements = {
-    preloader: document.getElementById('preloader'),
-    connectionStatus: document.getElementById('connectionStatus'),
-    
-    // اطلاعات کاربر
-    userFullName: document.getElementById('userFullName'),
-    userUsername: document.getElementById('userUsername'),
-    userId: document.getElementById('userId'),
-    userFirstName: document.getElementById('userFirstName'),
-    userLastName: document.getElementById('userLastName')
-};
+const io = socketIo(server, {
+    cors: {
+        origin: ["https://wordlybot.xo.je", "http://localhost:3000"],
+        methods: ["GET", "POST"]
+    }
+});
 
-// تابع دریافت پارامترهای URL
-function getUrlParams() {
-    const params = new URLSearchParams(window.location.search);
-    return {
-        tgWebAppStartParam: params.get('tgWebAppStartParam'),
-        userId: params.get('userId')
-    };
-}
+const PORT = process.env.PORT || 10000;
 
-// تابع اصلی راه‌اندازی Telegram Web App
-function initializeTelegramWebApp() {
-    try {
-        // بررسی آیا در محیط Telegram هستیم
-        if (window.Telegram && Telegram.WebApp) {
-            AppState.tg = Telegram.WebApp;
-            
-            // گسترش صفحه به fullscreen
-            AppState.tg.expand();
-            
-            // دریافت اطلاعات کاربر از Telegram
-            const user = AppState.tg.initDataUnsafe?.user;
-            
-            if (user) {
-                AppState.userData = user;
-                updateUserInterface(user);
-                connectWebSocket();
-                
-                console.log('✅ اطلاعات کاربر از Telegram دریافت شد:', user);
-                
-                // مخفی کردن preloader
-                setTimeout(() => {
-                    elements.preloader.classList.add('hidden');
-                }, 1000);
-                
-            } else {
-                throw new Error('اطلاعات کاربر در دسترس نیست');
-            }
-            
-        } else {
-            // اگر در محیط معمولی مرورگر هستیم
-            const urlParams = getUrlParams();
-            if (urlParams.tgWebAppStartParam) {
-                // استفاده از پارامتر Telegram
-                simulateUserData(urlParams.tgWebAppStartParam);
-            } else {
-                // حالت توسعه
-                simulateUserData();
-            }
-        }
+// Telegram Bot
+const BOT_TOKEN = "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+const bot = new TelegramBot(BOT_TOKEN, { 
+    polling: true 
+});
+
+// دیتابیس ساده
+const userDatabase = new Map();
+const connectedSockets = new Map();
+
+// Middleware
+app.use(express.json());
+
+// Routes
+app.get('/health', (req, res) => {
+    res.json({
+        status: '✅ سرور فعال',
+        usersOnline: connectedSockets.size,
+        totalUsers: userDatabase.size
+    });
+});
+
+// WebSocket
+io.on('connection', (socket) => {
+    console.log('🔗 کاربر متصل شد:', socket.id);
+
+    socket.on('user_connected', (userData) => {
+        const { id, first_name, username } = userData;
         
-    } catch (error) {
-        console.error('خطا در راه‌اندازی:', error);
-        simulateUserData();
-    }
-}
+        const userInfo = {
+            id,
+            first_name,
+            username,
+            socketId: socket.id,
+            connectedAt: new Date()
+        };
+        
+        connectedSockets.set(socket.id, userInfo);
+        userDatabase.set(id.toString(), userInfo);
 
-// تابع به‌روزرسانی رابط کاربری
-function updateUserInterface(user) {
-    elements.userFullName.textContent = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    elements.userUsername.textContent = user.username ? `@${user.username}` : 'بدون نام کاربری';
-    elements.userId.textContent = user.id || '---';
-    elements.userFirstName.textContent = user.first_name || '---';
-    elements.userLastName.textContent = user.last_name || '---';
-    
-    elements.connectionStatus.innerHTML = '<span class="status-dot"></span> متصل به تلگرام';
-    elements.connectionStatus.classList.add('connected');
-}
+        console.log(`👤 کاربر آنلاین: ${first_name}`);
 
-// تابع شبیه‌سازی داده (برای توسعه)
-function simulateUserData(userId = null) {
-    const demoUser = {
-        id: userId || Math.floor(100000000 + Math.random() * 900000000),
-        first_name: 'کاربر',
-        last_name: 'نمونه',
-        username: 'demo_user'
-    };
-    
-    AppState.userData = demoUser;
-    updateUserInterface(demoUser);
-    connectWebSocket();
-    
-    setTimeout(() => {
-        elements.preloader.classList.add('hidden');
-    }, 1500);
-}
+        // ارسال اطلاعات به کاربر
+        socket.emit('user_data', {
+            success: true,
+            user: userInfo
+        });
 
-// تابع اتصال به WebSocket
-function connectWebSocket() {
+        io.emit('users_online', { 
+            count: connectedSockets.size
+        });
+    });
+
+    socket.on('disconnect', () => {
+        const user = connectedSockets.get(socket.id);
+        if (user) {
+            console.log(`👤 کاربر قطع شد: ${user.first_name}`);
+            connectedSockets.delete(socket.id);
+            io.emit('users_online', { count: connectedSockets.size });
+        }
+    });
+});
+
+// هندلر /start - با Web App
+bot.onText(/\/start/, async (msg) => {
+    const chatId = msg.chat.id;
+    const user = msg.from;
+    
+    console.log('🎯 /start از:', user.first_name);
+
     try {
-        AppState.socket = io(CONFIG.backendUrl);
+        // ذخیره کاربر
+        const userInfo = {
+            id: user.id,
+            first_name: user.first_name,
+            last_name: user.last_name || '',
+            username: user.username || '',
+            language_code: user.language_code || 'fa',
+            joined_at: new Date()
+        };
+        
+        userDatabase.set(user.id.toString(), userInfo);
 
-        AppState.socket.on('connect', () => {
-            console.log('✅ متصل به سرور');
-            
-            if (AppState.userData) {
-                AppState.socket.emit('user_connected', AppState.userData);
-            }
+        // ایجاد دکمه Web App که صفحه رو مستقیماً باز میکنه
+        const webAppUrl = `https://wordlybot.xo.je?tgWebAppStartParam=${user.id}`;
+        
+        const keyboard = {
+            inline_keyboard: [
+                [{
+                    text: "📱 بازکردن داشبورد من",
+                    web_app: { url: webAppUrl }
+                }]
+            ]
+        };
+
+        // پیام کوتاه
+        const welcomeMessage = `👋 سلام ${user.first_name}!
+
+برای مشاهده داشبورد کاربری، روی دکمه زیر کلیک کنید:`;
+
+        await bot.sendMessage(chatId, welcomeMessage, {
+            reply_markup: keyboard
         });
 
-        AppState.socket.on('user_data', (data) => {
-            if (data.success) {
-                console.log('✅ اطلاعات کاربر در سرور ذخیره شد');
-            }
-        });
+        console.log(`✅ دکمه Web App برای ${user.first_name} ارسال شد`);
 
     } catch (error) {
-        console.error('❌ خطا در اتصال به سرور:', error);
+        console.error('❌ خطا:', error);
+        await bot.sendMessage(chatId, 
+            `سلام ${user.first_name}! 👋\n\n` +
+            `🌐 برای مشاهده داشبورد به آدرس زیر برید:\n` +
+            `https://wordlybot.xo.je`
+        );
     }
-}
+});
 
-// راه‌اندازی برنامه
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 راه‌اندازی Telegram Web App...');
-    initializeTelegramWebApp();
+// هندلر پیام‌ها
+bot.on('message', async (msg) => {
+    if (msg.text && !msg.text.startsWith('/')) {
+        const user = msg.from;
+        console.log('💬 پیام از:', user.first_name);
+    }
+});
+
+// شروع سرور
+server.listen(PORT, () => {
+    console.log('🚀 سرور فعال روی پورت:', PORT);
 });
