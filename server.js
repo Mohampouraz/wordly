@@ -8,6 +8,7 @@ const app = express();
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Database connection
 const pool = new Pool({
@@ -21,109 +22,195 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Telegram Bot Setup
 const TelegramBot = require('node-telegram-bot-api');
-const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// Set webhook (for production)
-if (process.env.NODE_ENV === 'production') {
-  bot.setWebHook(`${WEB_APP_URL}/bot${TELEGRAM_TOKEN}`);
+// Use polling in development, webhook in production
+let bot;
+if (NODE_ENV === 'production') {
+  bot = new TelegramBot(TELEGRAM_TOKEN);
+  
+  const setupWebhook = async () => {
+    try {
+      await bot.deleteWebHook();
+      console.log('Existing webhook deleted');
+      
+      await bot.setWebHook(`${WEB_APP_URL}/bot${TELEGRAM_TOKEN}`);
+      console.log('Webhook set successfully');
+    } catch (error) {
+      console.error('Error setting webhook:', error.message);
+      bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+      setupBotHandlers();
+    }
+  };
+  
+  setupWebhook();
+} else {
+  bot = new TelegramBot(TELEGRAM_TOKEN, { 
+    polling: { 
+      interval: 300,
+      autoStart: true
+    } 
+  });
+  console.log('Bot started in polling mode (development)');
 }
 
-// Handle /start command
-bot.onText(/\/start/, (msg) => {
-  const chatId = msg.chat.id;
-  const firstName = msg.from.first_name;
-  
-  const webAppUrl = `${WEB_APP_URL}?startapp=${chatId}`;
-  
-  const keyboard = {
-    inline_keyboard: [[
-      {
-        text: '🎮 شروع بازی',
-        web_app: { url: webAppUrl }
-      }
-    ]]
-  };
+// Setup bot handlers
+function setupBotHandlers() {
+  // Handle /start command
+  bot.onText(/\/start/, async (msg) => {
+    const chatId = msg.chat.id;
+    const user = msg.from;
+    
+    // Save user to database
+    try {
+      await saveOrUpdateUser({
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name || '',
+        username: user.username,
+        photo_url: null // Telegram doesn't provide photo_url in basic messages
+      });
+    } catch (error) {
+      console.error('Error saving user:', error);
+    }
+    
+    const firstName = user.first_name;
+    const webAppUrl = `${WEB_APP_URL}?tg=${chatId}`;
+    
+    const keyboard = {
+      inline_keyboard: [[
+        {
+          text: '🎮 شروع بازی',
+          web_app: { url: webAppUrl }
+        }
+      ]]
+    };
 
-  bot.sendMessage(chatId, `سلام ${firstName}!
+    bot.sendMessage(chatId, `سلام ${firstName} عزیز! 🌟
   
-به بازی WordlyBot خوش آمدید! 🎉
+به بازی WordlyBot خوش آمدید! 
 
-در این بازی می‌توانید:
+🎯 در این بازی می‌توانید:
 • بازی انفرادی ایجاد کنید
 • با دوستان رقابت کنید  
 • در لیگ شرکت کنید
 
 برای شروع بازی روی دکمه زیر کلیک کنید:`, {
-    reply_markup: keyboard
+      reply_markup: keyboard
+    }).catch(error => {
+      console.error('Error sending start message:', error.message);
+    });
   });
-});
 
-// Handle /help command
-bot.onText(/\/help/, (msg) => {
-  const chatId = msg.chat.id;
-  
-  bot.sendMessage(chatId, `راهنمای بازی WordlyBot:
+  // Handle /help command
+  bot.onText(/\/help/, (msg) => {
+    const chatId = msg.chat.id;
+    
+    bot.sendMessage(chatId, `🎮 راهنمای بازی WordlyBot:
 
 🔸 بازی انفرادی: کلمه را خودتان انتخاب می‌کنید
-🔸 بازی دو نفره: با دوستان رقابت می‌کنید
+🔸 بازی دو نفره: با دوستان رقابت می‌کنید  
 🔸 حالت لیگ: با 10 بازیکن رقابت می‌کنید
 
-برای شروع از دستور /start استفاده کنید.`);
-});
+🏆 امتیازدهی:
+• حدس صحیح: +5 امتیاز
+• حدس غلط: -2 امتیاز
+• راهنمایی: -5 امتیاز
+• برنده شدن: +20 امتیاز
 
-// Handle /ranking command
-bot.onText(/\/ranking/, (msg) => {
-  const chatId = msg.chat.id;
-  const webAppUrl = `${WEB_APP_URL}?startapp=${chatId}&view=ranking`;
-  
-  const keyboard = {
-    inline_keyboard: [[
-      {
-        text: '🏆 مشاهده رتبه‌بندی',
-        web_app: { url: webAppUrl }
-      }
-    ]]
-  };
-
-  bot.sendMessage(chatId, 'برای مشاهده رتبه‌بندی بازیکنان، روی دکمه زیر کلیک کنید:', {
-    reply_markup: keyboard
+برای شروع از دستور /start استفاده کنید.`).catch(error => {
+      console.error('Error sending help message:', error.message);
+    });
   });
-});
 
-// Webhook endpoint for Telegram
-app.post(`/bot${TELEGRAM_TOKEN}`, (req, res) => {
-  bot.processUpdate(req.body);
-  res.sendStatus(200);
-});
+  // Handle /ranking command
+  bot.onText(/\/ranking/, (msg) => {
+    const chatId = msg.chat.id;
+    const webAppUrl = `${WEB_APP_URL}?tg=${chatId}&view=ranking`;
+    
+    const keyboard = {
+      inline_keyboard: [[
+        {
+          text: '🏆 مشاهده رتبه‌بندی',
+          web_app: { url: webAppUrl }
+        }
+      ]]
+    };
+
+    bot.sendMessage(chatId, 'برای مشاهده رتبه‌بندی بازیکنان، روی دکمه زیر کلیک کنید:', {
+      reply_markup: keyboard
+    }).catch(error => {
+      console.error('Error sending ranking message:', error.message);
+    });
+  });
+
+  // Handle any other messages
+  bot.on('message', (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+    
+    if (text && !text.startsWith('/')) {
+      bot.sendMessage(chatId, 'برای شروع بازی از دستور /start استفاده کنید. 😊').catch(error => {
+        console.error('Error sending message:', error.message);
+      });
+    }
+  });
+
+  console.log('Bot handlers setup completed');
+}
+
+// Initialize bot handlers
+setupBotHandlers();
+
+// Webhook endpoint for Telegram (production only)
+if (NODE_ENV === 'production') {
+  app.post(`/bot${TELEGRAM_TOKEN}`, (req, res) => {
+    try {
+      bot.processUpdate(req.body);
+      res.sendStatus(200);
+    } catch (error) {
+      console.error('Error processing webhook update:', error);
+      res.sendStatus(200);
+    }
+  });
+}
 
 // Routes
 app.get('/', (req, res) => {
-  const startapp = req.query.startapp;
-  const view = req.query.view;
-  
-  if (startapp) {
-    // Set user session or redirect to game with user data
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  } else {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API to get user data by Telegram ID
+app.get('/api/user/:telegramId', async (req, res) => {
+  try {
+    const { telegramId } = req.params;
+    
+    const result = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [telegramId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    res.json({ user: result.rows[0] });
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// API endpoint to get user data from Telegram
+// API endpoint to get user data from Telegram WebApp
 app.post('/api/telegram-user', async (req, res) => {
   const { initData } = req.body;
   
   try {
-    // Verify Telegram WebApp data
-    const isValid = verifyTelegramData(initData);
-    if (!isValid) {
-      return res.status(401).json({ error: 'Invalid Telegram data' });
-    }
-    
-    // Parse user data from initData
     const userData = parseInitData(initData);
     
-    // Save or update user in database
+    if (!userData) {
+      return res.status(400).json({ error: 'Invalid user data' });
+    }
+    
     const user = await saveOrUpdateUser(userData);
     
     res.json({ user });
@@ -133,28 +220,36 @@ app.post('/api/telegram-user', async (req, res) => {
   }
 });
 
-// Verify Telegram WebApp data
-function verifyTelegramData(initData) {
-  // Implementation of Telegram data verification
-  // This is a simplified version - in production use proper validation
-  return true; // For demo purposes
-}
-
-// Parse initData from Telegram
+// Parse initData from Telegram WebApp
 function parseInitData(initData) {
-  const params = new URLSearchParams(initData);
-  const userStr = params.get('user');
-  
-  if (userStr) {
-    return JSON.parse(userStr);
+  try {
+    const params = new URLSearchParams(initData);
+    const userStr = params.get('user');
+    
+    if (userStr) {
+      const userData = JSON.parse(userStr);
+      
+      // Ensure all required fields are present
+      return {
+        id: userData.id,
+        first_name: userData.first_name || '',
+        last_name: userData.last_name || '',
+        username: userData.username || '',
+        photo_url: userData.photo_url || null
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error parsing initData:', error);
+    return null;
   }
-  
-  return null;
 }
 
 // Save or update user in database
 async function saveOrUpdateUser(userData) {
   const { id, first_name, last_name, username, photo_url } = userData;
+  const fullName = `${first_name} ${last_name}`.trim();
   
   try {
     const result = await pool.query(
@@ -167,7 +262,7 @@ async function saveOrUpdateUser(userData) {
          avatar_url = EXCLUDED.avatar_url,
          last_seen = NOW()
        RETURNING *`,
-      [id, username, `${first_name} ${last_name || ''}`.trim(), photo_url]
+      [id, username, fullName, photo_url]
     );
     
     return result.rows[0];
@@ -181,10 +276,11 @@ async function saveOrUpdateUser(userData) {
 app.get('/api/games', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT g.*, u.username as creator_name 
+      SELECT g.*, u.full_name as creator_name 
       FROM games g 
       JOIN users u ON g.creator_id = u.id 
       WHERE g.status = 'active'
+      ORDER BY g.created_at DESC
     `);
     res.json(result.rows);
   } catch (error) {
@@ -205,7 +301,7 @@ app.post('/api/games', async (req, res) => {
       `INSERT INTO games (code, word, category, mode, creator_id, max_players, status) 
        VALUES ($1, $2, $3, $4, $5, $6, 'active') 
        RETURNING *`,
-      [code, word, category, mode, creatorId, maxPlayers]
+      [code, word, category, mode, creatorId, maxPlayers || 2]
     );
     
     res.json(result.rows[0]);
@@ -215,95 +311,16 @@ app.post('/api/games', async (req, res) => {
   }
 });
 
-// Join a game
-app.post('/api/games/:id/join', async (req, res) => {
-  const gameId = req.params.id;
-  const { userId } = req.body;
-  
-  try {
-    // Check if game exists and has space
-    const gameResult = await pool.query(
-      'SELECT * FROM games WHERE id = $1 AND status = $2',
-      [gameId, 'active']
-    );
-    
-    if (gameResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
-    
-    const game = gameResult.rows[0];
-    
-    // Check if user is already in the game
-    const playerResult = await pool.query(
-      'SELECT * FROM game_players WHERE game_id = $1 AND user_id = $2',
-      [gameId, userId]
-    );
-    
-    if (playerResult.rows.length > 0) {
-      return res.status(400).json({ error: 'User already in game' });
-    }
-    
-    // Check if game is full
-    const playerCountResult = await pool.query(
-      'SELECT COUNT(*) FROM game_players WHERE game_id = $1',
-      [gameId]
-    );
-    
-    const playerCount = parseInt(playerCountResult.rows[0].count);
-    if (playerCount >= game.max_players) {
-      return res.status(400).json({ error: 'Game is full' });
-    }
-    
-    // Add player to game
-    await pool.query(
-      'INSERT INTO game_players (game_id, user_id) VALUES ($1, $2)',
-      [gameId, userId]
-    );
-    
-    res.json({ message: 'Joined game successfully' });
-  } catch (error) {
-    console.error('Error joining game:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: NODE_ENV 
+  });
 });
 
-// Get user ranking
-app.get('/api/ranking', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT u.id, u.username, u.full_name, COALESCE(SUM(g.score), 0) as total_score
-      FROM users u
-      LEFT JOIN game_results g ON u.id = g.user_id
-      GROUP BY u.id, u.username, u.full_name
-      ORDER BY total_score DESC
-      LIMIT 100
-    `);
-    
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching ranking:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Get online players
-app.get('/api/players/online', async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT DISTINCT u.id, u.username, u.full_name, u.avatar_url
-      FROM users u
-      JOIN sessions s ON u.id = s.user_id
-      WHERE s.expires_at > NOW()
-    `);
-    
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching online players:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// Initialize database tables
+// Initialize database tables (clean setup)
 async function initializeDatabase() {
   try {
     // Create users table
@@ -311,7 +328,7 @@ async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS users (
         id BIGINT PRIMARY KEY,
         username VARCHAR(255),
-        full_name VARCHAR(255),
+        full_name VARCHAR(255) NOT NULL,
         avatar_url TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
         last_seen TIMESTAMP DEFAULT NOW()
@@ -358,18 +375,14 @@ async function initializeDatabase() {
       )
     `);
     
-    // Create sessions table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS sessions (
-        id SERIAL PRIMARY KEY,
-        user_id BIGINT REFERENCES users(id),
-        session_token VARCHAR(255) UNIQUE NOT NULL,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-    
     console.log('Database tables initialized successfully');
+    
+    // Clean up any test data (optional - uncomment if you want to start fresh)
+    // await pool.query('DELETE FROM game_results WHERE 1=1');
+    // await pool.query('DELETE FROM game_players WHERE 1=1');
+    // await pool.query('DELETE FROM games WHERE 1=1');
+    // console.log('Test data cleaned up');
+    
   } catch (error) {
     console.error('Error initializing database:', error);
   }
@@ -380,18 +393,14 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Web app URL: ${WEB_APP_URL}`);
-  console.log(`Telegram Bot Token: ${TELEGRAM_TOKEN.substring(0, 10)}...`);
+  console.log(`Environment: ${NODE_ENV}`);
   
   // Initialize database
   await initializeDatabase();
   
-  // Set webhook in production
-  if (process.env.NODE_ENV === 'production') {
-    try {
-      await bot.setWebHook(`${WEB_APP_URL}/bot${TELEGRAM_TOKEN}`);
-      console.log('Webhook set successfully');
-    } catch (error) {
-      console.error('Error setting webhook:', error);
-    }
+  if (NODE_ENV === 'production') {
+    console.log('Running in production mode with webhook');
+  } else {
+    console.log('Running in development mode with polling');
   }
 });
