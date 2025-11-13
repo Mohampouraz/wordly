@@ -1,178 +1,156 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
-const crypto = require('crypto');
 const app = express();
 
 // Environment variables
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
-const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Database connection
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  ssl: { rejectUnauthorized: false }
 });
 
 // Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Telegram Bot Setup
+// Telegram Bot Setup - ONLY POLLING
 const TelegramBot = require('node-telegram-bot-api');
-
-// Use polling in development, webhook in production
-let bot;
-if (NODE_ENV === 'production') {
-  bot = new TelegramBot(TELEGRAM_TOKEN);
-  
-  const setupWebhook = async () => {
-    try {
-      await bot.deleteWebHook();
-      console.log('Existing webhook deleted');
-      
-      await bot.setWebHook(`${WEB_APP_URL}/bot${TELEGRAM_TOKEN}`);
-      console.log('Webhook set successfully');
-    } catch (error) {
-      console.error('Error setting webhook:', error.message);
-      bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
-      setupBotHandlers();
+const bot = new TelegramBot(TELEGRAM_TOKEN, { 
+  polling: {
+    interval: 300,
+    autoStart: true,
+    params: {
+      timeout: 10
     }
+  }
+});
+
+console.log('🤖 Telegram Bot Started with Polling...');
+
+// Handle /start command
+bot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
+  const user = msg.from;
+  
+  console.log(`📨 /start command from: ${user.first_name} (${user.id})`);
+  
+  // Save user to database
+  try {
+    await saveOrUpdateUser({
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name || '',
+      username: user.username,
+      photo_url: null
+    });
+    console.log(`✅ User saved: ${user.first_name}`);
+  } catch (error) {
+    console.error('❌ Error saving user:', error);
+  }
+  
+  const firstName = user.first_name;
+  const webAppUrl = `${WEB_APP_URL}?tg=${chatId}`;
+  
+  const keyboard = {
+    inline_keyboard: [[
+      {
+        text: '🎮 شروع بازی WordlyBot',
+        web_app: { url: webAppUrl }
+      }
+    ]]
   };
+
+  try {
+    await bot.sendMessage(chatId, `سلام ${firstName} عزیز! 🌟
+
+به **WordlyBot** خوش آمدید! 
+
+🎯 **امکانات بازی:**
+• 🎮 بازی انفرادی
+• 👥 بازی دو نفره  
+• 🏆 حالت لیگ
+
+💎 **برای شروع بازی روی دکمه زیر کلیک کنید:**`, {
+      reply_markup: keyboard,
+      parse_mode: 'Markdown'
+    });
+    console.log(`✅ Start message sent to: ${user.first_name}`);
+  } catch (error) {
+    console.error('❌ Error sending start message:', error.message);
+  }
+});
+
+// Handle /help command
+bot.onText(/\/help/, (msg) => {
+  const chatId = msg.chat.id;
   
-  setupWebhook();
-} else {
-  bot = new TelegramBot(TELEGRAM_TOKEN, { 
-    polling: { 
-      interval: 300,
-      autoStart: true
-    } 
+  bot.sendMessage(chatId, `🎮 *راهنمای WordlyBot*
+
+🔸 *بازی انفرادی:* کلمه را خودتان انتخاب می‌کنید
+🔸 *بازی دو نفره:* با دوستان رقابت می‌کنید  
+🔸 *حالت لیگ:* با 10 بازیکن رقابت می‌کنید
+
+🏆 *سیستم امتیازدهی:*
+• ✅ حدس صحیح: +5 امتیاز
+• ❌ حدس غلط: -2 امتیاز  
+• 💡 راهنمایی: -5 امتیاز
+• 🎉 برنده شدن: +20 امتیاز
+
+برای شروع بازی از دستور /start استفاده کنید.`, {
+    parse_mode: 'Markdown'
+  }).catch(error => {
+    console.error('Error sending help message:', error.message);
   });
-  console.log('Bot started in polling mode (development)');
-}
+});
 
-// Setup bot handlers
-function setupBotHandlers() {
-  // Handle /start command
-  bot.onText(/\/start/, async (msg) => {
-    const chatId = msg.chat.id;
-    const user = msg.from;
-    
-    // Save user to database
-    try {
-      await saveOrUpdateUser({
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name || '',
-        username: user.username,
-        photo_url: null // Telegram doesn't provide photo_url in basic messages
-      });
-    } catch (error) {
-      console.error('Error saving user:', error);
-    }
-    
-    const firstName = user.first_name;
-    const webAppUrl = `${WEB_APP_URL}?tg=${chatId}`;
-    
-    const keyboard = {
-      inline_keyboard: [[
-        {
-          text: '🎮 شروع بازی',
-          web_app: { url: webAppUrl }
-        }
-      ]]
-    };
-
-    bot.sendMessage(chatId, `سلام ${firstName} عزیز! 🌟
+// Handle /ranking command
+bot.onText(/\/ranking/, (msg) => {
+  const chatId = msg.chat.id;
+  const webAppUrl = `${WEB_APP_URL}?tg=${chatId}&view=ranking`;
   
-به بازی WordlyBot خوش آمدید! 
+  const keyboard = {
+    inline_keyboard: [[
+      {
+        text: '🏆 مشاهده رتبه‌بندی',
+        web_app: { url: webAppUrl }
+      }
+    ]]
+  };
 
-🎯 در این بازی می‌توانید:
-• بازی انفرادی ایجاد کنید
-• با دوستان رقابت کنید  
-• در لیگ شرکت کنید
+  bot.sendMessage(chatId, 'برای مشاهده رتبه‌بندی بازیکنان، روی دکمه زیر کلیک کنید:', {
+    reply_markup: keyboard
+  }).catch(error => {
+    console.error('Error sending ranking message:', error.message);
+  });
+});
 
-برای شروع بازی روی دکمه زیر کلیک کنید:`, {
-      reply_markup: keyboard
-    }).catch(error => {
-      console.error('Error sending start message:', error.message);
+// Handle any other messages
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  const text = msg.text;
+  
+  if (text && !text.startsWith('/')) {
+    bot.sendMessage(chatId, `برای شروع بازی از دستور /start استفاده کنید. 😊
+
+اگر مشکلی دارید، از /help کمک بگیرید.`).catch(error => {
+      console.error('Error sending message:', error.message);
     });
-  });
+  }
+});
 
-  // Handle /help command
-  bot.onText(/\/help/, (msg) => {
-    const chatId = msg.chat.id;
-    
-    bot.sendMessage(chatId, `🎮 راهنمای بازی WordlyBot:
+// Bot error handling
+bot.on('error', (error) => {
+  console.error('🤖 Bot Error:', error);
+});
 
-🔸 بازی انفرادی: کلمه را خودتان انتخاب می‌کنید
-🔸 بازی دو نفره: با دوستان رقابت می‌کنید  
-🔸 حالت لیگ: با 10 بازیکن رقابت می‌کنید
-
-🏆 امتیازدهی:
-• حدس صحیح: +5 امتیاز
-• حدس غلط: -2 امتیاز
-• راهنمایی: -5 امتیاز
-• برنده شدن: +20 امتیاز
-
-برای شروع از دستور /start استفاده کنید.`).catch(error => {
-      console.error('Error sending help message:', error.message);
-    });
-  });
-
-  // Handle /ranking command
-  bot.onText(/\/ranking/, (msg) => {
-    const chatId = msg.chat.id;
-    const webAppUrl = `${WEB_APP_URL}?tg=${chatId}&view=ranking`;
-    
-    const keyboard = {
-      inline_keyboard: [[
-        {
-          text: '🏆 مشاهده رتبه‌بندی',
-          web_app: { url: webAppUrl }
-        }
-      ]]
-    };
-
-    bot.sendMessage(chatId, 'برای مشاهده رتبه‌بندی بازیکنان، روی دکمه زیر کلیک کنید:', {
-      reply_markup: keyboard
-    }).catch(error => {
-      console.error('Error sending ranking message:', error.message);
-    });
-  });
-
-  // Handle any other messages
-  bot.on('message', (msg) => {
-    const chatId = msg.chat.id;
-    const text = msg.text;
-    
-    if (text && !text.startsWith('/')) {
-      bot.sendMessage(chatId, 'برای شروع بازی از دستور /start استفاده کنید. 😊').catch(error => {
-        console.error('Error sending message:', error.message);
-      });
-    }
-  });
-
-  console.log('Bot handlers setup completed');
-}
-
-// Initialize bot handlers
-setupBotHandlers();
-
-// Webhook endpoint for Telegram (production only)
-if (NODE_ENV === 'production') {
-  app.post(`/bot${TELEGRAM_TOKEN}`, (req, res) => {
-    try {
-      bot.processUpdate(req.body);
-      res.sendStatus(200);
-    } catch (error) {
-      console.error('Error processing webhook update:', error);
-      res.sendStatus(200);
-    }
-  });
-}
+bot.on('polling_error', (error) => {
+  console.error('🤖 Polling Error:', error);
+});
 
 // Routes
 app.get('/', (req, res) => {
@@ -229,7 +207,6 @@ function parseInitData(initData) {
     if (userStr) {
       const userData = JSON.parse(userStr);
       
-      // Ensure all required fields are present
       return {
         id: userData.id,
         first_name: userData.first_name || '',
@@ -316,11 +293,28 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: NODE_ENV 
+    message: 'WordlyBot Server is running!'
   });
 });
 
-// Initialize database tables (clean setup)
+// Test bot endpoint
+app.get('/test-bot', async (req, res) => {
+  try {
+    const botInfo = await bot.getMe();
+    res.json({
+      bot_working: true,
+      bot_username: botInfo.username,
+      bot_name: `${botInfo.first_name} ${botInfo.last_name || ''}`
+    });
+  } catch (error) {
+    res.json({
+      bot_working: false,
+      error: error.message
+    });
+  }
+});
+
+// Initialize database tables
 async function initializeDatabase() {
   try {
     // Create users table
@@ -350,57 +344,31 @@ async function initializeDatabase() {
       )
     `);
     
-    // Create game_players table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS game_players (
-        id SERIAL PRIMARY KEY,
-        game_id INTEGER REFERENCES games(id),
-        user_id BIGINT REFERENCES users(id),
-        joined_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(game_id, user_id)
-      )
-    `);
-    
-    // Create game_results table
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS game_results (
-        id SERIAL PRIMARY KEY,
-        game_id INTEGER REFERENCES games(id),
-        user_id BIGINT REFERENCES users(id),
-        score INTEGER DEFAULT 0,
-        time_taken INTEGER DEFAULT 0,
-        correct_guesses INTEGER DEFAULT 0,
-        total_guesses INTEGER DEFAULT 0,
-        completed_at TIMESTAMP DEFAULT NOW()
-      )
-    `);
-    
-    console.log('Database tables initialized successfully');
-    
-    // Clean up any test data (optional - uncomment if you want to start fresh)
-    // await pool.query('DELETE FROM game_results WHERE 1=1');
-    // await pool.query('DELETE FROM game_players WHERE 1=1');
-    // await pool.query('DELETE FROM games WHERE 1=1');
-    // console.log('Test data cleaned up');
-    
+    console.log('✅ Database tables initialized successfully');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('❌ Error initializing database:', error);
   }
 }
 
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Web app URL: ${WEB_APP_URL}`);
-  console.log(`Environment: ${NODE_ENV}`);
+  console.log('🚀 WordlyBot Server Starting...');
+  console.log(`📍 Port: ${PORT}`);
+  console.log(`🌐 Web App URL: ${WEB_APP_URL}`);
+  console.log(`🤖 Bot Token: ${TELEGRAM_TOKEN.substring(0, 10)}...`);
+  console.log('📊 Initializing database...');
   
   // Initialize database
   await initializeDatabase();
   
-  if (NODE_ENV === 'production') {
-    console.log('Running in production mode with webhook');
-  } else {
-    console.log('Running in development mode with polling');
-  }
+  console.log('✅ Server is ready!');
+  console.log('📨 Bot is listening for /start commands...');
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('🛑 Shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
 });
