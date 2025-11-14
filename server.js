@@ -1,14 +1,15 @@
-// server.js (Polling Implementation)
+// server.js (Polling Implementation with DB Fix)
 const express = require('express');
 const { Telegraf } = require('telegraf');
 const { Client } = require('pg');
 const crypto = require('crypto');
-const cors = require('cors'); // Needed for cross-origin polling requests
+const cors = require('cors');
 
 // --- پیکربندی محیطی (Environment Configuration) ---
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
+// توجه: لطفاً این مقادیر را با مقادیر واقعی خود در سرور جایگزین کنید.
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "YOUR_TELEGRAM_BOT_TOKEN_HERE"; 
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; 
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://user:password@host:port/database"; 
 const PORT = process.env.PORT || 3000;
 
 // 1. تنظیم ربات تلگرام (Telegraf Setup)
@@ -17,9 +18,9 @@ const app = express();
 
 // Middlewares
 app.use(express.json());
-// CORS is critical for the polling request from wordlybot.xo.je to wordlygame.onrender.com
+// CORS برای اجازه دادن به درخواست‌های Polling از Mini App به سرور لازم است
 app.use(cors({
-    origin: WEB_APP_URL, // Allow requests only from the Telegram Mini App origin
+    origin: WEB_APP_URL, // اجازه درخواست فقط از دامنه Mini App
     methods: ['POST'],
 }));
 
@@ -27,9 +28,9 @@ app.use(cors({
 // --- Polling State Management: Global Event Log ---
 // ----------------------------------------------------
 let eventCounter = 0;
-// Structure: { id: number, type: string, username: string, timestamp: number }
+// ساختار: { id: number, type: string, username: string, userId: string, timestamp: number }
 const eventLog = []; 
-// To track which users have joined *during this server run* to avoid re-broadcasting
+// برای ردیابی کاربرانی که در این اجرای سرور متصل شده‌اند
 const usersJoinedThisSession = new Set(); 
 
 /**
@@ -53,12 +54,18 @@ function addEvent(type, username, userId) {
 }
 
 // 2. تنظیم دیتابیس PostgreSQL
-const pgClient = new Client({ connectionString: DATABASE_URL });
+const pgClient = new Client({ 
+    connectionString: DATABASE_URL,
+    // FIX: تنظیمات SSL برای رفع خطای "SSL/TLS required"
+    ssl: {
+        rejectUnauthorized: false // اجازه استفاده از گواهینامه‌های خودامضا (رایج در پلتفرم‌های ابری)
+    }
+});
 
 async function connectDb() {
     try {
         await pgClient.connect();
-        console.log("PostgreSQL connected successfully.");
+        console.log("PostgreSQL connected successfully (with SSL)."); // Added confirmation
     } catch (err) {
         console.error("Database connection error:", err.message);
     }
@@ -109,7 +116,6 @@ function validateInitData(initData) {
         console.log('--- AUTHENTICATION FAILURE DEBUG ---');
         console.log(`Expected Hash: ${hash}`);
         console.log(`Calculated Hash: ${calculatedHash}`);
-        // Log Data String for better debugging
         console.log(`Data String: ${dataCheckString.replace(/\n/g, ' | ')}`);
         console.log('------------------------------------');
     }
