@@ -5,14 +5,16 @@ const { Pool } = require('pg');
 const { Telegraf } = require('telegraf'); 
 
 // ** مشخصات محیطی **
+// توجه: در محیط Production واقعی، این مقادیر باید از طریق متغیرهای محیطی (مانند Render) تنظیم شوند.
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; // آدرس فرانت‌اند
+const SERVER_HOST_URL = process.env.SERVER_HOST_URL || "https://wordlygame.onrender.com"; // آدرس سرور Render برای Webhook
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5";
 const PORT = process.env.PORT || 10000;
 
 const app = express();
 const bot = new Telegraf(TELEGRAM_TOKEN);
-const IS_PRODUCTION = process.env.NODE_ENV === 'production' && WEB_APP_URL;
+const IS_PRODUCTION = process.env.NODE_ENV === 'production' && SERVER_HOST_URL;
 
 // --- تنظیمات پایگاه داده ---
 const pool = new Pool({
@@ -25,19 +27,17 @@ const pool = new Pool({
 // --- تنظیمات Express ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// ارائه فایل‌های فرانت‌اند از پوشه 'public'
 app.use(express.static(path.join(__dirname, 'public'))); 
 
 
 // =========================================================
-//                   DATABASE LOGIC
+//                   DATABASE & UTILS LOGIC
 // =========================================================
 
 async function initializeDatabase() {
     try {
         const client = await pool.connect();
         
-        // 1. جدول کلمات
         const createWordsTable = `
             CREATE TABLE IF NOT EXISTS words (
                 id SERIAL PRIMARY KEY,
@@ -47,11 +47,10 @@ async function initializeDatabase() {
         `;
         await client.query(createWordsTable);
         
-        // 2. جدول بازی‌ها
         const createGamesTable = `
             CREATE TABLE IF NOT EXISTS games (
                 id SERIAL PRIMARY KEY,
-                user_id BIGINT NOT NULL UNIQUE, -- کاربر فقط یک بازی فعال دارد
+                user_id BIGINT NOT NULL UNIQUE, 
                 target_word TEXT NOT NULL,
                 category TEXT NOT NULL,
                 guessed_letters JSONB DEFAULT '[]'::jsonb,
@@ -62,7 +61,6 @@ async function initializeDatabase() {
         `;
         await client.query(createGamesTable);
 
-        // 3. در صورت خالی بودن، کلمات پیش‌فرض را اضافه کنید
         const checkWords = await client.query('SELECT COUNT(*) FROM words');
         if (parseInt(checkWords.rows[0].count) === 0) {
             const insertWords = `
@@ -97,9 +95,6 @@ async function selectRandomWord() {
 //                        API ROUTES
 // =========================================================
 
-/**
- * روت برای شروع یک بازی جدید یا بازیابی بازی فعال
- */
 app.post('/api/start-game', async (req, res) => {
     const { user_id } = req.body;
     if (!user_id) return res.status(400).json({ error: 'user_id is required.' });
@@ -109,7 +104,6 @@ app.post('/api/start-game', async (req, res) => {
         let game = gameRes.rows[0];
 
         if (!game) {
-            // شروع بازی جدید
             const { word, category } = await selectRandomWord();
             const initialGuesses = 10;
             
@@ -132,9 +126,8 @@ app.post('/api/start-game', async (req, res) => {
         const incorrectGuesses = game.guessed_letters.filter(letter => !game.target_word.includes(letter));
         
         return res.json({
-            // target_word: game.target_word, // کلمه هدف را به کلاینت نباید ارسال کرد
             target_length: game.target_word.length,
-            target_word_structure: game.target_word, // برای محاسبه پلیس هولدر با اسپیس
+            target_word_structure: game.target_word, 
             category: game.category,
             guessed_letters: game.guessed_letters,
             correct_guesses: correctGuesses,
@@ -150,15 +143,12 @@ app.post('/api/start-game', async (req, res) => {
 });
 
 
-/**
- * روت برای حدس زدن یک حرف
- */
 app.post('/api/guess', async (req, res) => {
     const { user_id, letter: rawLetter } = req.body;
     const letter = rawLetter ? rawLetter.toLowerCase().trim() : null;
 
     if (!user_id || !letter || letter.length !== 1 || !/^[ا-ی]$/.test(letter)) {
-        return res.status(400).json({ error: 'Invalid user_id or letter. Only single Persian letters are allowed.' });
+        return res.status(400).json({ error: 'Invalid user_id or letter.' });
     }
 
     try {
@@ -189,7 +179,6 @@ app.post('/api/guess', async (req, res) => {
             });
         }
 
-        // پردازش حدس
         guessedLetters.push(letter);
         let isCorrect = targetWord.includes(letter);
         
@@ -200,7 +189,6 @@ app.post('/api/guess', async (req, res) => {
             message = `✅ حرف "${letter.toUpperCase()}" درست است.`;
         }
 
-        // بررسی اتمام بازی (برنده شدن)
         const uniqueWordChars = new Set(targetWord.split('').filter(c => c !== ' '));
         const currentCorrectGuesses = new Set(guessedLetters.filter(l => targetWord.includes(l)));
 
@@ -212,7 +200,6 @@ app.post('/api/guess', async (req, res) => {
             message = `😢 باختید. کلمه صحیح: ${targetWord.toUpperCase()}`;
         }
         
-        // به‌روزرسانی DB
         const updateRes = await client.query(
             `UPDATE games SET guessed_letters = $1, remaining_guesses = $2, status = $3 WHERE id = $4 RETURNING *`,
             [JSON.stringify(guessedLetters), remainingGuesses, gameStatus, game.id]
@@ -229,7 +216,7 @@ app.post('/api/guess', async (req, res) => {
             correct_guesses: finalCorrectGuesses,
             incorrect_guesses: finalIncorrectGuesses,
             message: message,
-            target_word_structure: finalGame.status !== 'IN_PROGRESS' ? finalGame.target_word.toUpperCase() : null // فقط در صورت اتمام ارسال شود
+            target_word_structure: finalGame.status !== 'IN_PROGRESS' ? finalGame.target_word.toUpperCase() : null 
         });
 
     } catch (error) {
@@ -244,6 +231,7 @@ app.post('/api/guess', async (req, res) => {
 // =========================================================
 
 bot.start((ctx) => {
+    // Web App URL آدرس دامنه سفارشی (wordlybot.xo.je) است
     const keyboard = Telegraf.Extra.markup((m) => 
         m.inlineKeyboard([
             m.button.webApp('🎮 شروع بازی حدس کلمه', WEB_APP_URL)
@@ -275,9 +263,12 @@ async function startServer() {
 
     // تنظیم Webhook برای محیط Production
     if (IS_PRODUCTION) {
-        const webhookUrl = `${WEB_APP_URL}/bot${TELEGRAM_TOKEN}`;
+        // از آدرس سرور Render برای Webhook استفاده می‌شود
+        const webhookUrl = `${SERVER_HOST_URL}/bot${TELEGRAM_TOKEN}`; 
+        
         await bot.telegram.setWebhook(webhookUrl);
         
+        // روت POST برای دریافت آپدیت‌ها از تلگرام
         app.post(`/bot${TELEGRAM_TOKEN}`, (req, res) => {
             bot.handleUpdate(req.body, res);
         });
@@ -292,6 +283,7 @@ async function startServer() {
     // راه‌اندازی Express Server
     app.listen(PORT, () => {
         console.log(`🚀 Express Server listening on port ${PORT}`);
+        console.log(`🌐 Web App URL for button: ${WEB_APP_URL}`);
     });
 }
 
