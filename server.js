@@ -2,13 +2,13 @@
 const express = require('express');
 const path = require('path');
 const { Pool } = require('pg');
-const { Telegraf } = require('telegraf'); 
+// ✨ اصلاح مهم: ایمپورت صحیح Markup
+const { Telegraf, Markup } = require('telegraf'); 
 
 // ** مشخصات محیطی **
-// توجه: در محیط Production واقعی، این مقادیر باید از طریق متغیرهای محیطی (مانند Render) تنظیم شوند.
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; // آدرس فرانت‌اند
-const SERVER_HOST_URL = process.env.SERVER_HOST_URL || "https://wordlygame.onrender.com"; // آدرس سرور Render برای Webhook
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; 
+const SERVER_HOST_URL = process.env.SERVER_HOST_URL || "https://wordlygame.onrender.com"; 
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5";
 const PORT = process.env.PORT || 10000;
 
@@ -38,16 +38,15 @@ async function initializeDatabase() {
     try {
         const client = await pool.connect();
         
-        const createWordsTable = `
+        await client.query(`
             CREATE TABLE IF NOT EXISTS words (
                 id SERIAL PRIMARY KEY,
                 word TEXT NOT NULL UNIQUE,
                 category TEXT NOT NULL
             );
-        `;
-        await client.query(createWordsTable);
+        `);
         
-        const createGamesTable = `
+        await client.query(`
             CREATE TABLE IF NOT EXISTS games (
                 id SERIAL PRIMARY KEY,
                 user_id BIGINT NOT NULL UNIQUE, 
@@ -58,12 +57,11 @@ async function initializeDatabase() {
                 status TEXT DEFAULT 'IN_PROGRESS', 
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
-        `;
-        await client.query(createGamesTable);
+        `);
 
         const checkWords = await client.query('SELECT COUNT(*) FROM words');
         if (parseInt(checkWords.rows[0].count) === 0) {
-            const insertWords = `
+            await client.query(`
                 INSERT INTO words (word, category) VALUES 
                 ('حواس پرتی', 'روانشناسی'),
                 ('برنامه نویسی', 'کامپیوتر'),
@@ -71,8 +69,7 @@ async function initializeDatabase() {
                 ('خورشید', 'طبیعت'),
                 ('ماهی', 'طبیعت')
                 ON CONFLICT (word) DO NOTHING;
-            `;
-            await client.query(insertWords);
+            `);
             console.log("✅ Initial words inserted.");
         }
 
@@ -231,12 +228,10 @@ app.post('/api/guess', async (req, res) => {
 // =========================================================
 
 bot.start((ctx) => {
-    // Web App URL آدرس دامنه سفارشی (wordlybot.xo.je) است
-    const keyboard = Telegraf.Extra.markup((m) => 
-        m.inlineKeyboard([
-            m.button.webApp('🎮 شروع بازی حدس کلمه', WEB_APP_URL)
-        ])
-    );
+    // ✨ اصلاح: استفاده صحیح از Markup برای ساخت دکمه WebApp
+    const keyboard = Markup.inlineKeyboard([
+        Markup.button.webApp('🎮 شروع بازی حدس کلمه', WEB_APP_URL)
+    ]);
 
     const welcomeMessage = `
 **👋 به ربات حدس کلمه خوش آمدید!**
@@ -261,26 +256,21 @@ bot.on('text', (ctx) => {
 async function startServer() {
     await initializeDatabase();
 
-    // تنظیم Webhook برای محیط Production
     if (IS_PRODUCTION) {
-        // از آدرس سرور Render برای Webhook استفاده می‌شود
         const webhookUrl = `${SERVER_HOST_URL}/bot${TELEGRAM_TOKEN}`; 
         
         await bot.telegram.setWebhook(webhookUrl);
         
-        // روت POST برای دریافت آپدیت‌ها از تلگرام
         app.post(`/bot${TELEGRAM_TOKEN}`, (req, res) => {
             bot.handleUpdate(req.body, res);
         });
         console.log(`🤖 Webhook set to: ${webhookUrl}`);
 
     } else {
-        // محیط توسعه محلی: Polling
         bot.launch(); 
         console.log('🤖 Bot launched via Polling (Development Mode).');
     }
 
-    // راه‌اندازی Express Server
     app.listen(PORT, () => {
         console.log(`🚀 Express Server listening on port ${PORT}`);
         console.log(`🌐 Web App URL for button: ${WEB_APP_URL}`);
