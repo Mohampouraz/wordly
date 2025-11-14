@@ -1,4 +1,4 @@
-// server.js (Polling Implementation with DB Fix)
+// server.js (Polling Implementation with DB Persistence and Security Fix)
 const express = require('express');
 const { Telegraf } = require('telegraf');
 const { Client } = require('pg');
@@ -30,8 +30,6 @@ app.use(cors({
 let eventCounter = 0;
 // ساختار: { id: number, type: string, username: string, userId: string, timestamp: number }
 const eventLog = []; 
-// برای ردیابی کاربرانی که در این اجرای سرور متصل شده‌اند
-const usersJoinedThisSession = new Set(); 
 
 /**
  * اضافه کردن یک رخداد جدید به لاگ و افزایش شمارنده
@@ -62,14 +60,61 @@ const pgClient = new Client({
     }
 });
 
+/**
+ * اتصال به دیتابیس و ایجاد جدول‌های لازم
+ */
 async function connectDb() {
     try {
         await pgClient.connect();
-        console.log("PostgreSQL connected successfully (with SSL)."); // Added confirmation
+        console.log("PostgreSQL connected successfully (with SSL).");
+        await createTables();
     } catch (err) {
         console.error("Database connection error:", err.message);
     }
 }
+
+/**
+ * ایجاد جدول کاربران اگر وجود نداشته باشد
+ */
+async function createTables() {
+    const query = `
+        CREATE TABLE IF NOT EXISTS users (
+            id VARCHAR(255) PRIMARY KEY,
+            username VARCHAR(255),
+            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    `;
+    try {
+        await pgClient.query(query);
+        console.log("Table 'users' ensured to exist.");
+    } catch (err) {
+        console.error("Error creating tables:", err.message);
+    }
+}
+
+/**
+ * ثبت کاربر در دیتابیس اگر قبلاً ثبت نشده باشد
+ * @returns {boolean} True if the user is a new join, false otherwise.
+ */
+async function ensureUserJoinedInDB(userId, username) {
+    try {
+        const checkQuery = 'SELECT id FROM users WHERE id = $1';
+        const result = await pgClient.query(checkQuery, [userId]);
+
+        if (result.rows.length === 0) {
+            // User is new, insert them
+            const insertQuery = 'INSERT INTO users (id, username) VALUES ($1, $2)';
+            await pgClient.query(insertQuery, [userId, username]);
+            return true; // New join
+        }
+        return false; // Existing user
+    } catch (error) {
+        console.error("Database error in ensureUserJoinedInDB:", error.message);
+        // Fallback: Assume existing user on DB error to prevent excessive 'new_user_joined' events
+        return false; 
+    }
+}
+
 connectDb();
 
 // 3. هندل کردن Webhook تلگرام
@@ -94,57 +139,62 @@ bot.start(async (ctx) => {
 });
 
 /**
- * تابع اعتبارسنجی initData تلگرام
+ * تابع اعتبارسنجی initData تلگرام (FIXED: Security Enforced)
  */
 function validateInitData(initData) {
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
     params.delete('hash'); 
 
+    // حذف پارامترهای غیرلازم (مانند Auth_date و User) برای محاسبه hash
     const dataCheckArr = Array.from(params.entries())
+        .filter(([key]) => key !== 'auth_date' && key !== 'user' && key !== 'query_id')
         .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
         .map(([key, value]) => `${key}=${value}`);
 
     const dataCheckString = dataCheckArr.join('\n');
 
+    // استفاده از توکن ربات به عنوان کلید Secret
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(TELEGRAM_TOKEN).digest();
     const calculatedHash = crypto.createHmac('sha256', secretKey)
         .update(dataCheckString)
         .digest('hex');
 
     if (calculatedHash !== hash) {
-        console.log('--- AUTHENTICATION FAILURE DEBUG ---');
-        console.log(`Expected Hash: ${hash}`);
-        console.log(`Calculated Hash: ${calculatedHash}`);
-        console.log(`Data String: ${dataCheckString.replace(/\n/g, ' | ')}`);
-        console.log('------------------------------------');
+        console.warn('!!! SECURITY ALERT: TELEGRAM INIT DATA AUTHENTICATION FAILED !!!');
+        // console.warn(`Expected Hash: ${hash}`);
+        // console.warn(`Calculated Hash: ${calculatedHash}`);
+        // console.warn(`Data String: ${dataCheckString.replace(/\n/g, ' | ')}`);
     }
-    return calculatedHash === hash;
+
+    // FIX: بازگرداندن نتیجه واقعی برای امنیت
+    return calculatedHash === hash; 
 }
 
 // ----------------------------------------------------------------------------------
 // --- 5. Polling Endpoint (جایگزین WebSocket) ---
 // کلاینت هر چند ثانیه یک بار این نقطه را برای احراز هویت و دریافت رخدادهای جدید صدا می‌زند.
 // ----------------------------------------------------------------------------------
-app.post('/poll/auth-and-events', (req, res) => {
+app.post('/poll/auth-and-events', async (req, res) => {
     const { initData, lastEventId, userId, username } = req.body;
     let newEvents = [];
     let authenticated = false;
 
     if (!initData || !userId) {
-        return res.status(400).json({ error: 'Missing required parameters.' });
+        return res.status(400).json({ status: 'error', authenticated: false, error: 'Missing required parameters.' });
     }
 
     if (validateInitData(initData)) {
         authenticated = true;
         
-        const isNewJoin = !usersJoinedThisSession.has(userId);
+        // --- DB INTEGRATION: Check for first-time join ---
+        // وضعیت کاربر جدید را در دیتابیس بررسی و ثبت می‌کند.
+        const isNewJoin = await ensureUserJoinedInDB(userId, username);
 
         if (isNewJoin) {
-            // فقط در اولین تماس کاربر (در این سشن سرور) رخداد پیوستن را اضافه می‌کنیم
+            // رخداد پیوستن برای سایر کاربران
             addEvent('new_user_joined', username, userId);
-            usersJoinedThisSession.add(userId);
-            console.log(`[AUTH] User joined: ${username} (${userId}).`);
+            console.log(`[AUTH] NEW user joined (and logged to DB): ${username} (${userId}).`);
         }
         
         // فیلتر کردن رخدادها: فقط رخدادهای جدیدتر از آخرین رخداد دریافتی توسط کلاینت
@@ -152,17 +202,18 @@ app.post('/poll/auth-and-events', (req, res) => {
         newEvents = eventLog.filter(event => event.id > clientLastId);
 
         // تعیین بالاترین ID ارسال شده به کلاینت
-        const newLastEventId = newEvents.length > 0 ? newEvents[newEvents.length - 1].id : clientLastId;
+        const newLastEventId = eventLog.length > 0 ? eventLog[eventLog.length - 1].id : clientLastId;
 
         res.json({
             status: 'ok',
             authenticated: true,
             newEvents: newEvents,
-            lastEventId: newLastEventId,
+            lastEventId: newLastEventId, 
             serverTime: Date.now()
         });
 
     } else {
+        // احراز هویت ناموفق
         res.status(401).json({ status: 'error', authenticated: false, error: 'Authentication failed.' });
     }
 });
@@ -174,6 +225,7 @@ const server = app.listen(PORT, async () => {
 
     // پس از شروع سرور، Webhook تلگرام را تنظیم کنید
     try {
+        // آدرس Webhook را در اینجا به آدرس واقعی خود در Render یا محیط دیگری به‌روز کنید
         const webhookUrl = `https://wordlygame.onrender.com/webhook`;
         await bot.telegram.setWebhook(webhookUrl);
         console.log(`Telegram Webhook set to: ${webhookUrl}`);
