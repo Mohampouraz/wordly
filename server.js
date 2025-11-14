@@ -101,6 +101,15 @@ function validateInitData(initData) {
         .update(dataCheckString)
         .digest('hex');
 
+    // خطایابی برای تشخیص دقیق مشکل احراز هویت
+    if (calculatedHash !== hash) {
+        console.log('--- AUTHENTICATION FAILURE DEBUG ---');
+        console.log(`Expected Hash: ${hash}`);
+        console.log(`Calculated Hash: ${calculatedHash}`);
+        console.log(`Data String: ${dataCheckString.replace(/\n/g, ' | ')}`);
+        console.log('------------------------------------');
+    }
+
     return calculatedHash === hash;
 }
 
@@ -120,11 +129,11 @@ wss.on('connection', function connection(ws) {
                     isAuthenticated = true;
                     userId = data.userId;
                     username = data.username || 'ناشناس';
-                    connectedClients.set(userId, ws);
+                    connectedClients.set(userId, ws); // اضافه کردن به لیست کاربران احراز هویت شده
 
-                    console.log(`User connected and authenticated: ${username} (${userId})`);
+                    console.log(`User connected and authenticated: ${username} (${userId}). Total active users: ${connectedClients.size}`);
 
-                    // اطلاع‌رسانی به سایر کاربران در مورد پیوستن کاربر جدید
+                    // --- منطق Broadcast به‌روز شده ---
                     const joinMessage = JSON.stringify({
                         type: 'new_user_joined',
                         userId: userId,
@@ -132,9 +141,10 @@ wss.on('connection', function connection(ws) {
                         message: `${username} به بازی پیوست!`
                     });
 
-                    // Broadcast (ارسال پیام به همه به جز خود کاربر جدید)
-                    wss.clients.forEach(function each(client) {
-                        if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    // Broadcast (ارسال پیام به همه کاربران احراز هویت شده به جز خود کاربر جدید)
+                    connectedClients.forEach((client, id) => {
+                        // چک کردن: 1. کاربر جدید نباشد 2. اتصال باز باشد
+                        if (id !== userId && client.readyState === WebSocket.OPEN) {
                             client.send(joinMessage);
                         }
                     });
@@ -156,7 +166,7 @@ wss.on('connection', function connection(ws) {
 
     ws.on('close', function close() {
         if (isAuthenticated && userId) {
-            console.log(`User disconnected: ${username} (${userId})`);
+            console.log(`User disconnected: ${username} (${userId}). Total active users: ${connectedClients.size - 1}`);
             connectedClients.delete(userId);
             
             // در صورت نیاز، می‌توانید دیسکانکت شدن کاربر را نیز Broadcast کنید
