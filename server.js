@@ -7,9 +7,10 @@ const cors = require('cors');
 
 // --- پیکربندی محیطی (Environment Configuration) ---
 // توجه: لطفاً این مقادیر را با مقادیر واقعی خود در سرور جایگزین کنید.
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "YOUR_TELEGRAM_BOT_TOKEN_HERE"; 
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; 
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://user:password@host:port/database"; 
+
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
 const PORT = process.env.PORT || 3000;
 
 // 1. تنظیم ربات تلگرام (Telegraf Setup)
