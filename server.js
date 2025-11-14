@@ -1,16 +1,16 @@
-// server.js (Polling Implementation with DB Persistence and Security Fix)
+// server.js (Polling Implementation with DB Persistence, Security, and Pool Fix)
 const express = require('express');
 const { Telegraf } = require('telegraf');
-const { Client } = require('pg');
+// تغییر: استفاده از Pool به جای Client برای مدیریت پایدار اتصالات
+const { Pool } = require('pg'); 
 const crypto = require('crypto');
 const cors = require('cors');
 
 // --- پیکربندی محیطی (Environment Configuration) ---
-// توجه: لطفاً این مقادیر را با مقادیر واقعی خود در سرور جایگزین کنید.
-
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je";
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
+// مقادیر ارائه شده توسط شما مستقیماً در اینجا ست می‌شوند.
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA"; 
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; 
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3"; 
 const PORT = process.env.PORT || 3000;
 
 // 1. تنظیم ربات تلگرام (Telegraf Setup)
@@ -52,27 +52,17 @@ function addEvent(type, username, userId) {
     return newEvent;
 }
 
-// 2. تنظیم دیتابیس PostgreSQL
-const pgClient = new Client({ 
+// 2. تنظیم دیتابیس PostgreSQL (استفاده از Pool)
+const pgPool = new Pool({ 
     connectionString: DATABASE_URL,
-    // FIX: تنظیمات SSL برای رفع خطای "SSL/TLS required"
+    // تنظیمات SSL برای سازگاری با محیط‌های ابری مانند Render
     ssl: {
-        rejectUnauthorized: false // اجازه استفاده از گواهینامه‌های خودامضا (رایج در پلتفرم‌های ابری)
-    }
+        rejectUnauthorized: false 
+    },
+    // تنظیمات Pool برای مدیریت بهینه اتصالات Idle
+    idleTimeoutMillis: 30000, // اتصالات غیرفعال (Idle) پس از 30 ثانیه بسته می‌شوند.
+    max: 10, // حداکثر 10 اتصال همزمان
 });
-
-/**
- * اتصال به دیتابیس و ایجاد جدول‌های لازم
- */
-async function connectDb() {
-    try {
-        await pgClient.connect();
-        console.log("PostgreSQL connected successfully (with SSL).");
-        await createTables();
-    } catch (err) {
-        console.error("Database connection error:", err.message);
-    }
-}
 
 /**
  * ایجاد جدول کاربران اگر وجود نداشته باشد
@@ -86,7 +76,8 @@ async function createTables() {
         );
     `;
     try {
-        await pgClient.query(query);
+        // تغییر: اجرای کوئری با استفاده از Pool
+        await pgPool.query(query);
         console.log("Table 'users' ensured to exist.");
     } catch (err) {
         console.error("Error creating tables:", err.message);
@@ -100,12 +91,14 @@ async function createTables() {
 async function ensureUserJoinedInDB(userId, username) {
     try {
         const checkQuery = 'SELECT id FROM users WHERE id = $1';
-        const result = await pgClient.query(checkQuery, [userId]);
+        // تغییر: اجرای کوئری با استفاده از Pool
+        const result = await pgPool.query(checkQuery, [userId]);
 
         if (result.rows.length === 0) {
             // User is new, insert them
             const insertQuery = 'INSERT INTO users (id, username) VALUES ($1, $2)';
-            await pgClient.query(insertQuery, [userId, username]);
+            // تغییر: اجرای کوئری با استفاده از Pool
+            await pgPool.query(insertQuery, [userId, username]);
             return true; // New join
         }
         return false; // Existing user
@@ -116,7 +109,8 @@ async function ensureUserJoinedInDB(userId, username) {
     }
 }
 
-connectDb();
+// ایجاد جدول‌ها هنگام راه‌اندازی سرور (Pool آماده است تا اتصال را در صورت نیاز برقرار کند)
+createTables();
 
 // 3. هندل کردن Webhook تلگرام
 app.post('/webhook', (req, res) => {
@@ -140,7 +134,7 @@ bot.start(async (ctx) => {
 });
 
 /**
- * تابع اعتبارسنجی initData تلگرام (FIXED: Security Enforced)
+ * تابع اعتبارسنجی initData تلگرام 
  */
 function validateInitData(initData) {
     const params = new URLSearchParams(initData);
@@ -163,18 +157,13 @@ function validateInitData(initData) {
 
     if (calculatedHash !== hash) {
         console.warn('!!! SECURITY ALERT: TELEGRAM INIT DATA AUTHENTICATION FAILED !!!');
-        // console.warn(`Expected Hash: ${hash}`);
-        // console.warn(`Calculated Hash: ${calculatedHash}`);
-        // console.warn(`Data String: ${dataCheckString.replace(/\n/g, ' | ')}`);
     }
 
-    // FIX: بازگرداندن نتیجه واقعی برای امنیت
     return calculatedHash === hash; 
 }
 
 // ----------------------------------------------------------------------------------
 // --- 5. Polling Endpoint (جایگزین WebSocket) ---
-// کلاینت هر چند ثانیه یک بار این نقطه را برای احراز هویت و دریافت رخدادهای جدید صدا می‌زند.
 // ----------------------------------------------------------------------------------
 app.post('/poll/auth-and-events', async (req, res) => {
     const { initData, lastEventId, userId, username } = req.body;
@@ -189,7 +178,6 @@ app.post('/poll/auth-and-events', async (req, res) => {
         authenticated = true;
         
         // --- DB INTEGRATION: Check for first-time join ---
-        // وضعیت کاربر جدید را در دیتابیس بررسی و ثبت می‌کند.
         const isNewJoin = await ensureUserJoinedInDB(userId, username);
 
         if (isNewJoin) {
