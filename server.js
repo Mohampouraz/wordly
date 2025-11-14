@@ -1,224 +1,156 @@
-// server.js (Polling Implementation with DB Persistence, Security, and Pool Fix)
-const express = require('express');
-const { Telegraf } = require('telegraf');
-// تغییر: استفاده از Pool به جای Client برای مدیریت پایدار اتصالات
-const { Pool } = require('pg'); 
-const crypto = require('crypto');
-const cors = require('cors');
-
-// --- پیکربندی محیطی (Environment Configuration) ---
-// مقادیر ارائه شده توسط شما مستقیماً در اینجا ست می‌شوند.
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA"; 
-const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; 
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3"; 
+// ENV / config
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlybot.xo.je"; // آدرس برنامه وب
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:ZnczfHE6NUZWmPfYtPQjUdsuaseuFoHS@dpg-d3q9nrm3jp1c738f47pg-a.frankfurt-postgres.render.com/wordgame_lbh3";
 const PORT = process.env.PORT || 3000;
+const HOST = '0.0.0.0'; // برای Render
 
-// 1. تنظیم ربات تلگرام (Telegraf Setup)
-const bot = new Telegraf(TELEGRAM_TOKEN);
+const express = require('express');
+const http = require('http');
+const TelegramBot = require('node-telegram-bot-api');
+const { Sequelize, DataTypes } = require('sequelize');
+const { Server } = require("socket.io");
+
+// 1. تنظیمات Express و HTTP Server و Socket.IO
 const app = express();
-
-// Middlewares
-app.use(express.json());
-// CORS برای اجازه دادن به درخواست‌های Polling از Mini App به سرور لازم است
-app.use(cors({
-    origin: WEB_APP_URL, // اجازه درخواست فقط از دامنه Mini App
-    methods: ['POST'],
-}));
-
-// ----------------------------------------------------
-// --- Polling State Management: Global Event Log ---
-// ----------------------------------------------------
-let eventCounter = 0;
-// ساختار: { id: number, type: string, username: string, userId: string, timestamp: number }
-const eventLog = []; 
-
-/**
- * اضافه کردن یک رخداد جدید به لاگ و افزایش شمارنده
- */
-function addEvent(type, username, userId) {
-    const newEvent = {
-        id: ++eventCounter,
-        type: type,
-        username: username,
-        userId: userId,
-        timestamp: Date.now()
-    };
-    eventLog.push(newEvent);
-    // نگهداری لاگ در یک حجم منطقی (مثلا 100 رخداد آخر)
-    if (eventLog.length > 100) {
-        eventLog.shift();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: WEB_APP_URL, // دسترسی فقط از برنامه وب شما
+        methods: ["GET", "POST"]
     }
-    console.log(`[EVENT LOG] New event (ID ${newEvent.id}): ${type} by ${username}`);
-    return newEvent;
-}
-
-// 2. تنظیم دیتابیس PostgreSQL (استفاده از Pool)
-const pgPool = new Pool({ 
-    connectionString: DATABASE_URL,
-    // تنظیمات SSL برای سازگاری با محیط‌های ابری مانند Render
-    ssl: {
-        rejectUnauthorized: false 
-    },
-    // تنظیمات Pool برای مدیریت بهینه اتصالات Idle
-    idleTimeoutMillis: 30000, // اتصالات غیرفعال (Idle) پس از 30 ثانیه بسته می‌شوند.
-    max: 10, // حداکثر 10 اتصال همزمان
 });
 
-/**
- * ایجاد جدول کاربران اگر وجود نداشته باشد
- */
-async function createTables() {
-    const query = `
-        CREATE TABLE IF NOT EXISTS users (
-            id VARCHAR(255) PRIMARY KEY,
-            username VARCHAR(255),
-            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `;
-    try {
-        // تغییر: اجرای کوئری با استفاده از Pool
-        await pgPool.query(query);
-        console.log("Table 'users' ensured to exist.");
-    } catch (err) {
-        console.error("Error creating tables:", err.message);
-    }
-}
+// Middlewares
+app.use(express.json()); // برای پردازش webhook تلگرام
 
-/**
- * ثبت کاربر در دیتابیس اگر قبلاً ثبت نشده باشد
- * @returns {boolean} True if the user is a new join, false otherwise.
- */
-async function ensureUserJoinedInDB(userId, username) {
-    try {
-        const checkQuery = 'SELECT id FROM users WHERE id = $1';
-        // تغییر: اجرای کوئری با استفاده از Pool
-        const result = await pgPool.query(checkQuery, [userId]);
-
-        if (result.rows.length === 0) {
-            // User is new, insert them
-            const insertQuery = 'INSERT INTO users (id, username) VALUES ($1, $2)';
-            // تغییر: اجرای کوئری با استفاده از Pool
-            await pgPool.query(insertQuery, [userId, username]);
-            return true; // New join
+// 2. تنظیمات دیتابیس (Sequelize)
+// استفاده از dialectOptions برای اتصال به PostgreSQL در Render
+const sequelize = new Sequelize(DATABASE_URL, {
+    dialect: 'postgres',
+    dialectOptions: {
+        ssl: {
+            require: true,
+            rejectUnauthorized: false // ضروری برای Render
         }
-        return false; // Existing user
+    },
+    logging: false
+});
+
+// مدل User
+const User = sequelize.define('User', {
+    id: { type: DataTypes.BIGINT, primaryKey: true, allowNull: false }, // Telegram User ID
+    first_name: { type: DataTypes.STRING, allowNull: false },
+    last_name: { type: DataTypes.STRING, allowNull: true },
+    username: { type: DataTypes.STRING, allowNull: true },
+    full_name: { 
+        type: DataTypes.VIRTUAL,
+        get() {
+            return `${this.first_name} ${this.last_name || ''}`.trim();
+        }
+    }
+});
+
+async function initializeDatabase() {
+    try {
+        await sequelize.authenticate();
+        console.log('Connection to DB has been established successfully.');
+        await User.sync({ alter: true }); // ایجاد یا به‌روزرسانی جدول
+        console.log('User table synced.');
     } catch (error) {
-        console.error("Database error in ensureUserJoinedInDB:", error.message);
-        // Fallback: Assume existing user on DB error to prevent excessive 'new_user_joined' events
-        return false; 
+        console.error('Unable to connect to the database or sync:', error);
     }
 }
 
-// ایجاد جدول‌ها هنگام راه‌اندازی سرور (Pool آماده است تا اتصال را در صورت نیاز برقرار کند)
-createTables();
+// 3. تنظیمات Telegram Bot (Webhook)
+const bot = new TelegramBot(TELEGRAM_TOKEN);
+const webhookPath = `/webhook/${TELEGRAM_TOKEN}`;
+const botUrl = `https://wordlygame.onrender.com${webhookPath}`; // آدرس webhook در Render
 
-// 3. هندل کردن Webhook تلگرام
-app.post('/webhook', (req, res) => {
-    bot.handleUpdate(req.body);
+// تنظیم webhook
+async function setBotWebhook() {
+    try {
+        const result = await bot.setWebHook(botUrl);
+        console.log(`Webhook set to: ${botUrl}. Result: ${result}`);
+    } catch (error) {
+        console.error('Error setting webhook:', error.message);
+    }
+}
+
+// مسیر برای دریافت به‌روزرسانی‌های تلگرام
+app.post(webhookPath, (req, res) => {
+    bot.processUpdate(req.body);
     res.sendStatus(200);
 });
 
-// 4. دستور /start ربات
-bot.start(async (ctx) => {
-    console.log(`User ${ctx.from.id} started the bot.`);
-
-    const keyboard = {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "شروع بازی وردلی (Web App)", web_app: { url: WEB_APP_URL } }]
-            ]
-        }
-    };
-
-    await ctx.reply(`سلام ${ctx.from.first_name}! برای شروع، Web App را باز کنید:`, keyboard);
+// مسیر اصلی برای چک کردن سلامت
+app.get('/', (req, res) => {
+    res.send(`Telegram Bot Webhook is running on port ${PORT}. Webhook URL: ${botUrl}`);
 });
 
-/**
- * تابع اعتبارسنجی initData تلگرام 
- */
-function validateInitData(initData) {
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    params.delete('hash'); 
 
-    // حذف پارامترهای غیرلازم (مانند Auth_date و User) برای محاسبه hash
-    const dataCheckArr = Array.from(params.entries())
-        .filter(([key]) => key !== 'auth_date' && key !== 'user' && key !== 'query_id')
-        .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
-        .map(([key, value]) => `${key}=${value}`);
+// 4. منطق بات: هندل کردن دستور /start
+bot.onText(/\/start/, async (msg) => {
+    const chatId = msg.chat.id;
+    const fromUser = msg.from;
+    const { id, first_name, last_name, username } = fromUser;
+    
+    // اطلاعات کاربر برای نمایش
+    const userFullName = `${first_name} ${last_name || ''}`.trim();
+    const userInfo = `
+        👋 خوش آمدید!
+        
+        **نام کامل:** ${userFullName}
+        **شناسه کاربری:** \`${id}\`
+    `;
 
-    const dataCheckString = dataCheckArr.join('\n');
+    // 4.1. ذخیره/به‌روزرسانی کاربر در دیتابیس
+    let isNewUser = false;
+    try {
+        const [user, created] = await User.findOrCreate({
+            where: { id: id },
+            defaults: { first_name, last_name, username }
+        });
+        
+        // اگر کاربر قبلاً وجود داشته و اطلاعاتش عوض شده، به‌روزرسانی می‌کنیم
+        if (!created) {
+            await user.update({ first_name, last_name, username });
+        }
+        
+        isNewUser = created;
 
-    // استفاده از توکن ربات به عنوان کلید Secret
-    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(TELEGRAM_TOKEN).digest();
-    const calculatedHash = crypto.createHmac('sha256', secretKey)
-        .update(dataCheckString)
-        .digest('hex');
-
-    if (calculatedHash !== hash) {
-        console.warn('!!! SECURITY ALERT: TELEGRAM INIT DATA AUTHENTICATION FAILED !!!');
+    } catch (error) {
+        console.error('DB Operation Error:', error);
     }
 
-    return calculatedHash === hash; 
+    // 4.2. ارسال پیام به کاربر در تلگرام
+    const startMessage = isNewUser 
+        ? `🌟 کاربر جدید: ${userFullName} به ما پیوست! 🌟`
+        : `👋 خوش آمدید دوباره، ${userFullName}!`;
+        
+    bot.sendMessage(chatId, `${startMessage}\n\n${userInfo}`, { parse_mode: 'Markdown' });
+    
+    // 4.3. ارسال نوتیفیکیشن به تمام کاربران وب (Socket.IO)
+    if (isNewUser) {
+        const notificationMessage = `یک کاربر جدید پیوست: ${userFullName} (ID: ${id})`;
+        // فرستادن پیام به تمام کلاینت‌های متصل به socket.io
+        io.emit('new_user_joined', { 
+            message: notificationMessage, 
+            fullName: userFullName, 
+            userId: id,
+            timestamp: new Date().toISOString()
+        });
+        console.log(`Socket.IO: Emitted 'new_user_joined' for ${userFullName}`);
+    }
+});
+
+// 5. راه‌اندازی سرور
+async function startServer() {
+    await initializeDatabase(); // اول دیتابیس را آماده می‌کنیم
+    await setBotWebhook(); // سپس webhook را تنظیم می‌کنیم
+    server.listen(PORT, HOST, () => {
+        console.log(`Server running on http://${HOST}:${PORT}`);
+    });
 }
 
-// ----------------------------------------------------------------------------------
-// --- 5. Polling Endpoint (جایگزین WebSocket) ---
-// ----------------------------------------------------------------------------------
-app.post('/poll/auth-and-events', async (req, res) => {
-    const { initData, lastEventId, userId, username } = req.body;
-    let newEvents = [];
-    let authenticated = false;
-
-    if (!initData || !userId) {
-        return res.status(400).json({ status: 'error', authenticated: false, error: 'Missing required parameters.' });
-    }
-
-    if (validateInitData(initData)) {
-        authenticated = true;
-        
-        // --- DB INTEGRATION: Check for first-time join ---
-        const isNewJoin = await ensureUserJoinedInDB(userId, username);
-
-        if (isNewJoin) {
-            // رخداد پیوستن برای سایر کاربران
-            addEvent('new_user_joined', username, userId);
-            console.log(`[AUTH] NEW user joined (and logged to DB): ${username} (${userId}).`);
-        }
-        
-        // فیلتر کردن رخدادها: فقط رخدادهای جدیدتر از آخرین رخداد دریافتی توسط کلاینت
-        const clientLastId = parseInt(lastEventId, 10) || 0;
-        newEvents = eventLog.filter(event => event.id > clientLastId);
-
-        // تعیین بالاترین ID ارسال شده به کلاینت
-        const newLastEventId = eventLog.length > 0 ? eventLog[eventLog.length - 1].id : clientLastId;
-
-        res.json({
-            status: 'ok',
-            authenticated: true,
-            newEvents: newEvents,
-            lastEventId: newLastEventId, 
-            serverTime: Date.now()
-        });
-
-    } else {
-        // احراز هویت ناموفق
-        res.status(401).json({ status: 'error', authenticated: false, error: 'Authentication failed.' });
-    }
-});
-
-
-// 6. راه‌اندازی سرور
-const server = app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-
-    // پس از شروع سرور، Webhook تلگرام را تنظیم کنید
-    try {
-        // آدرس Webhook را در اینجا به آدرس واقعی خود در Render یا محیط دیگری به‌روز کنید
-        const webhookUrl = `https://wordlygame.onrender.com/webhook`;
-        await bot.telegram.setWebhook(webhookUrl);
-        console.log(`Telegram Webhook set to: ${webhookUrl}`);
-    } catch (err) {
-        console.error("Error setting webhook:", err.message);
-    }
-});
+startServer();
