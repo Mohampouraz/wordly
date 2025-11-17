@@ -15,6 +15,7 @@
     --info: #06b6d4;
     --dark: #1f2937;
     --light: #f8fafc;
+    --gray-50: #f9fafb;
     --gray-100: #f3f4f6;
     --gray-200: #e5e7eb;
     --gray-300: #d1d5db;
@@ -23,10 +24,13 @@
     --gray-600: #4b5563;
     --gray-700: #374151;
     --gray-800: #1f2937;
+    --gray-900: #111827;
     --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     --radius: 12px;
     --radius-lg: 16px;
+    --radius-xl: 20px;
 }
 
 body {
@@ -46,6 +50,7 @@ body {
     background: white;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     position: relative;
+    overflow-x: hidden;
 }
 
 /* هدر مینیمال */
@@ -120,6 +125,12 @@ body {
     position: sticky;
     top: 73px;
     z-index: 99;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.tabs-minimal::-webkit-scrollbar {
+    display: none;
 }
 
 .tab-minimal {
@@ -138,15 +149,18 @@ body {
     transition: all 0.2s ease;
     min-width: 80px;
     border-bottom: 2px solid transparent;
+    white-space: nowrap;
 }
 
 .tab-minimal:hover {
     color: var(--primary);
+    background: var(--gray-50);
 }
 
 .tab-minimal.active {
     color: var(--primary);
     border-bottom-color: var(--primary);
+    background: var(--gray-50);
 }
 
 .tab-minimal i {
@@ -177,8 +191,14 @@ body {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
 }
 
 /* کارت خوش‌آمدگویی */
@@ -190,6 +210,24 @@ body {
     text-align: center;
     margin-bottom: 24px;
     box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+}
+
+.welcome-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(180deg); }
 }
 
 .welcome-content h2 {
@@ -207,6 +245,12 @@ body {
     font-size: 3rem;
     margin-bottom: 16px;
     opacity: 0.9;
+    animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
 /* گرید آمار مینیمال */
@@ -225,13 +269,31 @@ body {
     display: flex;
     align-items: center;
     gap: 16px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .stat-card-minimal:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+}
+
+.stat-card-minimal:hover::before {
+    opacity: 1;
 }
 
 .stat-icon-minimal {
@@ -243,12 +305,21 @@ body {
     justify-content: center;
     font-size: 1.2rem;
     color: white;
+    flex-shrink: 0;
 }
 
-.stat-icon-minimal.primary { background: var(--primary); }
-.stat-icon-minimal.success { background: var(--success); }
-.stat-icon-minimal.info { background: var(--info); }
-.stat-icon-minimal.warning { background: var(--warning); }
+.stat-icon-minimal.primary { 
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+}
+.stat-icon-minimal.success { 
+    background: linear-gradient(135deg, var(--success), var(--success-dark)); 
+}
+.stat-icon-minimal.info { 
+    background: linear-gradient(135deg, var(--info), #0891b2); 
+}
+.stat-icon-minimal.warning { 
+    background: linear-gradient(135deg, var(--warning), #eab308); 
+}
 
 .stat-info-minimal {
     flex: 1;
@@ -277,6 +348,11 @@ body {
     margin-bottom: 20px;
     overflow: hidden;
     box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+}
+
+.card-minimal:hover {
+    box-shadow: var(--shadow-lg);
 }
 
 .card-header-minimal {
@@ -330,7 +406,7 @@ body {
     border-radius: var(--radius);
     font-family: 'Vazirmatn', sans-serif;
     font-size: 1rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     background: white;
 }
 
@@ -338,6 +414,7 @@ body {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
 }
 
 .select-minimal {
@@ -348,11 +425,13 @@ body {
     font-size: 1rem;
     background: white;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
 .select-minimal:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .input-hint {
@@ -376,13 +455,35 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .btn-primary-minimal:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+}
+
+.btn-primary-minimal:hover::before {
+    opacity: 1;
+}
+
+.btn-primary-minimal:active {
+    transform: translateY(0);
 }
 
 .btn-success-minimal {
@@ -399,13 +500,31 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-success-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .btn-success-minimal:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+}
+
+.btn-success-minimal:hover::before {
+    opacity: 1;
 }
 
 .btn-full {
@@ -417,6 +536,11 @@ body {
     font-size: 1.1rem;
 }
 
+.btn-small {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+}
+
 .btn-refresh {
     background: none;
     border: none;
@@ -424,12 +548,16 @@ body {
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-refresh:hover {
     background: var(--gray-100);
     color: var(--primary);
+    transform: rotate(180deg);
 }
 
 /* کارت اطلاعات کاربری */
@@ -515,12 +643,31 @@ body {
     border: 1px solid var(--gray-200);
     border-radius: var(--radius);
     padding: 16px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-item-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .game-item-minimal:hover {
     border-color: var(--primary);
     box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.game-item-minimal:hover::before {
+    opacity: 1;
 }
 
 .game-header-minimal {
@@ -529,6 +676,7 @@ body {
     align-items: center;
     margin-bottom: 12px;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .game-code-minimal {
@@ -546,6 +694,23 @@ body {
     padding: 4px 8px;
     border-radius: 6px;
     font-size: 0.8rem;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-badge.started {
+    background: var(--success);
+    color: white;
+}
+
+.status-badge.waiting {
+    background: var(--warning);
+    color: white;
 }
 
 .game-info-minimal {
@@ -571,11 +736,6 @@ body {
 .game-actions-minimal {
     display: flex;
     justify-content: flex-end;
-}
-
-.btn-small {
-    padding: 8px 16px;
-    font-size: 0.8rem;
 }
 
 .loading-minimal {
@@ -611,6 +771,7 @@ body {
     height: 100%;
     background-color: rgba(0,0,0,0.5);
     animation: fadeIn 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 .modal-content {
@@ -619,11 +780,18 @@ body {
     border: 1px solid #888;
     border-radius: var(--radius-lg);
     animation: slideIn 0.3s ease;
+    position: relative;
 }
 
 @keyframes slideIn {
-    from { transform: translateY(-50px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from { 
+        transform: translateY(-50px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
 }
 
 .game-modal .modal-content {
@@ -631,7 +799,7 @@ body {
     width: 95%;
     border-radius: var(--radius-lg);
     overflow: hidden;
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl);
 }
 
 .modal-header-minimal {
@@ -654,7 +822,7 @@ body {
     font-size: 1.5rem;
     color: var(--gray-500);
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: all 0.3s ease;
     width: 32px;
     height: 32px;
     display: flex;
@@ -666,6 +834,7 @@ body {
 .close-minimal:hover {
     color: var(--danger);
     background: var(--gray-100);
+    transform: rotate(90deg);
 }
 
 /* کانتینر بازی */
@@ -695,6 +864,20 @@ body {
 .game-stat i {
     color: var(--primary);
     font-size: 1.1rem;
+}
+
+/* دسته‌بندی بزرگ */
+.game-category-large {
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--primary);
+    margin: 16px 0;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #f0f4ff, #e6f0ff);
+    border-radius: var(--radius);
+    border: 2px solid var(--primary);
+    box-shadow: var(--shadow);
 }
 
 /* نمایش کلمه */
@@ -755,23 +938,34 @@ body {
     }
 }
 
-/* اینپوت حدس */
-.guess-input-minimal {
-    display: flex;
-    gap: 12px;
+/* بخش اینپوت حدس */
+.guess-input-section {
     margin: 20px 0;
 }
 
+.guess-input-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
 .guess-input-field {
-    flex: 1;
     text-align: center;
     font-size: 1.2rem;
     font-weight: 600;
     text-transform: uppercase;
+    padding: 16px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius);
+    transition: all 0.3s ease;
 }
 
 .guess-input-field:focus {
     border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
 }
 
 /* وضعیت بازی */
@@ -808,6 +1002,91 @@ body {
     border: 1px solid #d6d8db;
 }
 
+/* بخش حدس‌های بازیکنان */
+.player-guesses-section {
+    margin: 20px 0;
+    display: none;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 12px;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gray-200);
+}
+
+.player-guesses-container {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.player-guess-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 0.9rem;
+    animation: fadeInUp 0.3s ease;
+}
+
+.player-guess-item:last-child {
+    border-bottom: none;
+}
+
+.player-name {
+    font-weight: 600;
+    color: var(--gray-700);
+    flex: 1;
+}
+
+.player-guess {
+    flex: 2;
+    text-align: center;
+}
+
+.guess-result {
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.guess-result.correct {
+    background: var(--success);
+    color: white;
+}
+
+.guess-result.incorrect {
+    background: var(--danger);
+    color: white;
+}
+
+.guess-time {
+    flex: 1;
+    text-align: left;
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* حروف حدس زده شده */
 .guessed-letters-minimal {
     display: grid;
@@ -840,16 +1119,19 @@ body {
     font-weight: 600;
     min-width: 32px;
     text-align: center;
+    transition: all 0.3s ease;
 }
 
 .letter-badge.correct {
     background: var(--success);
     color: white;
+    transform: scale(1.05);
 }
 
 .letter-badge.incorrect {
     background: var(--danger);
     color: white;
+    transform: scale(1.05);
 }
 
 /* دکمه راهنمایی */
@@ -867,65 +1149,38 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     box-shadow: var(--shadow);
     width: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-hint-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .btn-hint-minimal:hover:not(:disabled) {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
+}
+
+.btn-hint-minimal:hover:not(:disabled)::before {
+    opacity: 1;
 }
 
 .btn-hint-minimal:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
-}
-
-/* مودال شروع بازی */
-.modal-minimal {
-    max-width: 400px;
-    width: 95%;
-}
-
-.start-game-content {
-    text-align: center;
-    padding: 20px;
-}
-
-.success-icon-large {
-    font-size: 4rem;
-    color: var(--success);
-    margin-bottom: 20px;
-}
-
-.game-code-display {
-    background: var(--gray-100);
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    margin: 16px 0;
-    font-size: 1.1rem;
-}
-
-.players-info {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin: 16px 0;
-    color: var(--gray-600);
-}
-
-.players-info i {
-    color: var(--primary);
-}
-
-.note-minimal {
-    color: var(--gray-500);
-    font-size: 0.8rem;
-    margin-top: 16px;
-    line-height: 1.5;
 }
 
 /* نشانگر آنلاین */
@@ -969,6 +1224,16 @@ body {
     margin-right: 8px;
 }
 
+.waiting-badge {
+    background: #f59e0b;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
 /* استایل برای تاریخچه بازی */
 .success {
     color: #10b981;
@@ -983,7 +1248,6 @@ body {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
     color: white;
     padding: 12px 16px;
     border-radius: 8px;
@@ -994,6 +1258,7 @@ body {
     animation: slideInRight 0.3s ease;
     font-size: 0.9rem;
     font-weight: 500;
+    backdrop-filter: blur(10px);
 }
 
 .custom-notification.success {
@@ -1006,6 +1271,10 @@ body {
 
 .custom-notification.warning {
     background: linear-gradient(135deg, #f59e0b, #eab308);
+}
+
+.custom-notification.info {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
 @keyframes slideInRight {
@@ -1062,6 +1331,17 @@ body {
     
     .tabs-minimal {
         top: 65px;
+        padding: 0 12px;
+    }
+    
+    .tab-minimal {
+        padding: 12px 8px;
+        min-width: 70px;
+        font-size: 0.75rem;
+    }
+    
+    .tab-minimal i {
+        font-size: 1.1rem;
     }
     
     .tab-content-minimal {
@@ -1071,6 +1351,10 @@ body {
     
     .stats-grid-minimal {
         grid-template-columns: 1fr;
+    }
+    
+    .stat-card-minimal {
+        padding: 16px 12px;
     }
     
     .game-stats-minimal {
@@ -1103,9 +1387,36 @@ body {
         gap: 8px;
     }
     
-    .online-badge, .offline-badge {
+    .online-badge, .offline-badge, .waiting-badge {
         margin-right: 0;
         align-self: flex-start;
+    }
+    
+    .game-category-large {
+        font-size: 1.1rem;
+        padding: 10px 12px;
+    }
+    
+    .player-guess-item {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+    }
+    
+    .player-name,
+    .player-guess,
+    .guess-time {
+        flex: none;
+        width: 100%;
+    }
+    
+    .guess-time {
+        text-align: center;
+    }
+    
+    .guess-input-field {
+        padding: 14px;
+        font-size: 1.1rem;
     }
 }
 
@@ -1116,6 +1427,7 @@ body {
 
 ::-webkit-scrollbar-track {
     background: var(--gray-100);
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -1125,4 +1437,94 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--gray-500);
+}
+
+/* بهبود استایل برای اینپوت و دکمه */
+.guess-input-minimal .btn-primary-minimal {
+    margin-top: 8px;
+}
+
+/* استایل‌های اضافی برای زیبایی */
+.error {
+    color: var(--danger);
+    text-align: center;
+    padding: 20px;
+    font-weight: 500;
+}
+
+.loading-minimal .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* افکت‌های hover پیشرفته */
+.btn-primary-minimal, .btn-success-minimal, .btn-hint-minimal {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* گرادیانت‌های زیبا برای کارت‌ها */
+.welcome-card, .game-category-large {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+/* سایه‌های بهبود یافته */
+.card-minimal, .game-item-minimal, .stat-card-minimal {
+    box-shadow: 
+        0 1px 3px 0 rgba(0, 0, 0, 0.1),
+        0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.card-minimal:hover, .game-item-minimal:hover, .stat-card-minimal:hover {
+    box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* انیمیشن‌های ظریف برای تعاملات */
+.tab-minimal, .btn-refresh, .close-minimal {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* بهبود خوانایی برای متن‌ها */
+h1, h2, h3, h4 {
+    line-height: 1.3;
+}
+
+/* استایل برای حالت‌های مختلف دکمه */
+.btn-primary-minimal:disabled,
+.btn-success-minimal:disabled,
+.btn-hint-minimal:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* استایل برای فیلدهای ورودی در حالت غیرفعال */
+.input-minimal:disabled,
+.select-minimal:disabled {
+    background-color: var(--gray-100);
+    color: var(--gray-500);
+    cursor: not-allowed;
+}
+
+/* بهبود ظاهر اسکرول‌بار در موبایل */
+@media (max-width: 480px) {
+    ::-webkit-scrollbar {
+        width: 4px;
+    }
+}
+
+/* استایل برای پیام‌های خالی */
+.empty-state-minimal h3 {
+    margin-bottom: 8px;
+    color: var(--gray-600);
+}
+
+.empty-state-minimal p {
+    color: var(--gray-500);
+    font-size: 0.9rem;
 }
