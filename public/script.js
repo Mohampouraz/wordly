@@ -571,6 +571,9 @@ function updateGameInterface() {
         }
     }
 
+    // نمایش دسته‌بندی بزرگ
+    document.getElementById('gameCategoryDisplay').textContent = `دسته‌بندی: ${currentGame.category}`;
+
     // نمایش پیشرفت کلمه
     if (currentGame.word_progress) {
         displayWordProgress(currentGame.word_progress);
@@ -593,39 +596,47 @@ function updateGameInterface() {
     // تنظیم تعداد حدس‌ها
     updateAttemptsDisplay();
     
-    // تنظیم دکمه‌ها بر اساس نقش و وضعیت بازی
-    const isGameActive = !currentGame.completed && currentGame.is_started && timeLeft > 0;
-    document.getElementById('hintBtn').disabled = isCreator || !isGameActive;
-    document.getElementById('guessBtn').disabled = isCreator || !isGameActive;
-    document.getElementById('guessInput').disabled = isCreator || !isGameActive;
+    // مدیریت نمایش اینپوت و دکمه‌ها بر اساس نقش کاربر
+    const guessInputSection = document.getElementById('guessInputSection');
+    const playerGuessesSection = document.getElementById('playerGuessesSection');
     
-    // اگر سازنده هستید، فقط مشاهده کننده باشید
     if (isCreator) {
-        document.getElementById('hintBtn').disabled = true;
-        document.getElementById('guessBtn').disabled = true;
-        document.getElementById('guessInput').disabled = true;
-        document.getElementById('guessInput').placeholder = "شما سازنده هستید - فقط مشاهده";
-    } else if (!currentGame.is_started) {
-        document.getElementById('guessInput').placeholder = "در انتظار شروع بازی...";
+        // سازنده: مخفی کردن اینپوت و نمایش حدس‌های بازیکنان
+        guessInputSection.style.display = 'none';
+        playerGuessesSection.style.display = 'block';
+        updatePlayerGuessesDisplay();
     } else {
-        document.getElementById('guessInput').placeholder = "حرف مورد نظر را وارد کنید...";
-    }
-    
-    // بازنشانی راهنمایی‌ها
-    hintsUsed = 0;
-    document.getElementById('hintCount').textContent = toPersianNumber(2);
-    
-    // ذخیره زمان شروع برای بازیکنان
-    if (isGameActive && !isCreator) {
-        gameStartTime = new Date();
-        startGameTimer();
-    }
-    
-    // فوکوس روی اینپوت برای بازیکنان
-    if (!isCreator && isGameActive) {
-        setTimeout(() => {
-            document.getElementById('guessInput').focus();
-        }, 500);
+        // بازیکن: نمایش اینپوت و مخفی کردن بخش حدس‌ها
+        guessInputSection.style.display = 'block';
+        playerGuessesSection.style.display = 'none';
+        
+        const isGameActive = !currentGame.completed && currentGame.is_started && timeLeft > 0;
+        document.getElementById('hintBtn').disabled = !isGameActive;
+        document.getElementById('guessBtn').disabled = !isGameActive;
+        document.getElementById('guessInput').disabled = !isGameActive;
+        
+        if (!currentGame.is_started) {
+            document.getElementById('guessInput').placeholder = "در انتظار شروع بازی...";
+        } else {
+            document.getElementById('guessInput').placeholder = "حرف مورد نظر را وارد کنید...";
+        }
+        
+        // بازنشانی راهنمایی‌ها
+        hintsUsed = 0;
+        document.getElementById('hintCount').textContent = toPersianNumber(2);
+        
+        // ذخیره زمان شروع برای بازیکنان
+        if (isGameActive) {
+            gameStartTime = new Date();
+            startGameTimer();
+        }
+        
+        // فوکوس روی اینپوت برای بازیکنان
+        if (isGameActive) {
+            setTimeout(() => {
+                document.getElementById('guessInput').focus();
+            }, 500);
+        }
     }
 }
 
@@ -669,6 +680,26 @@ function updateGuessedLetters(correctLetters, incorrectLetters) {
     `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
 }
 
+// تابع به‌روزرسانی نمایش حدس‌های بازیکنان (برای سازنده)
+function updatePlayerGuessesDisplay() {
+    const container = document.getElementById('playerGuessesContainer');
+    
+    // اینجا می‌توانید اطلاعات حدس‌های بازیکنان را از سرور دریافت کنید
+    // برای نمونه، یک پیام نمایش می‌دهیم
+    container.innerHTML = `
+        <div class="player-guess-item">
+            <div class="player-name">بازیکن ۱</div>
+            <div class="player-guess">حرف "ب" - <span class="guess-result correct">صحیح</span></div>
+            <div class="guess-time">۲ دقیقه پیش</div>
+        </div>
+        <div class="player-guess-item">
+            <div class="player-name">بازیکن ۲</div>
+            <div class="player-guess">حرف "پ" - <span class="guess-result incorrect">غلط</span></div>
+            <div class="guess-time">۱ دقیقه پیش</div>
+        </div>
+    `;
+}
+
 // تابع ارسال حدس
 async function submitGuess() {
     const guessInput = document.getElementById('guessInput');
@@ -688,6 +719,10 @@ async function submitGuess() {
     }
 
     await guessLetter(letter);
+    
+    // پاک کردن اینپوت و بستن کیبورد
+    guessInput.value = '';
+    guessInput.blur(); // بستن کیبورد در موبایل
 }
 
 // تابع حدس زدن حرف
@@ -709,9 +744,6 @@ async function guessLetter(letter) {
         const result = await response.json();
 
         if (result.success) {
-            // پاک کردن اینپوت
-            document.getElementById('guessInput').value = '';
-            
             // به‌روزرسانی وضعیت بازی
             updateGameState(result);
             
@@ -887,7 +919,7 @@ function endGame(isWin) {
         const wordDisplay = document.getElementById('wordDisplay');
         wordDisplay.classList.add('win-animation');
     } else {
-        showNotification(`متاسفانه بازی را باختید. امتیاز نهایی: ${toPersianNumber(currentGame.score)}`, 'error');
+        showNotification(`متاسفانه بازی را باختید. امتیاز ناشی: ${toPersianNumber(currentGame.score)}`, 'error');
         
         // نمایش کلمه کامل
         if (currentGame.word) {
@@ -958,7 +990,7 @@ function showNotification(message, type = 'info') {
     });
 
     const notification = document.createElement('div');
-    notification.className = 'custom-notification';
+    notification.className = `custom-notification ${type}`;
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -1118,6 +1150,10 @@ function updateLiveClock() {
     const now = new Date();
     const timeString = now.toLocaleTimeString('fa-IR');
     document.getElementById('currentTime').textContent = timeString;
+    
+    // به‌روزرسانی تاریخ
+    const dateString = now.toLocaleDateString('fa-IR');
+    document.getElementById('persianDate').textContent = dateString;
 }
 
 // مدیریت ارسال با Enter
@@ -1182,5 +1218,5 @@ document.addEventListener('DOMContentLoaded', function() {
         if (document.getElementById('active-games').classList.contains('active')) {
             loadActiveGames();
         }
-    }, 30000);
+    }, 5000);
 });
