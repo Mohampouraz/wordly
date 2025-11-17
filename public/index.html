@@ -18,7 +18,7 @@
                 <i class="fab fa-telegram"></i>
                 <div>
                     <h1>پنل کاربری</h1>
-                    <p class="subtitle" id="environmentText">در حال بارگذاری...</p>
+                    <p class="subtitle">ربات بازی تعاملی</p>
                 </div>
             </div>
             <div class="user-badge" id="userBadge">
@@ -26,16 +26,6 @@
                 <span id="userName">در حال بارگذاری...</span>
             </div>
         </header>
-
-        <!-- نمایش اطلاعات دیباگ -->
-        <div id="debugInfo" class="debug-card">
-            <h3><i class="fas fa-bug"></i> اطلاعات دیباگ</h3>
-            <div class="debug-content">
-                <div><strong>وضعیت تلگرام:</strong> <span id="debugTelegram">در حال بررسی...</span></div>
-                <div><strong>آی‌دی کاربر:</strong> <span id="debugUserId">---</span></div>
-                <div><strong>منبع اطلاعات:</strong> <span id="debugSource">---</span></div>
-            </div>
-        </div>
 
         <!-- کارت اطلاعات اصلی -->
         <div class="main-card">
@@ -127,6 +117,34 @@
                 <div class="card-info">
                     <h3>آخرین بازدید</h3>
                     <p id="lastSeen" class="card-value">---</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- آمار ربات -->
+        <div class="stats-card">
+            <div class="stats-header">
+                <i class="fas fa-chart-bar"></i>
+                <h2>آمار ربات</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon total-users">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <label>کل کاربران</label>
+                        <span id="totalUsers" class="stat-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon active-users">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <label>کاربران فعال</label>
+                        <span id="activeUsers" class="stat-value">0</span>
+                    </div>
                 </div>
             </div>
         </div>
