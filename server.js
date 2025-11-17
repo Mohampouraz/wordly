@@ -22,7 +22,7 @@ const dbClient = new Client({
 app.use(express.json());
 app.use(express.static('public'));
 
-// ذخیره کاربران آنلاین (برای نوتیفیکیشن)
+// ذخیره کاربران آنلاین برای نوتیفیکیشن
 const onlineUsers = new Map();
 
 // اتصال به دیتابیس
@@ -33,7 +33,6 @@ dbClient.connect()
 // ایجاد جداول
 async function createTables() {
     try {
-        // جدول کاربران
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -46,18 +45,6 @@ async function createTables() {
                 game_score INTEGER DEFAULT 0
             )
         `);
-
-        // جدول نوتیفیکیشن‌ها
-        await dbClient.query(`
-            CREATE TABLE IF NOT EXISTS notifications (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT,
-                message TEXT,
-                type VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        `);
-
         console.log('✅ Database tables ready');
     } catch (error) {
         console.error('❌ Error creating tables:', error);
@@ -66,25 +53,36 @@ async function createTables() {
 
 createTables();
 
-// تابع ارسال نوتیفیکیشن به همه کاربران
-async function broadcastToAllUsers(message, options = {}) {
+// تابع ارسال نوتیفیکیشن به کاربران فعال
+async function sendNotificationToActiveUsers(message, excludeUserId = null) {
     try {
+        console.log(`📢 ارسال نوتیفیکیشن به کاربران فعال: ${message}`);
+        
         const result = await dbClient.query(
-            'SELECT telegram_id FROM users WHERE is_active = true'
+            'SELECT telegram_id FROM users WHERE is_active = true AND telegram_id != $1',
+            [excludeUserId || 0]
         );
         
         const users = result.rows;
         let successCount = 0;
-        
+        let failCount = 0;
+
+        console.log(`👥 تعداد کاربران فعال برای ارسال: ${users.length}`);
+
         for (const user of users) {
             try {
-                await bot.telegram.sendMessage(user.telegram_id, message, options);
+                await bot.telegram.sendMessage(user.telegram_id, message, {
+                    parse_mode: 'HTML'
+                });
                 successCount++;
-                
+                console.log(`✅ ارسال به کاربر ${user.telegram_id}`);
+
                 // تأخیر کوچک برای جلوگیری از محدودیت تلگرام
                 await new Promise(resolve => setTimeout(resolve, 100));
+                
             } catch (error) {
-                console.error(`Failed to send to user ${user.telegram_id}:`, error.message);
+                failCount++;
+                console.error(`❌ خطا در ارسال به کاربر ${user.telegram_id}:`, error.message);
                 
                 // اگر کاربر بلاک کرده، غیرفعالش کن
                 if (error.description && error.description.includes('blocked')) {
@@ -92,31 +90,44 @@ async function broadcastToAllUsers(message, options = {}) {
                         'UPDATE users SET is_active = false WHERE telegram_id = $1',
                         [user.telegram_id]
                     );
+                    console.log(`🚫 کاربر ${user.telegram_id} غیرفعال شد`);
                 }
             }
         }
         
-        console.log(`📢 Broadcast sent to ${successCount}/${users.length} users`);
-        return successCount;
+        console.log(`📊 نتیجه ارسال نوتیفیکیشن: ${successCount} موفق, ${failCount} ناموفق`);
+        return { success: successCount, failed: failCount };
+        
     } catch (error) {
-        console.error('Error in broadcast:', error);
-        return 0;
+        console.error('💥 خطا در ارسال نوتیفیکیشن:', error);
+        return { success: 0, failed: 0 };
     }
 }
 
 // تابع ارسال نوتیفیکیشن به کاربران آنلاین
-function broadcastToOnlineUsers(message, options = {}) {
+function sendNotificationToOnlineUsers(message, excludeUserId = null) {
     let successCount = 0;
+    let failCount = 0;
+
+    console.log(`📱 ارسال نوتیفیکیشن به کاربران آنلاین: ${message}`);
+
     onlineUsers.forEach((userData, telegramId) => {
+        if (excludeUserId && telegramId === excludeUserId) return;
+        
         try {
-            bot.telegram.sendMessage(telegramId, message, options);
+            bot.telegram.sendMessage(telegramId, message, {
+                parse_mode: 'HTML'
+            });
             successCount++;
+            console.log(`✅ ارسال به کاربر آنلاین ${telegramId}`);
         } catch (error) {
-            console.error(`Failed to send to online user ${telegramId}:`, error.message);
+            failCount++;
+            console.error(`❌ خطا در ارسال به کاربر آنلاین ${telegramId}:`, error.message);
         }
     });
-    console.log(`📱 Notification sent to ${successCount} online users`);
-    return successCount;
+
+    console.log(`📊 نتیجه ارسال به آنلاین‌ها: ${successCount} موفق, ${failCount} ناموفق`);
+    return { success: successCount, failed: failCount };
 }
 
 // هندلر کامند /start
@@ -124,7 +135,7 @@ bot.command('start', async (ctx) => {
     const userId = ctx.from.id;
     const fullName = `${ctx.from.first_name || ''} ${ctx.from.last_name || ''}`.trim();
     const username = ctx.from.username;
-    
+
     // بررسی آیا کاربر جدید است
     const existingUser = await dbClient.query(
         'SELECT * FROM users WHERE telegram_id = $1',
@@ -149,20 +160,19 @@ bot.command('start', async (ctx) => {
     // اگر کاربر جدید است، نوتیفیکیشن بفرست
     if (isNewUser) {
         const userCount = await getUserCount();
-        const welcomeMessage = `🎉 کاربر جدید به ربات پیوست!\n👤 نام: ${fullName}\n🆔 آی‌دی: ${userId}\n📊 تعداد کل کاربران: ${userCount}`;
+        const welcomeMessage = `🎉 <b>کاربر جدید به ربات پیوست!</b>\n\n👤 <b>نام:</b> ${fullName}\n🆔 <b>آی‌دی:</b> <code>${userId}</code>\n📊 <b>تعداد کل کاربران:</b> ${userCount}\n\nخوش آمدید! 🎊`;
         
-        // ارسال به همه کاربران آنلاین
-        broadcastToOnlineUsers(welcomeMessage, {
-            parse_mode: 'HTML'
-        });
+        // ارسال نوتیفیکیشن به کاربران آنلاین و فعال
+        console.log('🆕 کاربر جدید شناسایی شد، ارسال نوتیفیکیشن...');
         
-        // همچنین به ادمین اطلاع بده
-        const adminMessage = `👤 کاربر جدید:\n${fullName} (${username ? '@' + username : 'بدون یوزرنیم'})`;
-        await bot.telegram.sendMessage(
-            userId, // در واقعیت باید آی‌دی ادمین را قرار دهید
-            adminMessage,
-            { parse_mode: 'HTML' }
-        );
+        // اول به کاربران آنلاین
+        const onlineResult = sendNotificationToOnlineUsers(welcomeMessage, userId);
+        
+        // سپس به همه کاربران فعال (با تأخیر برای جلوگیری از overload)
+        setTimeout(async () => {
+            const activeResult = await sendNotificationToActiveUsers(welcomeMessage, userId);
+            console.log(`📨 نوتیفیکیشن کاربر جدید ارسال شد: ${onlineResult.success + activeResult.success} کاربر`);
+        }, 2000);
     }
 
     // ایجاد دکمه برای باز کردن وب اپ
@@ -170,11 +180,7 @@ bot.command('start', async (ctx) => {
         inline_keyboard: [
             [{
                 text: '🚀 باز کردن پنل کاربری',
-                web_app: { url: `${WEB_APP_URL}` }
-            }],
-            [{
-                text: '📊 آمار ربات',
-                callback_data: 'stats'
+                web_app: { url: `${WEB_APP_URL}?tgid=${userId}` }
             }]
         ]
     };
@@ -195,18 +201,36 @@ bot.command('stats', async (ctx) => {
     const activeCount = await getActiveUserCount();
     
     await ctx.reply(
-        `📊 آمار ربات:\n\n👥 تعداد کاربران: ${userCount}\n🟢 کاربران فعال: ${activeCount}\n🌐 کاربران آنلاین: ${onlineUsers.size}`,
+        `📊 <b>آمار ربات</b>\n\n👥 <b>تعداد کاربران:</b> ${userCount}\n🟢 <b>کاربران فعال:</b> ${activeCount}\n🌐 <b>کاربران آنلاین:</b> ${onlineUsers.size}`,
         { parse_mode: 'HTML' }
     );
 });
 
-// هندلر callback
-bot.action('stats', async (ctx) => {
-    const userCount = await getUserCount();
-    const activeCount = await getActiveUserCount();
+// کامند ارسال پیام به همه (فقط برای ادمین)
+bot.command('broadcast', async (ctx) => {
+    const userId = ctx.from.id;
     
-    await ctx.editMessageText(
-        `📊 آمار ربات:\n\n👥 تعداد کاربران: ${userCount}\n🟢 کاربران فعال: ${activeCount}\n🌐 کاربران آنلاین: ${onlineUsers.size}`,
+    // بررسی آیا کاربر ادمین است (می‌توانی آی‌دی خودت رو اینجا قرار دهی)
+    const adminId = 123456789; // آی‌دی ادمین رو اینجا قرار بده
+    if (userId !== adminId) {
+        await ctx.reply('❌ شما دسترسی به این command را ندارید.');
+        return;
+    }
+
+    const message = ctx.message.text.replace('/broadcast', '').trim();
+    if (!message) {
+        await ctx.reply('❌ لطفاً پیام خود را بعد از /broadcast وارد کنید.');
+        return;
+    }
+
+    const broadcastMessage = `📢 <b>پیام همگانی:</b>\n\n${message}`;
+    
+    await ctx.reply('🔄 در حال ارسال پیام به همه کاربران...');
+    
+    const result = await sendNotificationToActiveUsers(broadcastMessage);
+    
+    await ctx.reply(
+        `✅ ارسال پیام همگانی تکمیل شد:\n\n✅ موفق: ${result.success}\n❌ ناموفق: ${result.failed}`,
         { parse_mode: 'HTML' }
     );
 });
@@ -273,7 +297,13 @@ app.post('/api/user/:telegramId/score', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        res.json({ success: true, new_score: result.rows[0].game_score });
+        const user = result.rows[0];
+        
+        // ارسال نوتیفیکیشن امتیاز جدید
+        const scoreMessage = `🏆 <b>امتیاز جدید!</b>\n\n👤 <b>کاربر:</b> ${user.full_name}\n🎯 <b>امتیاز:</b> ${score}\n\nتبریک می‌گم! 🎉`;
+        sendNotificationToOnlineUsers(scoreMessage, telegramId);
+
+        res.json({ success: true, new_score: user.game_score });
     } catch (error) {
         console.error('❌ Error updating score:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -293,37 +323,6 @@ app.get('/api/stats', async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Error getting stats:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-// API برای دریافت لیست کاربران آنلاین
-app.get('/api/online-users', (req, res) => {
-    const onlineList = Array.from(onlineUsers.entries()).map(([id, data]) => ({
-        telegram_id: id,
-        last_seen: data.lastSeen
-    }));
-    
-    res.json({ online_users: onlineList });
-});
-
-// API برای ایجاد کاربر جدید
-app.post('/api/user', async (req, res) => {
-    try {
-        const { telegram_id, full_name, username } = req.body;
-        
-        const result = await dbClient.query(
-            `INSERT INTO users (telegram_id, full_name, username) 
-             VALUES ($1, $2, $3) 
-             ON CONFLICT (telegram_id) 
-             DO UPDATE SET full_name = $2, username = $3, last_seen = CURRENT_TIMESTAMP
-             RETURNING *`,
-            [telegram_id, full_name, username]
-        );
-
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error('Error creating/updating user:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -358,11 +357,5 @@ bot.launch()
 process.once('SIGINT', () => {
     console.log('🛑 Shutting down gracefully...');
     bot.stop('SIGINT');
-    process.exit(0);
-});
-
-process.once('SIGTERM', () => {
-    console.log('🛑 Shutting down gracefully...');
-    bot.stop('SIGTERM');
     process.exit(0);
 });
