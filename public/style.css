@@ -4,64 +4,62 @@
     box-sizing: border-box;
 }
 
+/* پالت رنگی لوکس و عمیق (Dark Theme) */
 :root {
-    --primary: #667eea;
-    --primary-dark: #5a6fd8;
-    --secondary: #764ba2;
-    --success: #10b981;
-    --success-dark: #0da271;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --info: #06b6d4;
-    --dark: #1f2937;
-    --light: #f8fafc;
-    --gray-50: #f9fafb;
-    --gray-100: #f3f4f6;
-    --gray-200: #e5e7eb;
-    --gray-300: #d1d5db;
-    --gray-400: #9ca3af;
-    --gray-500: #6b7280;
-    --gray-600: #4b5563;
-    --gray-700: #374151;
-    --gray-800: #1f2937;
-    --gray-900: #111827;
-    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    --radius: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 20px;
+    --primary: #5e35b1; /* بنفش عمیق */
+    --primary-light: #7e57c2;
+    --secondary: #00bcd4; /* فیروزه‌ای جذاب برای تأکید */
+    --success: #66bb6a;
+    --success-dark: #43a047;
+    --danger: #ef5350;
+    --warning: #ffb74d;
+    --info: #42a5f5;
+    --dark: #121212; /* پس‌زمینه اصلی */
+    --card-bg: #1e1e1e; /* رنگ کارت‌ها */
+    --text-primary: #e0e0e0; /* متن روشن */
+    --text-secondary: #9e9e9e; /* متن خاکستری ثانویه */
+    --border-color: #303030; /* خطوط جداکننده تیره */
+    --shadow-light: 0 4px 10px rgba(0, 0, 0, 0.4);
+    --shadow-deep: 0 10px 20px rgba(0, 0, 0, 0.8);
+    --radius: 16px;
 }
 
 body {
     font-family: 'Vazirmatn', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: var(--gray-800);
+    /* گرادیانت پس‌زمینه عمیق */
+    background: linear-gradient(135deg, var(--dark) 0%, #0a0a0a 100%);
+    color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
     padding: 0;
     direction: rtl;
+    overflow-x: hidden;
 }
 
 .container {
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
-    background: white;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    background: var(--dark);
+    box-shadow: var(--shadow-deep);
     position: relative;
     overflow-x: hidden; /* جلوگیری از اسکرول افقی */
 }
 
-/* هدر مینیمال */
+/* ------------------------------------------- */
+/* ۱. هدر و نویگیشن (Sticky & Glassmorphism) */
+/* ------------------------------------------- */
+
 .header-minimal {
-    background: white;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--gray-200);
+    /* پس‌زمینه شفاف و بلور (Glassmorphism) */
+    background: rgba(30, 30, 30, 0.8);
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(15px); 
+    transition: all 0.3s ease;
 }
 
 .header-content {
@@ -77,17 +75,18 @@ body {
 }
 
 .logo-minimal i {
-    font-size: 1.8rem;
-    color: var(--primary);
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    font-size: 2rem;
+    /* گرادیانت جذاب برای لوگو */
+    background: linear-gradient(135deg, var(--primary-light), var(--secondary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    transition: all 0.5s ease;
 }
 
 .logo-minimal h1 {
     font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--gray-800);
+    font-weight: 800;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -96,37 +95,46 @@ body {
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    background: var(--gray-100);
+    background: var(--card-bg);
     border-radius: 20px;
     font-size: 0.9rem;
     font-weight: 500;
-    color: var(--gray-700);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.user-minimal:hover {
+    background: #252525;
+    color: var(--text-primary);
+    box-shadow: 0 0 10px rgba(0, 188, 212, 0.2);
 }
 
 .user-avatar {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
+    box-shadow: 0 0 10px rgba(0, 188, 212, 0.5); /* نور نئونی ظریف */
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
     font-size: 0.9rem;
-    flex-shrink: 0; /* تضمین می‌کند که در فضاهای کم جمع نشود */
+    flex-shrink: 0;
 }
 
 /* تب‌های مینیمال */
 .tabs-minimal {
     display: flex;
-    background: white;
-    border-bottom: 1px solid var(--gray-200);
+    background: rgba(30, 30, 30, 0.9);
+    border-bottom: 1px solid var(--border-color);
     padding: 0 16px;
     overflow-x: auto;
     position: sticky;
-    /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر قرار گیرد (64px = 16px پدینگ بالا + 32px آواتار + 16px پدینگ پایین) */
-    top: 64px; 
+    top: 64px; /* فیت شده با ارتفاع هدر جدید */
     z-index: 99;
+    backdrop-filter: blur(10px);
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -140,7 +148,7 @@ body {
     padding: 16px 12px;
     border: none;
     background: transparent;
-    color: var(--gray-500);
+    color: var(--text-secondary);
     font-family: 'Vazirmatn', sans-serif;
     font-size: 0.8rem;
     cursor: pointer;
@@ -148,21 +156,22 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* منحنی نرم */
     min-width: 80px;
     border-bottom: 2px solid transparent;
     white-space: nowrap;
 }
 
 .tab-minimal:hover {
-    color: var(--primary);
-    background: var(--gray-50);
+    color: var(--primary-light);
+    background: var(--card-bg);
 }
 
 .tab-minimal.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-    background: var(--gray-50);
+    color: white;
+    border-bottom-color: var(--secondary);
+    background: var(--card-bg);
+    box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .tab-minimal i {
@@ -180,13 +189,13 @@ body {
     text-align: center;
 }
 
-/* محتوای تب‌ها */
+/* محتوای تب‌ها - مدیریت ارتفاع */
 .tab-content-minimal {
     display: none;
-    padding: 20px;
-    animation: fadeIn 0.3s ease;
-    /* [اصلاح ریسپانسیو]: min-height تنظیم شد تا محتوا دقیقاً ارتفاع باقی‌مانده زیر هدر و تب‌ها را پر کند. (64px + 56px = 120px + 5px بافر) */
-    min-height: calc(100vh - 125px); 
+    padding: 24px;
+    animation: fadeIn 0.4s ease;
+    /* [ریسپانسیو]: ارتفاع کامل منهای هدر و تب‌ها */
+    min-height: calc(100vh - 120px); 
 }
 
 .tab-content-minimal.active {
@@ -196,7 +205,7 @@ body {
 @keyframes fadeIn {
     from { 
         opacity: 0; 
-        transform: translateY(10px); 
+        transform: translateY(15px); 
     }
     to { 
         opacity: 1; 
@@ -204,164 +213,122 @@ body {
     }
 }
 
-/* کارت خوش‌آمدگویی */
+/* ------------------------------------------- */
+/* ۲. کارت‌ها و گرید (Deep Shadows & Hover) */
+/* ------------------------------------------- */
+
 .welcome-card {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
     color: white;
     padding: 30px 24px;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     text-align: center;
     margin-bottom: 24px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 10px 30px rgba(94, 53, 177, 0.7); /* سایه رنگی قوی */
     position: relative;
     overflow: hidden;
 }
 
-.welcome-card::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%);
-    animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-10px) rotate(180deg); }
-}
-
-.welcome-content h2 {
-    font-size: 1.4rem;
-    margin-bottom: 8px;
-    font-weight: 700;
-}
-
-.welcome-content p {
-    opacity: 0.9;
-    font-size: 0.9rem;
-}
-
 .welcome-icon {
+    color: var(--secondary);
+    text-shadow: 0 0 10px rgba(0, 188, 212, 0.8);
     font-size: 3rem;
     margin-bottom: 16px;
     opacity: 0.9;
-    animation: bounce 2s ease-in-out infinite;
+    animation: pulse 2s ease-in-out infinite;
 }
 
-@keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
-/* گرید آمار مینیمال */
+/* گرید آمار لوکس */
 .stats-grid-minimal {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    gap: 16px;
     margin-bottom: 24px;
 }
 
 .stat-card-minimal {
-    background: white;
+    background: var(--card-bg);
     padding: 20px 16px;
     border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     gap: 16px;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow);
+    transition: all 0.3s cubic-bezier(0.3, 0.7, 0.4, 1.5);
+    box-shadow: var(--shadow-light);
     position: relative;
     overflow: hidden;
 }
 
-.stat-card-minimal::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
 .stat-card-minimal:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.stat-card-minimal:hover::before {
-    opacity: 1;
+    /* افکت شناور لوکس */
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 0 0 10px var(--secondary);
+    border-color: var(--secondary);
 }
 
 .stat-icon-minimal {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.2rem;
     color: white;
     flex-shrink: 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
 }
 
 .stat-icon-minimal.primary { 
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark)); 
+    background: linear-gradient(135deg, var(--primary), var(--primary-light)); 
 }
 .stat-icon-minimal.success { 
     background: linear-gradient(135deg, var(--success), var(--success-dark)); 
 }
 .stat-icon-minimal.info { 
-    background: linear-gradient(135deg, var(--info), #0891b2); 
+    background: linear-gradient(135deg, var(--info), #2196f3); 
 }
 .stat-icon-minimal.warning { 
-    background: linear-gradient(135deg, var(--warning), #eab308); 
-}
-
-.stat-info-minimal {
-    flex: 1;
+    background: linear-gradient(135deg, var(--warning), #fb8c00); 
 }
 
 .stat-value {
-    display: block;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--gray-800);
-    line-height: 1.2;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 800;
 }
 
 .stat-label {
-    display: block;
+    color: var(--text-secondary);
     font-size: 0.8rem;
-    color: var(--gray-500);
-    margin-top: 4px;
 }
 
 /* کارت‌های مینیمال */
 .card-minimal {
-    background: white;
+    background: var(--card-bg);
     border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
+    border: 1px solid var(--border-color);
     margin-bottom: 20px;
     overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: all 0.3s ease;
+    box-shadow: var(--shadow-light);
+    transition: all 0.3s cubic-bezier(0.3, 0.7, 0.4, 1.5);
 }
 
 .card-minimal:hover {
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.6);
 }
 
 .card-header-minimal {
-    background: var(--gray-100);
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--gray-200);
+    background: #252525;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -369,14 +336,14 @@ body {
 
 .card-header-minimal h3 {
     font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--gray-800);
+    font-weight: 700;
+    color: var(--text-primary);
     margin: 0;
     flex: 1;
 }
 
 .card-header-minimal i {
-    color: var(--primary);
+    color: var(--secondary);
     font-size: 1.1rem;
 }
 
@@ -385,200 +352,126 @@ body {
 }
 
 /* فرم‌های مینیمال */
-.form-minimal {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.input-group-minimal {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
 .input-group-minimal label {
     font-weight: 600;
-    color: var(--gray-700);
+    color: var(--text-primary);
     font-size: 0.9rem;
 }
 
-.input-minimal {
-    padding: 12px 16px;
-    border: 2px solid var(--gray-300);
+.input-minimal, .select-minimal {
+    padding: 14px 18px;
+    border: 2px solid #424242;
     border-radius: var(--radius);
     font-family: 'Vazirmatn', sans-serif;
     font-size: 1rem;
     transition: all 0.3s ease;
-    background: white;
+    background: var(--dark);
+    color: var(--text-primary);
 }
 
-.input-minimal:focus {
+.input-minimal:focus, .select-minimal:focus {
     outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 4px rgba(94, 53, 177, 0.3);
     transform: translateY(-1px);
 }
 
-.select-minimal {
-    padding: 12px 16px;
-    border: 2px solid var(--gray-300);
-    border-radius: var(--radius);
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    background: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.select-minimal:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
 .input-hint {
-    color: var(--gray-500);
+    color: var(--text-secondary);
     font-size: 0.8rem;
-    margin-top: 4px;
 }
 
-/* دکمه‌های مینیمال */
-.btn-primary-minimal {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+/* ------------------------------------------- */
+/* ۳. دکمه‌ها (Interactive & Luxurious) */
+/* ------------------------------------------- */
+
+.btn-primary-minimal, .btn-success-minimal {
     color: white;
     border: none;
-    padding: 14px 24px;
+    padding: 16px 24px;
     border-radius: var(--radius);
     font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow);
+    transition: all 0.2s cubic-bezier(0.3, 0.7, 0.4, 1.5); /* افکت فشردن لوکس */
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
     position: relative;
     overflow: hidden;
 }
 
-.btn-primary-minimal::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.btn-primary-minimal:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-primary-minimal:hover::before {
-    opacity: 1;
-}
-
-.btn-primary-minimal:active {
-    transform: translateY(0);
+.btn-primary-minimal {
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
 }
 
 .btn-success-minimal {
     background: linear-gradient(135deg, var(--success), var(--success-dark));
-    color: white;
-    border: none;
-    padding: 14px 24px;
-    border-radius: var(--radius);
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow);
-    position: relative;
-    overflow: hidden;
 }
 
-.btn-success-minimal::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
-    opacity: 0;
-    transition: opacity 0.3s ease;
+.btn-primary-minimal:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(94, 53, 177, 0.6);
 }
 
 .btn-success-minimal:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(102, 187, 106, 0.6);
 }
 
-.btn-success-minimal:hover::before {
-    opacity: 1;
+.btn-primary-minimal:active, .btn-success-minimal:active {
+    transform: translateY(0);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
-.btn-full {
-    width: 100%;
+/* افکت لایه درخشان روی دکمه‌ها */
+.btn-primary-minimal::before, .btn-success-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 30%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: skewX(-20deg);
+    transition: all 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-.btn-large {
-    padding: 16px 24px;
-    font-size: 1.1rem;
-}
-
-.btn-small {
-    padding: 8px 16px;
-    font-size: 0.8rem;
+.btn-primary-minimal:hover::before, .btn-success-minimal:hover::before {
+    left: 100%;
 }
 
 .btn-refresh {
     background: none;
     border: none;
-    color: var(--gray-500);
+    color: var(--secondary);
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: transform 0.5s ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .btn-refresh:hover {
-    background: var(--gray-100);
-    color: var(--primary);
-    transform: rotate(180deg);
+    background: #252525;
+    transform: rotate(360deg);
 }
 
-/* کارت اطلاعات کاربری */
-.info-card-minimal {
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    margin-bottom: 20px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-}
+/* ------------------------------------------- */
+/* ۴. اطلاعات حساب و لیست‌ها */
+/* ------------------------------------------- */
 
 .info-row-minimal {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
-    border-bottom: 1px solid var(--gray-100);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .info-row-minimal:last-child {
@@ -586,91 +479,31 @@ body {
 }
 
 .info-label {
-    color: var(--gray-600);
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .info-value {
-    color: var(--gray-800);
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-/* کارت زمان */
-.time-card {
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    padding: 20px;
-    box-shadow: var(--shadow);
-}
-
-.time-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 0;
-}
-
-.time-item:first-child {
-    border-bottom: 1px solid var(--gray-100);
-}
-
-.time-item i {
-    color: var(--primary);
-    font-size: 1.2rem;
-    width: 24px;
-}
-
-.time-label {
-    color: var(--gray-600);
-    font-size: 0.9rem;
-    margin-bottom: 4px;
-}
-
-.time-value {
-    color: var(--gray-800);
+    color: var(--text-primary);
     font-weight: 600;
-    font-size: 1rem;
-}
-
-/* لیست بازی‌های مینیمال */
-.games-list-minimal {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    font-size: 0.9rem;
 }
 
 .game-item-minimal {
-    background: white;
-    border: 1px solid var(--gray-200);
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius);
     padding: 16px;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-}
-
-.game-item-minimal::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 4px;
-    height: 100%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    box-shadow: var(--shadow-light);
 }
 
 .game-item-minimal:hover {
-    border-color: var(--primary);
-    box-shadow: var(--shadow);
+    border-color: var(--secondary);
+    box-shadow: 0 0 10px rgba(0, 188, 212, 0.3);
     transform: translateY(-2px);
-}
-
-.game-item-minimal:hover::before {
-    opacity: 1;
 }
 
 .game-header-minimal {
@@ -685,76 +518,262 @@ body {
 .game-code-minimal {
     background: var(--primary);
     color: white;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 4px 10px;
+    border-radius: 8px;
     font-size: 0.8rem;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .game-category-minimal {
-    background: var(--gray-100);
-    color: var(--gray-700);
-    padding: 4px 8px;
-    border-radius: 6px;
+    background: #252525;
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 8px;
     font-size: 0.8rem;
-}
-
-.status-badge {
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 600;
+    border: 1px solid var(--border-color);
 }
 
 .status-badge.started {
     background: var(--success);
-    color: white;
 }
 
 .status-badge.waiting {
     background: var(--warning);
-    color: white;
-}
-
-.game-info-minimal {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.info-row-compact {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--gray-600);
-    font-size: 0.8rem;
 }
 
 .info-row-compact i {
-    color: var(--primary);
-    width: 14px;
+    color: var(--secondary);
 }
 
-.game-actions-minimal {
+/* ------------------------------------------- */
+/* ۵. مودال بازی (Game Modal) - کلید ریسپانسیو */
+/* ------------------------------------------- */
+
+.modal {
+    background-color: rgba(0,0,0,0.7);
+    backdrop-filter: blur(10px);
+    overflow-y: auto; /* برای جلوگیری از تداخل با TWA */
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    border: 1px solid #303030;
+    box-shadow: var(--shadow-deep);
+    /* [ریسپانسیو]: تنظیمات Flexbox برای اسکرول داخلی */
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
+    max-height: 95vh;
 }
 
+.modal-header-minimal {
+    background: #1a1a1a;
+    border-bottom: 1px solid #303030;
+    flex-shrink: 0;
+}
+
+.close-minimal {
+    color: var(--text-secondary);
+}
+
+.close-minimal:hover {
+    color: var(--danger);
+    background: var(--card-bg);
+}
+
+/* [ریسپانسیو]: این عنصر اسکرول می‌کند و ارتفاع باقی‌مانده را پر می‌کند */
+.game-container {
+    padding: 20px;
+    overflow-y: auto; 
+    flex: 1; 
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0; 
+}
+
+.modal-footer-minimal {
+    background: #252525;
+    border-top: 1px solid #303030;
+    flex-shrink: 0;
+}
+
+.game-stats-minimal {
+    background: #252525;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.game-stat i {
+    color: var(--secondary);
+}
+
+#timer {
+    color: var(--secondary);
+    font-weight: 700;
+    animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { text-shadow: 0 0 5px var(--secondary); }
+    to { text-shadow: 0 0 10px var(--secondary), 0 0 20px rgba(0, 188, 212, 0.5); }
+}
+
+.word-display-minimal {
+    background: #252525;
+    border: 2px solid var(--border-color);
+}
+
+.letter-minimal {
+    background: #121212;
+    color: var(--text-primary);
+    border: 2px solid #424242;
+    box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.1);
+}
+
+.letter-minimal.revealed {
+    background: var(--success);
+    border-color: var(--success);
+    box-shadow: 0 0 15px rgba(102, 187, 106, 0.5);
+    animation: letterFlip 0.6s forwards; /* انیمیشن چرخشی لوکس */
+}
+
+@keyframes letterFlip {
+    0% { transform: rotateY(0deg) scale(1); }
+    50% { transform: rotateY(90deg) scale(1.1); background: var(--secondary); }
+    100% { transform: rotateY(0deg) scale(1); background: var(--success); }
+}
+
+.guess-input-field {
+    background: var(--dark);
+    color: var(--text-primary);
+    border: 2px solid #424242;
+}
+
+/* بخش حدس‌های بازیکنان - دارای اسکرول داخلی */
+.player-guesses-container {
+    background: #252525;
+    border: 1px solid var(--border-color);
+    flex: 1;
+    overflow-y: auto;
+    min-height: 120px;
+}
+
+.player-guess-item {
+    color: var(--text-primary);
+    border-bottom: 1px solid #303030;
+}
+
+.guess-result.correct {
+    background: var(--success);
+}
+
+.guess-result.incorrect {
+    background: var(--danger);
+}
+
+.guess-time {
+    color: var(--text-secondary);
+}
+
+.letter-badge.correct {
+    background: var(--success);
+}
+
+.letter-badge.incorrect {
+    background: var(--danger);
+}
+
+.btn-hint-minimal {
+    background: linear-gradient(135deg, var(--warning), #fb8c00);
+    box-shadow: 0 8px 15px rgba(255, 183, 77, 0.4);
+    font-size: 0.9rem;
+}
+
+.btn-hint-minimal:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(255, 183, 77, 0.6);
+}
+
+/* ------------------------------------------- */
+/* ۶. رسپانسیو نهایی (Mobile Optimization) */
+/* ------------------------------------------- */
+
+@media (max-width: 480px) {
+    /* تنظیمات ریسپانسیو برای جلوگیری از تداخل */
+    .header-minimal {
+        padding: 12px 16px;
+    }
+    
+    .tabs-minimal {
+        top: 56px; /* فیت شدن با ارتفاع هدر جدید موبایل */
+        padding: 0 12px;
+    }
+    
+    .tab-content-minimal {
+        padding: 16px;
+        /* [ریسپانسیو]: ارتفاع کامل منهای هدر و تب‌های موبایل */
+        min-height: calc(100vh - 110px); 
+    }
+    
+    .stats-grid-minimal {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stat-card-minimal:hover {
+        transform: none; /* حذف انیمیشن translateY برای موبایل */
+    }
+
+    .card-minimal:hover {
+        transform: none;
+    }
+    
+    .modal-content {
+        max-height: 98vh;
+    }
+
+    .game-container {
+        padding: 16px;
+    }
+    
+    .letter-minimal {
+        width: 28px;
+        height: 34px;
+        font-size: 0.9rem;
+    }
+
+    .btn-primary-minimal:hover, .btn-success-minimal:hover {
+        transform: none;
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+    }
+    
+    .btn-primary-minimal:hover::before, .btn-success-minimal:hover::before {
+        left: 0%; /* خاموش کردن افکت درخشان برای موبایل */
+    }
+
+    .player-guess-item {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+        font-size: 0.75rem;
+    }
+}
+
+/* استایل‌های کاربردی نهایی (تطبیق داده شده با تم تیره) */
 .loading-minimal {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 12px;
     padding: 40px 20px;
-    color: var(--gray-500);
+    color: var(--text-secondary);
     font-size: 0.9rem;
 }
 
 .empty-state-minimal {
     text-align: center;
     padding: 40px 20px;
-    color: var(--gray-500);
+    color: var(--text-secondary);
 }
 
 .empty-state-minimal i {
@@ -763,930 +782,41 @@ body {
     opacity: 0.5;
 }
 
-/* مودال‌ها - کاملاً ریسپانسیو */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    animation: fadeIn 0.3s ease;
-    backdrop-filter: blur(5px);
-    padding: 10px;
-    box-sizing: border-box;
-    /* [اصلاح ریسپانسیو]: برای تداخل نداشتن با نوتیفیکیشن‌های تلگرام وب‌اَپ (TWA) */
-    overflow-y: auto; 
+.hidden {
+    display: none !important;
 }
 
-.modal-content {
-    background-color: #fefefe;
-    margin: 0 auto;
-    border: 1px solid #888;
-    border-radius: var(--radius-lg);
-    animation: slideIn 0.3s ease;
-    position: relative;
-    max-height: 95vh;
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    max-width: 440px;
-}
-
-@keyframes slideIn {
-    from { 
-        transform: translateY(-20px); 
-        opacity: 0; 
-    }
-    to { 
-        transform: translateY(0); 
-        opacity: 1; 
-    }
-}
-
-.game-modal .modal-content {
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-xl);
-}
-
-.modal-header-minimal {
-    background: white;
-    padding: 20px 24px;
-    border-bottom: 1px solid var(--gray-200);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع هدر */
-}
-
-.modal-header-minimal h2 {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--gray-800);
-    margin: 0;
-    flex: 1;
-}
-
-.close-minimal {
-    font-size: 1.5rem;
-    color: var(--gray-500);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    flex-shrink: 0;
-}
-
-.close-minimal:hover {
-    color: var(--danger);
-    background: var(--gray-100);
-    transform: rotate(90deg);
-}
-
-/* [اضافه شده برای ریسپانسیو]: فوتر مودال */
-.modal-footer-minimal {
-    background: var(--gray-100);
-    padding: 16px 20px;
-    border-top: 1px solid var(--gray-200);
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع فوتر و جلوگیری از تداخل */
-}
-
-
-/* کانتینر بازی - کاملاً ریسپانسیو */
-.game-container {
-    padding: 20px;
-    /* [کلید ریسپانسیو]: اسکرول داخلی برای محتوای طولانی و پر کردن فضای عمودی */
-    overflow-y: auto; 
-    flex: 1; /* این عنصر تمام فضای عمودی باقی‌مانده را پر می‌کند */
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    min-height: 0; /* لازم برای Flexbox */
-}
-
-.game-stats-minimal {
-    display: flex;
-    justify-content: space-around;
-    background: var(--gray-50);
-    padding: 16px;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    flex-shrink: 0;
-    gap: 10px;
-}
-
-.game-stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    color: var(--gray-700);
-    font-weight: 600;
-    text-align: center;
-    flex: 1;
-    min-width: 0;
-}
-
-.game-stat i {
-    color: var(--primary);
-    font-size: 1.1rem;
-}
-
-.game-stat span {
-    font-size: 0.9rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    width: 100%;
-}
-
-/* دسته‌بندی بزرگ */
-.game-category-large {
-    font-size: 1.1rem;
-    font-weight: 700;
-    text-align: center;
-    color: var(--primary);
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #f0f4ff, #e6f0ff);
-    border-radius: var(--radius);
-    border: 2px solid var(--primary);
-    box-shadow: var(--shadow);
-    flex-shrink: 0;
-    margin: 0;
-    line-height: 1.3;
-}
-
-/* نمایش کلمه */
-.word-display-minimal {
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    flex-wrap: wrap;
-    padding: 16px 12px;
-    background: var(--gray-50);
-    border-radius: var(--radius);
-    border: 2px solid var(--gray-200);
-    min-height: 60px;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.letter-minimal {
-    width: 30px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    font-weight: 700;
-    background: white;
-    border: 2px solid var(--gray-300);
-    border-radius: 6px;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.letter-minimal.space {
-    width: 10px;
-    background: transparent;
-    border: none;
-}
-
-.letter-minimal.revealed {
-    background: var(--success);
-    color: white;
-    border-color: var(--success);
-    animation: letterReveal 0.5s ease;
-}
-
-@keyframes letterReveal {
-    0% {
-        transform: scale(0.8);
-        opacity: 0;
-    }
-    50% {
-        transform: scale(1.1);
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* وضعیت بازی */
-.game-status-minimal {
-    margin: 0;
-    flex-shrink: 0;
-}
-
-.creator-notice-minimal, .player-notice-minimal {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    font-weight: 500;
-    font-size: 0.85rem;
-    flex-wrap: wrap;
-    line-height: 1.4;
-}
-
-.creator-notice-minimal {
-    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-    color: #856404;
-    border: 1px solid #ffeaa7;
-}
-
-.player-notice-minimal {
-    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
-    color: #0c5460;
-    border: 1px solid #bee5eb;
-}
-
-.player-notice-minimal.waiting {
-    background: linear-gradient(135deg, #e2e3e5, #d6d8db);
-    color: #383d41;
-    border: 1px solid #d6d8db;
-}
-
-/* بخش اینپوت حدس */
-.guess-input-section {
-    margin: 0;
-    flex-shrink: 0;
-}
-
-.guess-input-minimal {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 12px;
-}
-
-.guess-input-field {
-    text-align: center;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    padding: 14px;
-    border: 2px solid var(--gray-300);
-    border-radius: var(--radius);
-    transition: all 0.3s ease;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.guess-input-field:focus {
-    border-color: var(--primary);
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    transform: translateY(-1px);
-}
-
-/* بخش حدس‌های بازیکنان */
-.player-guesses-section {
-    margin: 0;
-    display: none;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-}
-
-.section-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--gray-800);
-    margin-bottom: 10px;
-    text-align: center;
-    padding-bottom: 8px;
-    border-bottom: 2px solid var(--gray-200);
-    flex-shrink: 0;
-}
-
-.player-guesses-container {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 12px;
-    flex: 1;
-    overflow-y: auto;
-    min-height: 120px;
-}
-
-.player-guess-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--gray-200);
-    font-size: 0.8rem;
-    animation: fadeInUp 0.3s ease;
-    gap: 8px;
-}
-
-.player-guess-item:last-child {
-    border-bottom: none;
-}
-
-.player-name {
-    font-weight: 600;
-    color: var(--gray-700);
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.player-guess {
-    flex: 1;
-    text-align: center;
-    min-width: 0;
-}
-
-.guess-result {
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    white-space: nowrap;
-}
-
-.guess-result.correct {
-    background: var(--success);
-    color: white;
-}
-
-.guess-result.incorrect {
-    background: var(--danger);
-    color: white;
-}
-
-.guess-time {
-    flex: 1;
-    text-align: left;
-    color: var(--gray-500);
-    font-size: 0.75rem;
-    white-space: nowrap;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* حروف حدس زده شده */
-.guessed-letters-minimal {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 0;
-    flex-shrink: 0;
-}
-
-.letters-section h4 {
-    font-size: 0.85rem;
-    color: var(--gray-600);
-    margin-bottom: 6px;
-    font-weight: 600;
-}
-
-.letters-container-minimal {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    min-height: 28px;
-    align-items: center;
-}
-
-.letter-badge {
-    background: var(--gray-200);
-    color: var(--gray-700);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    min-width: 28px;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.letter-badge.correct {
-    background: var(--success);
-    color: white;
-    transform: scale(1.05);
-}
-
-.letter-badge.incorrect {
-    background: var(--danger);
-    color: white;
-    transform: scale(1.05);
-}
-
-/* دکمه راهنمایی */
-.btn-hint-minimal {
-    background: linear-gradient(135deg, var(--warning), #eab308);
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: var(--radius);
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow);
-    width: 100%;
-    position: relative;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-
-.btn-hint-minimal::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.btn-hint-minimal:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-hint-minimal:hover:not(:disabled)::before {
-    opacity: 1;
-}
-
+.btn-primary-minimal:disabled,
+.btn-success-minimal:disabled,
 .btn-hint-minimal:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
-    transform: none;
+    transform: none !important;
+    box-shadow: none;
 }
 
-/* نشانگر آنلاین */
-.online-indicator {
-    color: #10b981;
-    font-size: 0.7rem;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+.input-minimal:disabled,
+.select-minimal:disabled {
+    background-color: #252525;
+    color: var(--text-secondary);
+    cursor: not-allowed;
 }
 
-.online-indicator i {
-    font-size: 0.6rem;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* بج‌های وضعیت */
-.online-badge {
-    background: #10b981;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 8px;
-}
-
-.offline-badge {
-    background: #6b7280;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 8px;
-}
-
-.waiting-badge {
-    background: #f59e0b;
-    color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 8px;
-}
-
-/* استایل برای تاریخچه بازی */
-.success {
-    color: #10b981;
-}
-
-.danger {
-    color: #ef4444;
-}
-
-/* نوتیفیکیشن سفارشی */
-.custom-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    color: white;
-    padding: 12px 16px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000;
-    font-family: Vazirmatn, sans-serif;
-    max-width: 320px;
-    animation: slideInRight 0.3s ease;
-    font-size: 0.9rem;
-    font-weight: 500;
-    backdrop-filter: blur(10px);
-}
-
-.custom-notification.success {
-    background: linear-gradient(135deg, #10b981, #0da271);
-}
-
-.custom-notification.error {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-}
-
-.custom-notification.warning {
-    background: linear-gradient(135deg, #f59e0b, #eab308);
-}
-
-.custom-notification.info {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
-}
-
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOutRight {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-
-/* انیمیشن‌ها */
-@keyframes winPulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    }
-    50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    }
-}
-
-.win-animation {
-    animation: winPulse 2s ease-in-out;
-}
-
-/* رسپانسیو - بهینه‌سازی برای موبایل */
-@media (max-width: 480px) {
-    .container {
-        box-shadow: none;
-    }
-    
-    .header-minimal {
-        padding: 12px 16px;
-    }
-    
-    .tabs-minimal {
-        /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر موبایل قرار گیرد (56px) */
-        top: 56px; 
-        padding: 0 12px;
-    }
-    
-    .tab-minimal {
-        padding: 12px 8px;
-        min-width: 70px;
-        font-size: 0.75rem;
-    }
-    
-    .tab-minimal i {
-        font-size: 1.1rem;
-    }
-    
-    .tab-content-minimal {
-        padding: 16px;
-        /* [اصلاح ریسپانسیو]: min-height تنظیم شد تا محتوا دقیقاً ارتفاع باقی‌مانده زیر هدر و تب‌های موبایل را پر کند. (56px + 49px ≈ 105px + 5px بافر) */
-        min-height: calc(100vh - 110px); 
-    }
-    
-    .stats-grid-minimal {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-card-minimal {
-        padding: 16px 12px;
-    }
-    
-    /* بهینه‌سازی مودال برای موبایل */
-    .modal {
-        padding: 5px;
-    }
-    
-    .modal-content {
-        max-height: 98vh;
-        border-radius: var(--radius);
-    }
-    
-    .modal-header-minimal {
-        padding: 16px 20px;
-    }
-    
-    .modal-header-minimal h2 {
-        font-size: 1.2rem;
-    }
-    
-    .game-container {
-        padding: 16px;
-        gap: 12px;
-    }
-    
-    .game-stats-minimal {
-        padding: 12px;
-        gap: 8px;
-    }
-    
-    .game-stat {
-        font-size: 0.8rem;
-    }
-    
-    .game-stat i {
-        font-size: 1rem;
-    }
-    
-    .game-category-large {
-        font-size: 1rem;
-        padding: 10px 12px;
-    }
-    
-    .word-display-minimal {
-        padding: 12px 10px;
-        min-height: 50px;
-    }
-    
-    .letter-minimal {
-        width: 26px;
-        height: 32px;
-        font-size: 0.9rem;
-    }
-    
-    .creator-notice-minimal, .player-notice-minimal {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        font-size: 0.8rem;
-        padding: 10px 12px;
-    }
-    
-    .online-badge, .offline-badge, .waiting-badge {
-        margin-right: 0;
-        align-self: flex-start;
-        font-size: 0.65rem;
-    }
-    
-    .guess-input-field {
-        padding: 12px;
-        font-size: 1rem;
-    }
-    
-    .player-guess-item {
-        flex-direction: column;
-        gap: 4px;
-        text-align: center;
-        font-size: 0.75rem;
-    }
-    
-    .player-name,
-    .player-guess,
-    .guess-time {
-        flex: none;
-        width: 100%;
-    }
-    
-    .guess-time {
-        text-align: center;
-    }
-    
-    .guessed-letters-minimal {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-    
-    .btn-hint-minimal {
-        padding: 8px 12px;
-        font-size: 0.8rem;
-    }
-}
-
-@media (max-width: 360px) {
-    .game-stats-minimal {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .game-stat {
-        flex-direction: row;
-        justify-content: space-between;
-        text-align: right;
-    }
-    
-    .letter-minimal {
-        width: 24px;
-        height: 30px;
-        font-size: 0.85rem;
-    }
-    
-    .modal-header-minimal {
-        padding: 12px 16px;
-    }
-    
-    .modal-header-minimal h2 {
-        font-size: 1.1rem;
-    }
-}
-
-/* اسکرول بار سفارشی */
+/* اسکرول‌بار سفارشی (تیره و ظریف) */
 ::-webkit-scrollbar {
     width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-    background: var(--gray-100);
+    background: #1a1a1a;
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--gray-400);
+    background: #424242;
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
-
-/* بهبود استایل برای اینپوت و دکمه */
-.guess-input-minimal .btn-primary-minimal {
-    margin-top: 8px;
-}
-
-/* استایل‌های اضافی برای زیبایی */
-.error {
-    color: var(--danger);
-    text-align: center;
-    padding: 20px;
-    font-weight: 500;
-}
-
-.loading-minimal .fa-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* افکت‌های hover پیشرفته */
-.btn-primary-minimal, .btn-success-minimal, .btn-hint-minimal {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* گرادیانت‌های زیبا برای کارت‌ها */
-.welcome-card, .game-category-large {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-}
-
-/* سایه‌های بهبود یافته */
-.card-minimal, .game-item-minimal, .stat-card-minimal {
-    box-shadow: 
-        0 1px 3px 0 rgba(0, 0, 0, 0.1),
-        0 1px 2px 0 rgba(0, 0, 0, 0.06);
-}
-
-.card-minimal:hover, .game-item-minimal:hover, .stat-card-minimal:hover {
-    box-shadow: 
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* انیمیشن‌های ظریف برای تعاملات */
-.tab-minimal, .btn-refresh, .close-minimal {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* بهبود خوانایی برای متن‌ها */
-h1, h2, h3, h4 {
-    line-height: 1.3;
-}
-
-/* استایل برای حالت‌های مختلف دکمه */
-.btn-primary-minimal:disabled,
-.btn-success-minimal:disabled,
-.btn-hint-minimal:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-/* استایل برای فیلدهای ورودی در حالت غیرفعال */
-.input-minimal:disabled,
-.select-minimal:disabled {
-    background-color: var(--gray-100);
-    color: var(--gray-500);
-    cursor: not-allowed;
-}
-
-/* بهبود ظاهر اسکرول‌بار در موبایل */
-@media (max-width: 480px) {
-    ::-webkit-scrollbar {
-        width: 4px;
-    }
-}
-
-/* استایل برای پیام‌های خالی */
-.empty-state-minimal h3 {
-    margin-bottom: 8px;
-    color: var(--gray-600);
-}
-
-.empty-state-minimal p {
-    color: var(--gray-500);
-    font-size: 0.9rem;
-}
-
-/* کلاس‌های کمکی برای نمایش/مخفی کردن */
-.hidden {
-    display: none !important;
-}
-
-.visible {
-    display: block !important;
-}
-
-/* بهبود فوکوس برای دسترسی بهتر */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
-/* انیمیشن برای لودینگ */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    background: #616161;
 }
