@@ -1,15 +1,4 @@
-/*
-================================
-  1. Base & Utilities
-================================
-*/
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
+/* متغیرهای CSS */
 :root {
     --primary: #667eea;
     --primary-dark: #5a6fd8;
@@ -37,10 +26,13 @@
     --radius: 12px;
     --radius-lg: 16px;
     --radius-xl: 20px;
-    
-    /* متغیرهای جدید برای محاسبات ریسپانسیو */
-    --header-height-default: 73px; 
-    --header-height-mobile: 65px;
+}
+
+/* ریست استایل‌ها */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
@@ -51,12 +43,9 @@ body {
     min-height: 100vh;
     padding: 0;
     direction: rtl;
-    /* جلوگیری از پرش صفحه در اسکرول عمودی موبایل */
-    overscroll-behavior-y: contain; 
 }
 
 .container {
-    width: 100%; /* تضمین عرض کامل در موبایل */
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
@@ -65,32 +54,6 @@ body {
     position: relative;
     overflow-x: hidden;
 }
-
-/* Scrollbar Customization */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--gray-400);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
-
-
-/*
-================================
-  2. Header & Tabs
-================================
-*/
 
 /* هدر مینیمال */
 .header-minimal {
@@ -140,7 +103,6 @@ body {
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--gray-700);
-    flex-shrink: 0;
 }
 
 .user-avatar {
@@ -161,13 +123,11 @@ body {
     background: white;
     border-bottom: 1px solid var(--gray-200);
     padding: 0 16px;
-    /* تضمین اسکرول افقی و جلوگیری از اسکرول بدنه */
-    overflow-x: auto; 
-    overscroll-behavior-x: contain;
+    overflow-x: auto;
     position: sticky;
-    top: var(--header-height-default); /* استفاده از متغیر */
+    top: 73px;
     z-index: 99;
-    scrollbar-width: none; 
+    scrollbar-width: none;
     -ms-overflow-style: none;
 }
 
@@ -176,8 +136,7 @@ body {
 }
 
 .tab-minimal {
-    /* جلوگیری از کوچک شدن تب‌ها و اطمینان از اسکرول افقی */
-    flex: 0 0 auto; 
+    flex: 1;
     padding: 16px 12px;
     border: none;
     background: transparent;
@@ -189,7 +148,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.2s ease;
     min-width: 80px;
     border-bottom: 2px solid transparent;
     white-space: nowrap;
@@ -226,7 +185,6 @@ body {
     display: none;
     padding: 20px;
     animation: fadeIn 0.3s ease;
-    /* محاسبه ارتفاع باقی مانده */
     min-height: calc(100vh - 140px);
 }
 
@@ -244,13 +202,6 @@ body {
         transform: translateY(0); 
     }
 }
-
-
-/*
-================================
-  3. Main Components (Cards & Forms)
-================================
-*/
 
 /* کارت خوش‌آمدگویی */
 .welcome-card {
@@ -306,9 +257,8 @@ body {
 
 /* گرید آمار مینیمال */
 .stats-grid-minimal {
-    /* استفاده از minmax برای نمایش بهتر قبل از شکستن به تک ستون */
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-bottom: 24px;
 }
@@ -375,7 +325,6 @@ body {
 
 .stat-info-minimal {
     flex: 1;
-    min-width: 0; /* برای جلوگیری از سرریز محتوای طولانی */
 }
 
 .stat-value {
@@ -384,9 +333,6 @@ body {
     font-weight: 700;
     color: var(--gray-800);
     line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .stat-label {
@@ -394,9 +340,6 @@ body {
     font-size: 0.8rem;
     color: var(--gray-500);
     margin-top: 4px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* کارت‌های مینیمال */
@@ -429,16 +372,11 @@ body {
     color: var(--gray-800);
     margin: 0;
     flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .card-header-minimal i {
     color: var(--primary);
     font-size: 1.1rem;
-    flex-shrink: 0;
 }
 
 .card-content-minimal {
@@ -464,8 +402,7 @@ body {
     font-size: 0.9rem;
 }
 
-.input-minimal,
-.select-minimal {
+.input-minimal {
     padding: 12px 16px;
     border: 2px solid var(--gray-300);
     border-radius: var(--radius);
@@ -473,12 +410,9 @@ body {
     font-size: 1rem;
     transition: all 0.3s ease;
     background: white;
-    width: 100%;
-    box-sizing: border-box; 
 }
 
-.input-minimal:focus,
-.select-minimal:focus {
+.input-minimal:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -486,10 +420,20 @@ body {
 }
 
 .select-minimal {
+    padding: 12px 16px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    background: white;
     cursor: pointer;
-    -webkit-appearance: none; 
-    -moz-appearance: none;
-    appearance: none;
+    transition: all 0.3s ease;
+}
+
+.select-minimal:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .input-hint {
@@ -502,15 +446,6 @@ body {
 .btn-primary-minimal {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
-}
-
-.btn-success-minimal {
-    background: linear-gradient(135deg, var(--success), var(--success-dark));
-    color: white;
-}
-
-.btn-primary-minimal,
-.btn-success-minimal {
     border: none;
     padding: 14px 24px;
     border-radius: var(--radius);
@@ -522,13 +457,57 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
 }
 
-.btn-primary-minimal::before,
+.btn-primary-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-primary-minimal:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-primary-minimal:hover::before {
+    opacity: 1;
+}
+
+.btn-primary-minimal:active {
+    transform: translateY(0);
+}
+
+.btn-success-minimal {
+    background: linear-gradient(135deg, var(--success), var(--success-dark));
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
 .btn-success-minimal::before {
     content: '';
     position: absolute;
@@ -541,29 +520,17 @@ body {
     transition: opacity 0.3s ease;
 }
 
-.btn-primary-minimal:hover:not(:disabled),
-.btn-success-minimal:hover:not(:disabled) {
+.btn-success-minimal:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
-.btn-primary-minimal:hover:not(:disabled)::before,
-.btn-success-minimal:hover:not(:disabled)::before {
+.btn-success-minimal:hover::before {
     opacity: 1;
-}
-
-.btn-primary-minimal:active,
-.btn-success-minimal:active {
-    transform: translateY(0);
 }
 
 .btn-full {
     width: 100%;
-}
-
-.btn-large {
-    padding: 16px 24px;
-    font-size: 1.1rem;
 }
 
 .btn-small {
@@ -578,11 +545,10 @@ body {
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
 }
 
 .btn-refresh:hover {
@@ -601,18 +567,12 @@ body {
     box-shadow: var(--shadow);
 }
 
-.info-card-minimal .card-content-minimal {
-    padding: 12px 24px; /* بهینه‌سازی شده برای محتوای لیست مانند */
-}
-
 .info-row-minimal {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid var(--gray-100);
-    flex-wrap: wrap; /* اجازه به شکستن خط در صورت نیاز */
-    gap: 8px;
 }
 
 .info-row-minimal:last-child {
@@ -622,16 +582,12 @@ body {
 .info-label {
     color: var(--gray-600);
     font-size: 0.9rem;
-    flex-shrink: 0;
 }
 
 .info-value {
     color: var(--gray-800);
     font-weight: 500;
     font-size: 0.9rem;
-    text-align: left; 
-    min-width: 0;
-    flex: 1;
 }
 
 /* کارت زمان */
@@ -645,7 +601,7 @@ body {
 
 .time-item {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 16px;
     padding: 12px 0;
 }
@@ -658,7 +614,6 @@ body {
     color: var(--primary);
     font-size: 1.2rem;
     width: 24px;
-    flex-shrink: 0;
 }
 
 .time-label {
@@ -718,27 +673,31 @@ body {
     align-items: center;
     margin-bottom: 12px;
     gap: 8px;
-    flex-wrap: wrap; 
-}
-
-.game-code-minimal,
-.game-category-minimal,
-.status-badge {
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    flex-shrink: 0;
+    flex-wrap: wrap;
 }
 
 .game-code-minimal {
     background: var(--primary);
     color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
 .game-category-minimal {
     background: var(--gray-100);
     color: var(--gray-700);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
 }
 
 .status-badge.started {
@@ -764,19 +723,11 @@ body {
     gap: 8px;
     color: var(--gray-600);
     font-size: 0.8rem;
-    min-width: 0;
 }
 
 .info-row-compact i {
     color: var(--primary);
     width: 14px;
-    flex-shrink: 0;
-}
-
-.info-row-compact span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .game-actions-minimal {
@@ -806,14 +757,7 @@ body {
     opacity: 0.5;
 }
 
-
-/*
-================================
-  4. Modal & Game Play
-================================
-*/
-
-/* مودال‌ها - کاملاً ریسپانسیو */
+/* مودال‌ها */
 .modal {
     display: none;
     position: fixed;
@@ -827,14 +771,11 @@ body {
     backdrop-filter: blur(5px);
     padding: 10px;
     box-sizing: border-box;
-    /* تنظیم برای قرارگیری مرکزی در دسکتاپ و بهینه‌سازی در موبایل */
-    display: flex; 
-    align-items: center;
-    justify-content: center;
 }
 
 .modal-content {
     background-color: #fefefe;
+    margin: 0 auto;
     border: 1px solid #888;
     border-radius: var(--radius-lg);
     animation: slideIn 0.3s ease;
@@ -844,7 +785,6 @@ body {
     flex-direction: column;
     width: 100%;
     max-width: 440px;
-    overflow: hidden; /* ضروری برای اسکرول داخلی */
 }
 
 @keyframes slideIn {
@@ -880,17 +820,13 @@ body {
     color: var(--gray-800);
     margin: 0;
     flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .close-minimal {
     font-size: 1.5rem;
     color: var(--gray-500);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     width: 32px;
     height: 32px;
     display: flex;
@@ -906,17 +842,15 @@ body {
     transform: rotate(90deg);
 }
 
-/* کانتینر بازی - کاملاً ریسپانسیو */
+/* کانتینر بازی */
 .game-container {
     padding: 20px;
-    /* این بخش امکان اسکرول محتوای بازی را فراهم می‌کند */
-    flex: 1 1 0%; 
+    overflow-y: auto;
+    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
 }
 
 .game-stats-minimal {
@@ -928,7 +862,6 @@ body {
     border: 1px solid var(--gray-200);
     flex-shrink: 0;
     gap: 10px;
-    flex-wrap: wrap;
 }
 
 .game-stat {
@@ -1002,7 +935,6 @@ body {
     position: relative;
     overflow: hidden;
     flex-shrink: 0;
-    flex: 0 0 auto;
 }
 
 .letter-minimal.space {
@@ -1104,11 +1036,11 @@ body {
 /* بخش حدس‌های بازیکنان */
 .player-guesses-section {
     margin: 0;
-    display: flex;
-    /* امکان بزرگ شدن برای پر کردن فضای خالی و مدیریت اسکرول */
-    flex: 1 1 0%; 
+    display: none;
+    flex: 1;
     min-height: 0;
     overflow: hidden;
+    display: flex;
     flex-direction: column;
 }
 
@@ -1128,10 +1060,8 @@ body {
     border: 1px solid var(--gray-200);
     border-radius: var(--radius);
     padding: 12px;
-    /* مدیریت اسکرول محتوای حدس‌ها */
-    flex: 1 1 0%; 
+    flex: 1;
     overflow-y: auto;
-    overscroll-behavior-y: contain;
     min-height: 120px;
 }
 
@@ -1172,7 +1102,6 @@ body {
     border-radius: 4px;
     font-size: 0.75rem;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 .guess-result.correct {
@@ -1191,7 +1120,6 @@ body {
     color: var(--gray-500);
     font-size: 0.75rem;
     white-space: nowrap;
-    flex-shrink: 0;
 }
 
 @keyframes fadeInUp {
@@ -1239,7 +1167,6 @@ body {
     min-width: 28px;
     text-align: center;
     transition: all 0.3s ease;
-    flex-shrink: 0;
 }
 
 .letter-badge.correct {
@@ -1269,7 +1196,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all 0.3s ease;
     box-shadow: var(--shadow);
     width: 100%;
     position: relative;
@@ -1304,13 +1231,6 @@ body {
     transform: none;
 }
 
-
-/*
-================================
-  5. Status & Notifications & General Utilities
-================================
-*/
-
 /* نشانگر آنلاین */
 .online-indicator {
     color: #10b981;
@@ -1325,31 +1245,41 @@ body {
     animation: pulse 2s infinite;
 }
 
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
 /* بج‌های وضعیت */
-.online-badge,
-.offline-badge,
-.waiting-badge {
+.online-badge {
+    background: #10b981;
+    color: white;
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.7rem;
     font-weight: 600;
-    margin-right: 4px; 
-    flex-shrink: 0;
-}
-
-.online-badge {
-    background: #10b981;
-    color: white;
+    margin-right: 8px;
 }
 
 .offline-badge {
     background: #6b7280;
     color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 8px;
 }
 
 .waiting-badge {
     background: #f59e0b;
     color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 8px;
 }
 
 /* استایل برای تاریخچه بازی */
@@ -1395,76 +1325,6 @@ body {
     background: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
-/* بهبود استایل برای اینپوت و دکمه */
-.guess-input-minimal .btn-primary-minimal {
-    margin-top: 8px;
-}
-
-/* گرادیانت‌های زیبا برای کارت‌ها */
-.welcome-card, .game-category-large {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-}
-
-/* سایه‌های بهبود یافته */
-.card-minimal, .game-item-minimal, .stat-card-minimal {
-    box-shadow: var(--shadow);
-}
-
-.card-minimal:hover, .game-item-minimal:hover, .stat-card-minimal:hover {
-    box-shadow: var(--shadow-lg);
-}
-
-/* بهبود خوانایی برای متن‌ها */
-h1, h2, h3, h4 {
-    line-height: 1.3;
-}
-
-/* استایل برای حالت‌های مختلف دکمه */
-.btn-primary-minimal:disabled,
-.btn-success-minimal:disabled,
-.btn-hint-minimal:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-/* استایل برای فیلدهای ورودی در حالت غیرفعال */
-.input-minimal:disabled,
-.select-minimal:disabled {
-    background-color: var(--gray-100);
-    color: var(--gray-500);
-    cursor: not-allowed;
-}
-
-/* کلاس‌های کمکی برای نمایش/مخفی کردن */
-.hidden {
-    display: none !important;
-}
-
-.visible {
-    display: block !important;
-}
-
-/* بهبود فوکوس برای دسترسی بهتر */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-    outline: 2px solid var(--primary);
-    outline-offset: 2px;
-}
-
-/* استایل برای پیام‌های خالی */
-.empty-state-minimal h3 {
-    margin-bottom: 8px;
-    color: var(--gray-600);
-}
-
-.empty-state-minimal p {
-    color: var(--gray-500);
-    font-size: 0.9rem;
-}
-
-/* انیمیشن‌ها */
 @keyframes slideInRight {
     from {
         transform: translateX(100%);
@@ -1487,6 +1347,7 @@ select:focus-visible {
     }
 }
 
+/* انیمیشن‌ها */
 @keyframes winPulse {
     0% {
         transform: scale(1);
@@ -1506,51 +1367,18 @@ select:focus-visible {
     animation: winPulse 2s ease-in-out;
 }
 
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-}
-
-.pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-
-/*
-================================
-  6. Responsive Adjustments (Mobile Overrides)
-================================
-*/
-
-/* بهینه‌سازی برای نمایشگرهای بزرگتر از 480 پیکسل */
-@media (min-width: 481px) {
-    .container {
-        /* در دسکتاپ، سایه نمایش داده می‌شود */
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    }
-}
-
-
-/* Mobile Optimization - max-width: 480px */
+/* رسپانسیو - بهینه‌سازی برای موبایل */
 @media (max-width: 480px) {
-    
     .container {
-        /* حذف سایه در موبایل برای ظاهر تمام صفحه */
-        box-shadow: none; 
+        box-shadow: none;
     }
     
     .header-minimal {
         padding: 12px 16px;
     }
-
+    
     .tabs-minimal {
-        /* تنظیم موقعیت Sticky بر اساس ارتفاع موبایلی هدر */
-        top: var(--header-height-mobile); 
+        top: 65px;
         padding: 0 12px;
     }
     
@@ -1560,13 +1388,15 @@ select:focus-visible {
         font-size: 0.75rem;
     }
     
-    .tab-content-minimal {
-        padding: 16px;
-        /* محاسبه مجدد ارتفاع */
-        min-height: calc(100vh - 125px); 
+    .tab-minimal i {
+        font-size: 1.1rem;
     }
     
-    /* Stats Grid: تک ستون شدن در موبایل */
+    .tab-content-minimal {
+        padding: 16px;
+        min-height: calc(100vh - 125px);
+    }
+    
     .stats-grid-minimal {
         grid-template-columns: 1fr;
     }
@@ -1577,16 +1407,12 @@ select:focus-visible {
     
     /* بهینه‌سازی مودال برای موبایل */
     .modal {
-        padding: 0; 
-        /* مودال از پایین صفحه باز می‌شود */
-        align-items: flex-end; 
+        padding: 5px;
     }
-
+    
     .modal-content {
         max-height: 98vh;
-        border-radius: var(--radius) var(--radius) 0 0; /* فقط گوشه‌های بالا گرد */
-        width: 100%; 
-        margin: 0;
+        border-radius: var(--radius);
     }
     
     .modal-header-minimal {
@@ -1611,6 +1437,10 @@ select:focus-visible {
         font-size: 0.8rem;
     }
     
+    .game-stat i {
+        font-size: 1rem;
+    }
+    
     .game-category-large {
         font-size: 1rem;
         padding: 10px 12px;
@@ -1628,8 +1458,7 @@ select:focus-visible {
     }
     
     .creator-notice-minimal, .player-notice-minimal {
-        /* تبدیل به ستون برای خوانایی بهتر در فضای کم */
-        flex-direction: column; 
+        flex-direction: column;
         align-items: flex-start;
         gap: 8px;
         font-size: 0.8rem;
@@ -1647,13 +1476,11 @@ select:focus-visible {
         font-size: 1rem;
     }
     
-    /* لیست حدس‌ها: تبدیل به ستون برای جلوگیری از سرریز */
     .player-guess-item {
         flex-direction: column;
         gap: 4px;
         text-align: center;
         font-size: 0.75rem;
-        padding: 8px 0;
     }
     
     .player-name,
@@ -1661,14 +1488,12 @@ select:focus-visible {
     .guess-time {
         flex: none;
         width: 100%;
-        text-align: center;
-        /* اجازه به شکستن خط در صورت نیاز */
-        white-space: normal; 
-        overflow: visible;
-        text-overflow: clip;
     }
     
-    /* حروف حدس زده شده: تک ستون شدن */
+    .guess-time {
+        text-align: center;
+    }
+    
     .guessed-letters-minimal {
         grid-template-columns: 1fr;
         gap: 8px;
@@ -1678,16 +1503,9 @@ select:focus-visible {
         padding: 8px 12px;
         font-size: 0.8rem;
     }
-
-    /* بهبود ظاهر اسکرول‌بار در موبایل */
-    ::-webkit-scrollbar {
-        width: 4px;
-    }
 }
 
-/* Very Small Mobile Optimization - max-width: 360px */
 @media (max-width: 360px) {
-    /* آمار بازی: چیدمان ستونی و سپس محتوای هر آمار به صورت ردیفی */
     .game-stats-minimal {
         flex-direction: column;
         gap: 8px;
@@ -1699,10 +1517,6 @@ select:focus-visible {
         text-align: right;
     }
     
-    .game-stat span {
-        text-align: left;
-    }
-
     .letter-minimal {
         width: 24px;
         height: 30px;
@@ -1716,4 +1530,336 @@ select:focus-visible {
     .modal-header-minimal h2 {
         font-size: 1.1rem;
     }
+}
+
+/* اسکرول بار سفارشی */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+/* بهبود استایل برای اینپوت و دکمه */
+.guess-input-minimal .btn-primary-minimal {
+    margin-top: 8px;
+}
+
+/* استایل‌های اضافی برای زیبایی */
+.error {
+    color: var(--danger);
+    text-align: center;
+    padding: 20px;
+    font-weight: 500;
+}
+
+.loading-minimal .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* افکت‌های hover پیشرفته */
+.btn-primary-minimal, .btn-success-minimal, .btn-hint-minimal {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* گرادیانت‌های زیبا برای کارت‌ها */
+.welcome-card, .game-category-large {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+/* سایه‌های بهبود یافته */
+.card-minimal, .game-item-minimal, .stat-card-minimal {
+    box-shadow: 
+        0 1px 3px 0 rgba(0, 0, 0, 0.1),
+        0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.card-minimal:hover, .game-item-minimal:hover, .stat-card-minimal:hover {
+    box-shadow: 
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* انیمیشن‌های ظریف برای تعاملات */
+.tab-minimal, .btn-refresh, .close-minimal {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* بهبود خوانایی برای متن‌ها */
+h1, h2, h3, h4 {
+    line-height: 1.3;
+}
+
+/* استایل برای حالت‌های مختلف دکمه */
+.btn-primary-minimal:disabled,
+.btn-success-minimal:disabled,
+.btn-hint-minimal:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* استایل برای فیلدهای ورودی در حالت غیرفعال */
+.input-minimal:disabled,
+.select-minimal:disabled {
+    background-color: var(--gray-100);
+    color: var(--gray-500);
+    cursor: not-allowed;
+}
+
+/* بهبود ظاهر اسکرول‌بار در موبایل */
+@media (max-width: 480px) {
+    ::-webkit-scrollbar {
+        width: 4px;
+    }
+}
+
+/* استایل برای پیام‌های خالی */
+.empty-state-minimal h3 {
+    margin-bottom: 8px;
+    color: var(--gray-600);
+}
+
+.empty-state-minimal p {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+/* کلاس‌های کمکی برای نمایش/مخفی کردن */
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    display: block !important;
+}
+
+/* بهبود فوکوس برای دسترسی بهتر */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* انیمیشن برای لودینگ */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* استایل‌های جدید برای عناصر اضافه شده */
+.game-details-minimal, .score-card {
+    padding: 16px;
+}
+
+.score-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    margin: 8px 0;
+}
+
+.score-value {
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+
+.score-value.positive {
+    color: var(--success);
+}
+
+.score-penalty {
+    color: var(--danger);
+    font-size: 0.9rem;
+}
+
+.opponent-guesses-section, .special-letters, .game-guide {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin: 8px 0;
+}
+
+.opponent-guesses-container {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.guide-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.guide-tips {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.guide-tip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+}
+
+.game-history-letters {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.history-letters-section h4 {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    color: var(--gray-600);
+}
+
+.history-letters-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.history-letter-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.history-letter-badge.correct {
+    background: var(--success);
+    color: white;
+}
+
+.history-letter-badge.incorrect {
+    background: var(--danger);
+    color: white;
+}
+
+.no-letters {
+    color: var(--gray-400);
+    font-size: 0.9rem;
+}
+
+.players-list-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.player-info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+}
+
+.player-avatar-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.player-details {
+    flex: 1;
+}
+
+.player-name {
+    font-weight: 600;
+    color: var(--gray-800);
+    font-size: 0.9rem;
+}
+
+.player-meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.player-username {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+}
+
+.player-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+}
+
+.player-status.online {
+    color: var(--success);
+}
+
+.player-status.offline {
+    color: var(--gray-500);
+}
+
+.player-status i {
+    font-size: 0.6rem;
+}
+
+.creator-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    margin-top: 12px;
+}
+
+.creator-info i {
+    color: var(--warning);
+}
+
+.no-players {
+    text-align: center;
+    padding: 20px;
+    color: var(--gray-500);
+    font-size: 0.9rem;
 }
