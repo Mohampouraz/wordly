@@ -1,1008 +1,1220 @@
-// server.js - نسخه کامل، بهینه و با مدیریت خطای تقویت شده
-// منطق بازی: مدیریت کامل وضعیت بازی، تایمر، امتیازدهی، و اتصال چندنفره در سمت سرور
+// متغیرهای global
+let currentUser = null;
+let currentGame = null;
+let gameTimer = null;
+let timeLeft = 0;
+let hintsUsed = 0;
+let gameStartTime = null;
+let isCreator = false;
+let gameStateInterval = null;
+let connectionInterval = null;
 
-const express = require('express');
-const { Telegraf } = require('telegraf');
-const { Client } = require('pg');
-const path = require('path');
-require('dotenv').config(); // برای بارگذاری متغیرهای محیطی
+// تابع تبدیل اعداد به فارسی
+function toPersianNumber(number) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return number.toString().replace(/\d/g, digit => persianDigits[parseInt(digit)]);
+}
 
-const app = express();
-const PORT = process.env.PORT || 10000;
-
-// --- تنظیمات ---
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const DATABASE_URL = process.env.DATABASE_URL;
-const WEB_APP_URL = process.env.WEB_APP_URL; // آدرس وب‌اپ برای دکمه /start
-
-const bot = new Telegraf(TELEGRAM_TOKEN);
-const dbClient = new Client({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // برای دیتابیس‌های ابری
-});
-
-// Middleware
-app.use(express.json());
-app.use(express.static('public')); 
-
-// --- ذخیره‌سازی وضعیت در حافظه (Memory State) ---
-// key: gameId, value: { creator_id, word, is_started, completed, guessedLetters: Set, incorrectGuesses: Set, players: Map<playerId, playerState>, ... }
-const activeGames = new Map();
-// key: gameId_playerId, value: { lastSeen: Date, isCreator: boolean }
-const playerConnections = new Map(); 
-
-// --- ثوابت بازی ---
-const BASE_CORRECT_SCORE = 50;
-const HINT_SCORE_PENALTY = 30;
-const TIME_BONUS_PER_SECOND = 2;
-
-// --- اتصال به دیتابیس ---
-dbClient.connect()
-    .then(() => console.log('✅ Connected to PostgreSQL'))
-    .catch(err => console.error('❌ Database connection error:', err));
-
-// --- ساختار جداول دیتابیس ---
-async function createTables() {
-    try {
-        await dbClient.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                telegram_id BIGINT UNIQUE NOT NULL PRIMARY KEY, 
-                full_name VARCHAR(255),
-                username VARCHAR(255),
-                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT true,
-                game_score INTEGER DEFAULT 0,
-                total_games INTEGER DEFAULT 0,
-                wins INTEGER DEFAULT 0
-            )
-        `);
-
-        await dbClient.query(`
-            CREATE TABLE IF NOT EXISTS games (
-                game_id VARCHAR(50) PRIMARY KEY,
-                creator_id BIGINT NOT NULL REFERENCES users(telegram_id),
-                word VARCHAR(100) NOT NULL,
-                category VARCHAR(100) NOT NULL,
-                max_attempts INTEGER NOT NULL,
-                time_limit INTEGER NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                is_active BOOLEAN DEFAULT true,
-                is_started BOOLEAN DEFAULT false,
-                guessed_letters TEXT DEFAULT '',
-                incorrect_letters TEXT DEFAULT '',
-                completed BOOLEAN DEFAULT false,
-                winner_id BIGINT REFERENCES users(telegram_id),
-                creator_online BOOLEAN DEFAULT false,
-                start_time TIMESTAMP
-            )
-        `);
-
-        await dbClient.query(`
-            CREATE TABLE IF NOT EXISTS game_sessions (
-                id SERIAL PRIMARY KEY,
-                game_id VARCHAR(50) NOT NULL REFERENCES games(game_id),
-                player_id BIGINT NOT NULL REFERENCES users(telegram_id),
-                attempts INTEGER DEFAULT 0,
-                score INTEGER DEFAULT 0,
-                completed BOOLEAN DEFAULT false,
-                is_winner BOOLEAN DEFAULT false,
-                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(game_id, player_id)
-            )
-        `);
-
-        await dbClient.query(`
-            CREATE TABLE IF NOT EXISTS game_players (
-                game_id VARCHAR(50) NOT NULL REFERENCES games(game_id),
-                player_id BIGINT NOT NULL REFERENCES users(telegram_id),
-                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(game_id, player_id)
-            )
-        `);
-        
-        console.log('✅ Database tables ready and updated');
-
-    } catch (error) {
-        console.error('❌ Error creating tables:', error);
+// تابع مدیریت تب‌ها
+function openTab(tabName) {
+    // مخفی کردن همه تب‌ها
+    const tabContents = document.getElementsByClassName('tab-content-minimal');
+    for (let tab of tabContents) {
+        tab.classList.remove('active');
     }
-}
 
-createTables();
-
-// --- توابع کمکی ---
-
-function generateGameId() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    // غیرفعال کردن همه دکمه‌های تب
+    const tabButtons = document.getElementsByClassName('tab-minimal');
+    for (let button of tabButtons) {
+        button.classList.remove('active');
     }
-    return result;
-}
 
-function getWordProgress(word, guessedLetters) {
-    return word.split('').map(letter => {
-        if (letter === ' ') return ' ';
-        return guessedLetters.has(letter) ? letter : '_';
-    }).join('');
-}
+    // نمایش تب انتخاب شده
+    document.getElementById(tabName).classList.add('active');
+    event.currentTarget.classList.add('active');
 
-async function getGamePlayers(gameId) {
-    const result = await dbClient.query(`
-        SELECT gs.player_id, gs.score, gs.attempts, gs.is_winner, u.full_name, u.username
-        FROM game_sessions gs
-        JOIN users u ON gs.player_id = u.telegram_id
-        WHERE gs.game_id = $1
-    `, [gameId]);
-    return result.rows;
-}
-
-function updatePlayerConnection(gameId, playerId, isConnected, isCreator = false) {
-    const key = `${gameId}_${playerId}`;
-    if (isConnected) {
-        playerConnections.set(key, { lastSeen: new Date(), isCreator: isCreator });
-    } else {
-        playerConnections.delete(key);
+    // اگر تب بازی‌های فعال است، لیست را بارگذاری کن
+    if (tabName === 'active-games') {
+        loadActiveGames();
     }
-}
-
-async function updateUserStats(playerId, score, isWinner) {
-    try {
-        await dbClient.query(`
-            UPDATE users 
-            SET total_games = total_games + 1,
-                wins = wins + (CASE WHEN $1 = true THEN 1 ELSE 0 END),
-                game_score = game_score + $2,
-                last_seen = CURRENT_TIMESTAMP
-            WHERE telegram_id = $3
-        `, [isWinner, score, playerId]);
-    } catch (error) {
-        console.error(`❌ Error updating user stats for ${playerId}:`, error);
-    }
-}
-
-async function loadGameFromDB(gameId) {
-    const dbGame = await dbClient.query('SELECT * FROM games WHERE game_id = $1', [gameId]);
-    if (dbGame.rows.length === 0) return null;
-
-    const gameData = dbGame.rows[0];
-    const playersData = await getGamePlayers(gameId);
     
-    const playersMap = new Map();
-    playersData.forEach(p => playersMap.set(p.player_id, {
-        score: p.score,
-        attempts: p.attempts,
-        is_winner: p.is_winner,
-        full_name: p.full_name,
-        username: p.username
-    }));
+    // اگر تب تاریخچه بازی است، تاریخچه را بارگذاری کن
+    if (tabName === 'game-history') {
+        loadGameHistory();
+    }
+}
 
+// تابع اصلی دریافت اطلاعات کاربر
+async function getUserData() {
+    let userData = null;
+
+    if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const tgUser = tg.initDataUnsafe.user;
+            
+            userData = {
+                telegram_id: tgUser.id,
+                full_name: `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim(),
+                username: tgUser.username || 'ندارد',
+                language_code: tgUser.language_code || 'fa',
+                data_source: 'telegram_web_app'
+            };
+            
+            tg.ready();
+            tg.expand();
+            tg.setHeaderColor('#667eea');
+            tg.setBackgroundColor('#667eea');
+        }
+    }
+
+    if (!userData) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tgid = urlParams.get('tgid');
+        
+        if (tgid) {
+            userData = {
+                telegram_id: parseInt(tgid),
+                data_source: 'url_parameter'
+            };
+        }
+    }
+
+    if (!userData) {
+        userData = {
+            telegram_id: 123456789,
+            full_name: 'کاربر تست',
+            username: 'test_user',
+            data_source: 'test_data'
+        };
+    }
+
+    if (userData.telegram_id) {
+        try {
+            const serverUser = await fetchUserFromServer(userData.telegram_id);
+            if (serverUser) {
+                userData = {
+                    ...userData,
+                    ...serverUser
+                };
+            }
+        } catch (error) {
+            console.error('❌ خطا در دریافت از سرور:', error);
+        }
+    }
+    
+    return userData;
+}
+
+// تابع دریافت اطلاعات از سرور
+async function fetchUserFromServer(telegramId) {
+    try {
+        const response = await fetch(`/api/user/${telegramId}`);
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error('💥 خطا در ارتباط با سرور:', error);
+        return null;
+    }
+}
+
+// تابع بارگذاری اطلاعات کاربر
+async function loadUserData() {
+    try {
+        const userData = await getUserData();
+        
+        if (userData) {
+            currentUser = userData;
+            updateUserInterface(userData);
+            loadStats();
+            
+            if (userData.data_source === 'telegram_web_app') {
+                showNotification(`خوش آمدید ${userData.full_name}! 🎉`, 'success');
+            }
+        }
+    } catch (error) {
+        console.error('💥 خطا در بارگذاری اطلاعات کاربر:', error);
+    }
+}
+
+// تابع به‌روزرسانی رابط کاربری
+function updateUserInterface(userData) {
+    document.getElementById('userId').textContent = toPersianNumber(userData.telegram_id);
+    document.getElementById('fullName').textContent = userData.full_name || '---';
+    document.getElementById('username').textContent = userData.username || '---';
+    document.getElementById('userName').textContent = userData.full_name || 'کاربر';
+
+    document.getElementById('totalGames').textContent = toPersianNumber(userData.total_games || 0);
+    document.getElementById('wins').textContent = toPersianNumber(userData.wins || 0);
+    document.getElementById('userScore').textContent = toPersianNumber(userData.game_score || 0);
+    
+    const winRate = userData.total_games > 0 ? Math.round((userData.wins / userData.total_games) * 100) : 0;
+    document.getElementById('winRate').textContent = toPersianNumber(winRate) + '٪';
+}
+
+// تابع بارگذاری آمار
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats');
+        if (response.ok) {
+            const stats = await response.json();
+            // آمار کلی در داشبورد نمایش داده می‌شود
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+// تابع بارگذاری بازی‌های فعال
+async function loadActiveGames() {
+    try {
+        const response = await fetch('/api/games/active');
+        const result = await response.json();
+
+        if (result.success) {
+            displayActiveGames(result.games);
+        } else {
+            document.getElementById('gamesList').innerHTML = '<div class="error">خطا در بارگذاری بازی‌ها</div>';
+        }
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری بازی‌های فعال:', error);
+        document.getElementById('gamesList').innerHTML = '<div class="loading-minimal"><i class="fas fa-exclamation-triangle"></i><span>خطا در بارگذاری</span></div>';
+    }
+}
+
+// تابع نمایش بازی‌های فعال
+function displayActiveGames(games) {
+    const gamesList = document.getElementById('gamesList');
+    const activeGamesCount = document.getElementById('activeGamesCount');
+
+    if (games.length === 0) {
+        gamesList.innerHTML = `
+            <div class="empty-state-minimal">
+                <i class="fas fa-gamepad"></i>
+                <h3>هیچ بازی فعالی وجود ندارد</h3>
+                <p>اولین نفری باشید که بازی ایجاد می‌کند!</p>
+            </div>
+        `;
+        activeGamesCount.textContent = '۰';
+        return;
+    }
+
+    activeGamesCount.textContent = toPersianNumber(games.length);
+
+    gamesList.innerHTML = games.map(game => `
+        <div class="game-item-minimal">
+            <div class="game-header-minimal">
+                <div class="game-code-minimal">${game.game_id}</div>
+                <div class="game-category-minimal">${game.category}</div>
+                ${game.creator_online ? '<div class="online-indicator" title="سازنده آنلاین"><i class="fas fa-circle"></i></div>' : ''}
+            </div>
+            <div class="game-info-minimal">
+                <div class="info-row-compact">
+                    <i class="fas fa-user"></i>
+                    <span>سازنده: ${game.creator_name || 'ناشناس'} ${game.creator_username ? `(@${game.creator_username})` : ''}</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas fa-users"></i>
+                    <span>بازیکنان: ${toPersianNumber(game.players_count)} نفر</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas fa-font"></i>
+                    <span>طول کلمه: ${toPersianNumber(game.word_length)} حرف</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas fa-clock"></i>
+                    <span>زمان: ${toPersianNumber(Math.floor(game.time_limit / 60))}:${toPersianNumber(game.time_limit % 60)}</span>
+                </div>
+            </div>
+            <div class="game-actions-minimal">
+                <button class="btn-success-minimal btn-small" onclick="joinExistingGame('${game.game_id}')">
+                    <i class="fas fa-sign-in-alt"></i>
+                    پیوستن
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// تابع ایجاد بازی جدید
+async function createGame() {
+    if (!currentUser) {
+        showNotification('لطفاً منتظر بمانید اطلاعات کاربر بارگذاری شود', 'error');
+        return;
+    }
+
+    const word = document.getElementById('gameWord').value.trim();
+    const category = document.getElementById('gameCategory').value;
+
+    if (!word || word.length < 3 || word.length > 20) {
+        showNotification('کلمه باید بین ۳ تا ۲۰ حرف باشد', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/games/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                creator_id: currentUser.telegram_id,
+                word: word,
+                category: category
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            currentGame = {
+                game_id: result.game_id,
+                word: word.toUpperCase(),
+                category: category,
+                max_attempts: result.max_attempts,
+                time_limit: result.time_limit,
+                attempts: 0,
+                score: 0,
+                creator_id: currentUser.telegram_id,
+                is_started: false,
+                creator_online: true
+            };
+
+            isCreator = true;
+            showNotification('بازی با موفقیت ایجاد شد! 🎮', 'success');
+            document.getElementById('gameWord').value = '';
+            openStartGameModal(result.game_id);
+            
+            // شروع پولینگ برای به‌روزرسانی وضعیت بازی
+            startGameStatePolling(result.game_id);
+        } else {
+            showNotification('خطا در ایجاد بازی', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در ایجاد بازی:', error);
+        showNotification('خطا در ایجاد بازی', 'error');
+    }
+}
+
+// تابع پولینگ برای به‌روزرسانی وضعیت بازی
+function startGameStatePolling(gameId) {
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+    }
+    
+    gameStateInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/games/${gameId}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                // به‌روزرسانی تعداد بازیکنان در مودال شروع بازی
+                if (document.getElementById('startGameModal').style.display === 'block') {
+                    document.getElementById('currentPlayersCount').textContent = 
+                        toPersianNumber(result.game.players_count);
+                }
+                
+                // اگر بازی شروع شده، پولینگ را متوقف کن و بازی را باز کن
+                if (result.game.is_started && !currentGame.is_started) {
+                    clearInterval(gameStateInterval);
+                    currentGame.is_started = true;
+                    if (isCreator) {
+                        showNotification('بازی شروع شد! بازیکنان در حال حدس زدن هستند.', 'success');
+                        openGameModal();
+                    }
+                }
+                
+                // اگر بازی تمام شده، پولینگ را متوقف کن
+                if (result.game.completed) {
+                    clearInterval(gameStateInterval);
+                }
+            }
+        } catch (error) {
+            console.error('❌ خطا در به‌روزرسانی وضعیت بازی:', error);
+        }
+    }, 2000);
+}
+
+// تابع گزارش اتصال به سرور
+async function reportConnection(connected = true) {
+    if (!currentGame || !currentUser) return;
+    
+    try {
+        const endpoint = connected ? 'connect' : 'disconnect';
+        await fetch(`/api/games/${currentGame.game_id}/${endpoint}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id
+            })
+        });
+    } catch (error) {
+        console.error('❌ خطا در گزارش اتصال:', error);
+    }
+}
+
+// تابع شروع گزارش‌دهی اتصال
+function startConnectionReporting() {
+    if (connectionInterval) {
+        clearInterval(connectionInterval);
+    }
+    
+    // گزارش اتصال اولیه
+    reportConnection(true);
+    
+    // گزارش اتصال هر 20 ثانیه
+    connectionInterval = setInterval(() => {
+        reportConnection(true);
+    }, 20000);
+}
+
+// تابع توقف گزارش‌دهی اتصال
+function stopConnectionReporting() {
+    if (connectionInterval) {
+        clearInterval(connectionInterval);
+        connectionInterval = null;
+    }
+    reportConnection(false);
+}
+
+// تابع باز کردن مودال شروع بازی
+function openStartGameModal(gameCode) {
+    document.getElementById('createdGameCode').textContent = gameCode;
+    document.getElementById('currentPlayersCount').textContent = '۱';
+    document.getElementById('startGameModal').style.display = 'block';
+}
+
+// تابع بستن مودال شروع بازی
+function closeStartGameModal() {
+    document.getElementById('startGameModal').style.display = 'none';
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+        gameStateInterval = null;
+    }
+}
+
+// تابع شروع بازی (فقط توسط سازنده)
+async function startGame() {
+    if (!currentGame || !isCreator) return;
+
+    try {
+        const response = await fetch(`/api/games/${currentGame.game_id}/start`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification('بازی شروع شد! بازیکنان می‌توانند حدس بزنند.', 'success');
+            closeStartGameModal();
+            currentGame.is_started = true;
+            openGameModal();
+        } else {
+            showNotification(result.error || 'خطا در شروع بازی', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در شروع بازی:', error);
+        showNotification('خطا در شروع بازی', 'error');
+    }
+}
+
+// تابع پیوستن به بازی با کد
+async function joinGame() {
+    if (!currentUser) {
+        showNotification('لطفاً منتظر بمانید اطلاعات کاربر بارگذاری شود', 'error');
+        return;
+    }
+
+    const gameCode = document.getElementById('gameCode').value.trim().toUpperCase();
+
+    if (!gameCode || gameCode.length !== 6) {
+        showNotification('کد بازی باید ۶ حرفی باشد', 'error');
+        return;
+    }
+
+    await joinExistingGame(gameCode);
+}
+
+// تابع پیوستن به بازی موجود
+async function joinExistingGame(gameCode) {
+    try {
+        const response = await fetch(`/api/games/${gameCode}/join`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // دریافت اطلاعات کامل بازی
+            const gameResponse = await fetch(`/api/games/${gameCode}`);
+            const gameResult = await gameResponse.json();
+
+            if (gameResult.success) {
+                const gameData = gameResult.game;
+                currentGame = {
+                    game_id: gameCode,
+                    category: gameData.category,
+                    max_attempts: gameData.max_attempts,
+                    time_limit: gameData.time_limit,
+                    attempts: gameData.attempts || 0,
+                    score: 0,
+                    creator_id: gameData.creator_id,
+                    is_started: gameData.is_started,
+                    guessed_letters: gameData.guessed_letters || [],
+                    incorrect_letters: gameData.incorrect_letters || [],
+                    word_progress: gameData.word_progress || '_'.repeat(gameData.word.length),
+                    word: gameData.word,
+                    completed: gameData.completed,
+                    creator_online: gameData.creator_online
+                };
+
+                isCreator = (gameData.creator_id === currentUser.telegram_id);
+                
+                if (isCreator) {
+                    if (!currentGame.is_started) {
+                        openStartGameModal(gameCode);
+                        // شروع پولینگ برای سازنده
+                        startGameStatePolling(gameCode);
+                    } else {
+                        showNotification('شما سازنده این بازی هستید که قبلاً شروع شده است', 'info');
+                        openGameModal();
+                    }
+                } else {
+                    if (result.reconnected) {
+                        showNotification(`اتصال مجدد به بازی انجام شد!`, 'success');
+                    } else {
+                        showNotification(`به بازی پیوستید!`, 'success');
+                    }
+                    document.getElementById('gameCode').value = '';
+                    
+                    if (currentGame.is_started && !currentGame.completed) {
+                        openGameModal();
+                    } else if (!currentGame.completed) {
+                        // اگر بازی هنوز شروع نشده، پولینگ برای وضعیت بازی
+                        startGameStatePolling(gameCode);
+                        openGameModal();
+                    } else {
+                        // اگر بازی تمام شده، فقط مشاهده
+                        openGameModal();
+                    }
+                }
+            }
+        } else {
+            showNotification(result.error || 'خطا در پیوستن به بازی', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در پیوستن به بازی:', error);
+        showNotification('خطا در پیوستن به بازی', 'error');
+    }
+}
+
+// تابع باز کردن مودال بازی
+function openGameModal() {
+    if (!currentGame) return;
+
+    document.getElementById('gameModalTitle').textContent = 'بازی حدس کلمه';
+    document.getElementById('gameCategoryDisplay').textContent = `دسته‌بندی: ${currentGame.category}`;
+    
+    initializeGame();
+    document.getElementById('gameModal').style.display = 'block';
+    
+    // شروع گزارش‌دهی اتصال
+    startConnectionReporting();
+}
+
+// تابع بستن مودال بازی
+function closeGameModal() {
+    document.getElementById('gameModal').style.display = 'none';
+    stopGameTimer();
+    stopConnectionReporting();
+    
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+        gameStateInterval = null;
+    }
+    
+    currentGame = null;
+    hintsUsed = 0;
+    isCreator = false;
+}
+
+// تابع مقداردهی اولیه بازی
+function initializeGame() {
+    if (!currentGame) return;
+
+    // نمایش وضعیت
+    const gameStatus = document.getElementById('gameStatus');
+    
+    if (currentGame.completed) {
+        // بازی تمام شده
+        showGameResult();
+        return;
+    }
+
+    if (isCreator) {
+        if (currentGame.is_started) {
+            gameStatus.innerHTML = `
+                <div class="creator-notice-minimal">
+                    <i class="fas fa-crown"></i>
+                    <span>شما سازنده این بازی هستید. بازی شروع شده و بازیکنان در حال حدس زدن هستند.</span>
+                    ${currentGame.creator_online ? '<div class="online-badge">آنلاین</div>' : '<div class="offline-badge">آفلاین</div>'}
+                </div>
+            `;
+        } else {
+            gameStatus.innerHTML = `
+                <div class="creator-notice-minimal">
+                    <i class="fas fa-crown"></i>
+                    <span>شما سازنده این بازی هستید. برای شروع بازی روی دکمه "شروع بازی" کلیک کنید.</span>
+                </div>
+            `;
+        }
+    } else {
+        if (currentGame.is_started) {
+            gameStatus.innerHTML = `
+                <div class="player-notice-minimal">
+                    <i class="fas fa-gamepad"></i>
+                    <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
+                    ${currentGame.creator_online ? 
+                        '<div class="online-badge">سازنده آنلاین است</div>' : 
+                        '<div class="offline-badge">سازنده آفلاین است - می‌توانید بازی را ادامه دهید</div>'
+                    }
+                </div>
+            `;
+        } else {
+            gameStatus.innerHTML = `
+                <div class="player-notice-minimal waiting">
+                    <i class="fas fa-clock"></i>
+                    <span>در انتظار شروع بازی توسط سازنده...</span>
+                    ${currentGame.creator_online ? 
+                        '<div class="online-badge">سازنده آنلاین است</div>' : 
+                        '<div class="offline-badge">سازنده آفلاین است</div>'
+                    }
+                </div>
+            `;
+        }
+    }
+
+    // نمایش پیشرفت کلمه
+    if (currentGame.word_progress) {
+        displayWordProgress(currentGame.word_progress);
+    } else if (currentGame.word) {
+        displayWordProgress('_'.repeat(currentGame.word.length));
+    } else {
+        displayWordProgress('_______');
+    }
+    
+    // نمایش حروف حدس زده شده
+    updateGuessedLetters(
+        currentGame.guessed_letters || [],
+        currentGame.incorrect_letters || []
+    );
+
+    // تنظیم تایمر
+    timeLeft = currentGame.time_limit || 180;
+    updateTimerDisplay();
+    
+    // تنظیم تعداد حدس‌ها
+    updateAttemptsDisplay();
+    
+    // تنظیم دکمه‌ها
+    const isGameActive = currentGame.is_started && !currentGame.completed;
+    document.getElementById('hintBtn').disabled = isCreator || !isGameActive;
+    document.getElementById('guessBtn').disabled = isCreator || !isGameActive;
+    document.getElementById('guessInput').disabled = isCreator || !isGameActive;
+    
+    // اگر سازنده هستید و بازی شروع شده، دکمه‌ها غیرفعال باشند
+    if (isCreator && currentGame.is_started) {
+        document.getElementById('hintBtn').disabled = true;
+        document.getElementById('guessBtn').disabled = true;
+        document.getElementById('guessInput').disabled = true;
+    }
+    
+    // بازنشانی راهنمایی‌ها
+    hintsUsed = 0;
+    document.getElementById('hintCount').textContent = toPersianNumber(2);
+    
+    // ذخیره زمان شروع
+    if (isGameActive && !isCreator) {
+        gameStartTime = new Date();
+        startGameTimer();
+    }
+    
+    // فوکوس روی اینپوت
+    if (!isCreator && isGameActive) {
+        setTimeout(() => {
+            document.getElementById('guessInput').focus();
+        }, 500);
+    }
+}
+
+// تابع نمایش پیشرفت کلمه با انیمیشن
+function displayWordProgress(wordProgress) {
+    const wordDisplay = document.getElementById('wordDisplay');
+    wordDisplay.innerHTML = '';
+    
+    const newLetters = wordProgress.split('');
+    
+    newLetters.forEach((char, index) => {
+        const letterElement = document.createElement('div');
+        letterElement.className = 'letter-minimal';
+        
+        if (char === ' ') {
+            letterElement.classList.add('space');
+            letterElement.innerHTML = '&nbsp;';
+        } else {
+            letterElement.textContent = char;
+            
+            if (char !== '_') {
+                letterElement.classList.add('revealed');
+            }
+        }
+        
+        wordDisplay.appendChild(letterElement);
+    });
+}
+
+// تابع به‌روزرسانی حروف حدس زده شده
+function updateGuessedLetters(correctLetters, incorrectLetters) {
+    const correctContainer = document.getElementById('correctLetters');
+    const incorrectContainer = document.getElementById('incorrectLetters');
+    
+    correctContainer.innerHTML = correctLetters.map(letter => `
+        <div class="letter-badge correct">${letter}</div>
+    `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+    
+    incorrectContainer.innerHTML = incorrectLetters.map(letter => `
+        <div class="letter-badge incorrect">${letter}</div>
+    `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+}
+
+// تابع ارسال حدس
+async function submitGuess() {
+    const guessInput = document.getElementById('guessInput');
+    const letter = guessInput.value.trim().toUpperCase();
+    
+    if (!letter || letter.length !== 1) {
+        showNotification('لطفاً فقط یک حرف وارد کنید', 'warning');
+        return;
+    }
+
+    // بررسی حروف فارسی
+    const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی';
+    if (!persianLetters.includes(letter)) {
+        showNotification('لطفاً فقط حروف فارسی وارد کنید', 'warning');
+        guessInput.value = '';
+        return;
+    }
+
+    await guessLetter(letter);
+}
+
+// تابع حدس زدن حرف
+async function guessLetter(letter) {
+    if (!currentGame || !currentUser || isCreator || !currentGame.is_started || currentGame.completed) return;
+
+    // محاسبه زمان سپری شده
+    const timeSpent = Math.floor((new Date() - gameStartTime) / 1000);
+
+    try {
+        const response = await fetch(`/api/games/${currentGame.game_id}/guess-letter`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id,
+                letter: letter,
+                time_spent: timeSpent
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // پاک کردن اینپوت
+            document.getElementById('guessInput').value = '';
+            
+            // به‌روزرسانی وضعیت بازی
+            updateGameState(result);
+            
+            if (result.game_completed || result.game_over) {
+                endGame(result.game_completed);
+            }
+        } else {
+            showNotification(result.error || 'خطا در پردازش حدس', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در ارسال حدس:', error);
+        showNotification('خطا در ارسال حدس', 'error');
+    }
+}
+
+// تابع به‌روزرسانی وضعیت بازی
+function updateGameState(result) {
+    // به‌روزرسانی نمایش کلمه با انیمیشن
+    if (result.word_progress) {
+        displayWordProgress(result.word_progress);
+    }
+    
+    // به‌روزرسانی حروف حدس زده شده
+    updateGuessedLetters(result.correct_letters, result.incorrect_letters);
+    
+    // به‌روزرسانی امتیاز
+    if (result.score) {
+        currentGame.score += result.score;
+        document.getElementById('currentScore').textContent = toPersianNumber(currentGame.score);
+    }
+    
+    // به‌روزرسانی تعداد حدس‌ها
+    if (result.remaining_attempts !== undefined) {
+        currentGame.attempts = currentGame.max_attempts - result.remaining_attempts;
+        updateAttemptsDisplay();
+    }
+
+    // نمایش نتیجه حدس
+    if (result.is_correct) {
+        showNotification(`حرف "${result.letter}" صحیح است! +${toPersianNumber(result.score)} امتیاز`, 'success');
+    } else {
+        showNotification(`حرف "${result.letter}" غلط است! ${toPersianNumber(result.score)} امتیاز`, 'error');
+    }
+}
+
+// تابع شروع تایمر بازی
+function startGameTimer() {
+    stopGameTimer();
+    
+    gameTimer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        
+        if (timeLeft <= 0) {
+            endGame(false);
+        }
+    }, 1000);
+}
+
+// تابع توقف تایمر بازی
+function stopGameTimer() {
+    if (gameTimer) {
+        clearInterval(gameTimer);
+        gameTimer = null;
+    }
+}
+
+// تابع به‌روزرسانی نمایش تایمر
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    const timerText = `${toPersianNumber(minutes.toString().padStart(2, '0'))}:${toPersianNumber(seconds.toString().padStart(2, '0'))}`;
+    document.getElementById('timer').textContent = timerText;
+}
+
+// تابع به‌روزرسانی نمایش تعداد حدس‌ها
+function updateAttemptsDisplay() {
+    if (!currentGame) return;
+    document.getElementById('attempts').textContent = 
+        `${toPersianNumber(currentGame.attempts)}/${toPersianNumber(currentGame.max_attempts)}`;
+}
+
+// تابع استفاده از راهنمایی
+function useHint() {
+    if (!currentGame || hintsUsed >= 2 || isCreator || !currentGame.is_started || currentGame.completed) return;
+    
+    // کسر امتیاز برای استفاده از راهنمایی
+    currentGame.score -= 30;
+    document.getElementById('currentScore').textContent = toPersianNumber(Math.max(0, currentGame.score));
+    
+    hintsUsed++;
+    document.getElementById('hintCount').textContent = toPersianNumber(2 - hintsUsed);
+    
+    if (hintsUsed >= 2) {
+        document.getElementById('hintBtn').disabled = true;
+    }
+    
+    // پیدا کردن حروف حدس زده نشده
+    const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی'.split('');
+    const availableLetters = persianLetters.filter(letter => 
+        !currentGame.guessed_letters?.includes(letter) && 
+        !currentGame.incorrect_letters?.includes(letter)
+    );
+    
+    if (availableLetters.length > 0) {
+        const randomLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
+        showNotification(`راهنمایی: حرف "${randomLetter}" را امتحان کنید! (۳۰- امتیاز)`, 'warning');
+        
+        // قرار دادن حرف در اینپوت
+        document.getElementById('guessInput').value = randomLetter;
+        document.getElementById('guessInput').focus();
+    } else {
+        showNotification('همه حروف حدس زده شده‌اند!', 'info');
+    }
+}
+
+// تابع پایان بازی
+function endGame(isWin) {
+    stopGameTimer();
+    stopConnectionReporting();
+    
+    // غیرفعال کردن دکمه‌ها و اینپوت
+    document.getElementById('hintBtn').disabled = true;
+    document.getElementById('guessBtn').disabled = true;
+    document.getElementById('guessInput').disabled = true;
+
+    if (isWin) {
+        showNotification(`تبریک! شما برنده شدید! 🎉 امتیاز نهایی: ${toPersianNumber(currentGame.score)}`, 'success');
+        
+        // نمایش انیمیشن پیروزی
+        const wordDisplay = document.getElementById('wordDisplay');
+        wordDisplay.classList.add('win-animation');
+    } else {
+        showNotification(`متاسفانه بازی را باختید. امتیاز نهایی: ${toPersianNumber(currentGame.score)}`, 'error');
+        
+        // نمایش کلمه کامل
+        if (currentGame.word) {
+            displayWordProgress(currentGame.word);
+        }
+    }
+
+    currentGame.completed = true;
+
+    // به‌روزرسانی آمار کاربر
+    setTimeout(() => {
+        loadUserData();
+    }, 2000);
+}
+
+// تابع نمایش نتیجه بازی (برای بازی‌های تمام شده)
+function showGameResult() {
+    stopGameTimer();
+    stopConnectionReporting();
+    
+    // غیرفعال کردن دکمه‌ها و اینپوت
+    document.getElementById('hintBtn').disabled = true;
+    document.getElementById('guessBtn').disabled = true;
+    document.getElementById('guessInput').disabled = true;
+
+    // نمایش کلمه کامل
+    if (currentGame.word) {
+        displayWordProgress(currentGame.word);
+    }
+    
+    const gameStatus = document.getElementById('gameStatus');
+    
+    // نمایش وضعیت برنده
+    const isWinner = currentGame.winner_id === currentUser.telegram_id;
+    if (isWinner) {
+        gameStatus.innerHTML = `
+            <div class="player-notice-minimal">
+                <i class="fas fa-trophy"></i>
+                <span>تبریک! شما برنده این بازی شدید! 🎉</span>
+            </div>
+        `;
+        showNotification(`تبریک! شما برنده این بازی شدید! 🎉`, 'success');
+    } else if (currentGame.winner_id) {
+        gameStatus.innerHTML = `
+            <div class="player-notice-minimal">
+                <i class="fas fa-flag-checkered"></i>
+                <span>بازی تمام شد! یکی از بازیکنان دیگر برنده شده است.</span>
+            </div>
+        `;
+        showNotification(`بازی تمام شد!`, 'info');
+    } else {
+        gameStatus.innerHTML = `
+            <div class="player-notice-minimal">
+                <i class="fas fa-flag-checkered"></i>
+                <span>بازی تمام شد! هیچ برنده‌ای نداشت.</span>
+            </div>
+        `;
+        showNotification(`بازی تمام شد!`, 'info');
+    }
+}
+
+// تابع نمایش نوتیفیکیشن
+function showNotification(message, type = 'info') {
+    // حذف نوتیفیکیشن‌های قبلی
+    const existingNotifications = document.querySelectorAll('.custom-notification');
+    existingNotifications.forEach(notification => {
+        notification.remove();
+    });
+
+    const notification = document.createElement('div');
+    notification.className = 'custom-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #0da271)' : 
+                     type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 
+                     type === 'warning' ? 'linear-gradient(135deg, #f59e0b, #eab308)' : 
+                     'linear-gradient(135deg, #06b6d4, #0891b2)'};
+        color: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        font-family: Vazirmatn, sans-serif;
+        max-width: 320px;
+        animation: slideInRight 0.3s ease;
+        font-size: 0.9rem;
+        font-weight: 500;
+    `;
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                           type === 'error' ? 'exclamation-circle' : 
+                           type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+// تابع رفرش بازی‌های فعال
+function refreshActiveGames() {
+    showNotification('در حال بروزرسانی لیست بازی‌ها...', 'info');
+    loadActiveGames();
+}
+
+// تابع بارگذاری تاریخچه بازی‌ها
+async function loadGameHistory() {
+    try {
+        if (!currentUser) return;
+        
+        const response = await fetch(`/api/user/${currentUser.telegram_id}/games`);
+        const result = await response.json();
+
+        if (result.success) {
+            displayGameHistory(result.games);
+        } else {
+            document.getElementById('gameHistoryList').innerHTML = '<div class="error">خطا در بارگذاری تاریخچه بازی‌ها</div>';
+        }
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری تاریخچه بازی‌ها:', error);
+        document.getElementById('gameHistoryList').innerHTML = '<div class="loading-minimal"><i class="fas fa-exclamation-triangle"></i><span>خطا در بارگذاری</span></div>';
+    }
+}
+
+// تابع نمایش تاریخچه بازی‌ها
+function displayGameHistory(games) {
+    const gameHistoryList = document.getElementById('gameHistoryList');
+
+    if (games.length === 0) {
+        gameHistoryList.innerHTML = `
+            <div class="empty-state-minimal">
+                <i class="fas fa-history"></i>
+                <h3>هیچ بازی تاریخی وجود ندارد</h3>
+                <p>شما هنوز در هیچ بازی شرکت نکرده‌اید!</p>
+            </div>
+        `;
+        return;
+    }
+
+    gameHistoryList.innerHTML = games.map(game => `
+        <div class="game-item-minimal">
+            <div class="game-header-minimal">
+                <div class="game-code-minimal">${game.game_id}</div>
+                <div class="game-category-minimal">${game.category}</div>
+            </div>
+            <div class="game-info-minimal">
+                <div class="info-row-compact">
+                    <i class="fas fa-user"></i>
+                    <span>سازنده: ${game.creator_name || 'ناشناس'} ${game.creator_username ? `(@${game.creator_username})` : ''}</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas fa-font"></i>
+                    <span>کلمه: ${game.word}</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas fa-redo"></i>
+                    <span>حدس‌ها: ${toPersianNumber(game.attempts)}/${toPersianNumber(game.max_attempts)}</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas ${game.is_winner ? 'fa-crown success' : 'fa-times danger'}"></i>
+                    <span>نتیجه: ${game.is_winner ? 'برنده 🎉' : 'باخت'}</span>
+                </div>
+                <div class="info-row-compact">
+                    <i class="fas fa-calendar"></i>
+                    <span>تاریخ: ${new Date(game.created_at).toLocaleDateString('fa-IR')}</span>
+                </div>
+            </div>
+            <div class="game-actions-minimal">
+                <button class="btn-primary-minimal btn-small" onclick="viewGameDetails('${game.game_id}')">
+                    <i class="fas fa-eye"></i>
+                    مشاهده جزئیات
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// تابع مشاهده جزئیات بازی
+async function viewGameDetails(gameId) {
+    try {
+        const response = await fetch(`/api/games/${gameId}`);
+        const result = await response.json();
+
+        if (result.success) {
+            currentGame = {
+                game_id: gameId,
+                category: result.game.category,
+                max_attempts: result.game.max_attempts,
+                time_limit: result.game.time_limit,
+                attempts: result.game.attempts || 0,
+                score: 0,
+                creator_id: result.game.creator_id,
+                is_started: result.game.is_started,
+                guessed_letters: result.game.guessed_letters || [],
+                incorrect_letters: result.game.incorrect_letters || [],
+                word_progress: result.game.word_progress,
+                word: result.game.word,
+                completed: result.game.completed,
+                winner_id: result.game.winner_id,
+                creator_online: false
+            };
+
+            isCreator = (result.game.creator_id === currentUser.telegram_id);
+            openGameModal();
+        } else {
+            showNotification('خطا در دریافت اطلاعات بازی', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در دریافت اطلاعات بازی:', error);
+        showNotification('خطا در دریافت اطلاعات بازی', 'error');
+    }
+}
+
+// تابع تبدیل تاریخ میلادی به شمسی
+function toPersianDate(gregorianDate) {
+    const date = new Date(gregorianDate);
+    const gregorianYear = date.getFullYear();
+    const gregorianMonth = date.getMonth() + 1;
+    const gregorianDay = date.getDate();
+    
+    const gregorian = [gregorianYear, gregorianMonth, gregorianDay];
+    const persian = gregorian_to_jalali(gregorian[0], gregorian[1], gregorian[2]);
+    
+    const persianMonths = [
+        'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+        'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+    ];
+    
     return {
-        ...gameData,
-        guessedLetters: new Set(gameData.guessed_letters.split(',').filter(Boolean)),
-        incorrectGuesses: new Set(gameData.incorrect_letters.split(',').filter(Boolean)),
-        players: playersMap,
-        last_activity: new Date()
+        year: persian[0],
+        month: persian[1],
+        day: persian[2],
+        monthName: persianMonths[persian[1] - 1],
+        formatted: `${toPersianNumber(persian[2])} ${persianMonths[persian[1] - 1]} ${toPersianNumber(persian[0])}`
     };
 }
 
-async function endGame(game, winnerId, reason) {
-    try {
-        if (game.completed) return;
-        
-        console.log(`🏁 Game ${game.game_id} ended. Reason: ${reason}. Winner: ${winnerId || 'None'}`);
-
-        // 1. به‌روزرسانی وضعیت در دیتابیس
-        await dbClient.query(
-            'UPDATE games SET is_active = false, completed = true, winner_id = $1 WHERE game_id = $2',
-            [winnerId, game.game_id]
-        );
-        
-        // 2. به‌روزرسانی آمار بازیکنان در game_sessions و users
-        const allPlayers = await getGamePlayers(game.game_id);
-        for (const player of allPlayers) {
-             const isWinner = (winnerId && player.player_id.toString() === winnerId.toString());
-             // استفاده از امتیاز ذخیره شده در game_sessions برای به‌روزرسانی آمار کاربر
-             const playerScore = game.players.get(player.player_id)?.score || player.score; 
-             await updateUserStats(player.player_id, playerScore, isWinner);
-             await dbClient.query(
-                'UPDATE game_sessions SET is_winner = $1, completed = true WHERE game_id = $2 AND player_id = $3', 
-                [isWinner, game.game_id, player.player_id]
-             );
-        }
-
-        // 3. پاکسازی حافظه
-        game.completed = true;
-        game.winner_id = winnerId;
-        // بازی از اینجا حذف نمی‌شود، بلکه در cleanup دوره‌ای مدیریت می‌شود.
-        // activeGames.delete(game.game_id); 
-        clearGameConnections(game.game_id);
-
-    } catch (error) {
-        console.error(`❌ Error in endGame for ${game.game_id}:`, error);
-    }
+function gregorian_to_jalali(gy, gm, gd) {
+    var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    var jy = (gy <= 1600) ? 0 : 979;
+    gy -= (gy <= 1600) ? 621 : 1600;
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) 
+        + (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
+    jy += 33 * (parseInt(days / 12053)); 
+    days %= 12053;
+    jy += 4 * (parseInt(days / 1461));
+    days %= 1461;
+    jy += parseInt((days - 1) / 365);
+    if (days > 365) days = (days - 1) % 365;
+    var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+    var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+    return [jy, jm, jd];
 }
 
-function clearGameConnections(gameId) {
-    for (const key of playerConnections.keys()) {
-        if (key.startsWith(gameId + '_')) {
-            playerConnections.delete(key);
-        }
-    }
+// تابع به‌روزرسانی ساعت زنده
+function updateLiveClock() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('fa-IR');
+    document.getElementById('currentTime').textContent = timeString;
+    
+    const persianDate = toPersianDate(now);
+    document.getElementById('persianDate').textContent = persianDate.formatted;
 }
 
-
-// --- Telegram Bot Commands ---
-
-if (WEB_APP_URL && TELEGRAM_TOKEN) {
-    bot.command('start', async (ctx) => {
-        const userId = ctx.from.id;
-        const fullName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
-        const username = ctx.from.username;
-
-        // 1. به‌روزرسانی/ایجاد کاربر در دیتابیس
-        try {
-            await dbClient.query(
-                `INSERT INTO users (telegram_id, full_name, username, last_seen) 
-                 VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-                 ON CONFLICT (telegram_id) DO UPDATE 
-                 SET full_name = $2, username = $3, last_seen = CURRENT_TIMESTAMP`,
-                [userId, fullName, username]
-            );
-        } catch (error) {
-            console.error('Error updating user on /start:', error);
+// مدیریت ارسال با Enter
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('guessInput')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            submitGuess();
         }
-
-        // 2. پاسخ با دکمه وب‌اپ
-        ctx.reply(
-            'به بازی **Hangman Multiplayer** خوش آمدید! \n\n' +
-            'کلمه را انتخاب کن، دوستانت را دعوت کن یا به یک بازی فعال بپیوند.\n' +
-            'برای شروع بازی، از دکمه زیر استفاده کن 👇',
-            {
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            { 
-                                text: '🎮 شروع بازی', 
-                                web_app: { url: WEB_APP_URL } 
-                            }
-                        ]
-                    ]
-                }
-            }
-        );
     });
-} else {
-    console.warn('⚠️ WEB_APP_URL or TELEGRAM_TOKEN is not set. /start command functionality is limited or disabled.');
+    
+    document.getElementById('gameWord')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            createGame();
+        }
+    });
+    
+    document.getElementById('gameCode')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            joinGame();
+        }
+    });
+});
+
+// بستن مودال با کلیک خارج از آن
+window.onclick = function(event) {
+    const gameModal = document.getElementById('gameModal');
+    const startGameModal = document.getElementById('startGameModal');
+    
+    if (event.target === gameModal) closeGameModal();
+    if (event.target === startGameModal) closeStartGameModal();
 }
 
-
-// --- API Endpoints ---
-
-/**
- * API برای ایجاد بازی جدید. (بسیار تقویت شده در کنترل خطا)
- */
-app.post('/api/games/create', async (req, res) => {
-    try {
-        const { creator_id, word, category } = req.body;
-        
-        if (!creator_id || !word || !category) {
-            return res.status(400).json({ success: false, error: 'Missing required fields (creator_id, word, or category)' });
-        }
-
-        // 0. اطمینان از وجود کاربر (حیاتی برای Foreign Key)
-        await dbClient.query(
-            'INSERT INTO users (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING',
-            [creator_id]
-        );
-
-        const gameId = generateGameId();
-        const wordUpper = word.toUpperCase().trim(); // اطمینان از تمیز بودن کلمه
-        
-        if (wordUpper.length < 3) {
-             return res.status(400).json({ success: false, error: 'Word must be at least 3 characters long' });
-        }
-        
-        const maxAttempts = Math.max(8, Math.floor(wordUpper.length * 1.5));
-        const timeLimit = Math.max(300, wordUpper.length * 45);
-
-        // 1. ایجاد بازی
-        const result = await dbClient.query(
-            `INSERT INTO games (game_id, creator_id, word, category, max_attempts, time_limit, creator_online) 
-             VALUES ($1, $2, $3, $4, $5, $6, true) 
-             RETURNING *`,
-            [gameId, creator_id, wordUpper, category, maxAttempts, timeLimit]
-        );
-        
-        const newGameData = result.rows[0];
-
-        // 2. ایجاد رکوردهای اولیه در game_players و game_sessions
-        await dbClient.query('INSERT INTO game_players (game_id, player_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [gameId, creator_id]);
-        await dbClient.query('INSERT INTO game_sessions (game_id, player_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [gameId, creator_id]);
-
-        // 3. ذخیره در حافظه
-        const newGame = {
-            ...newGameData,
-            guessedLetters: new Set(),
-            incorrectGuesses: new Set(),
-            players: new Map([[creator_id, { score: 0, attempts: 0, is_winner: false }]]),
-            last_activity: new Date()
-        };
-        activeGames.set(gameId, newGame);
-
-        updatePlayerConnection(gameId, creator_id, true, true);
-
-        res.json({
-            success: true,
-            game_id: gameId,
-            max_attempts: maxAttempts,
-            time_limit: timeLimit,
-            word_length: wordUpper.length
-        });
-
-    } catch (error) {
-        console.error('❌ Critical Error creating game:', error);
-        // ارسال خطای 500 با جزئیات بیشتر به کنسول سرور
-        res.status(500).json({ 
-            success: false, 
-            error: 'Internal server error during game creation. Check server logs for DB or logic errors.' 
-        });
+// مدیریت کلیدهای صفحه‌کلید
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeGameModal();
+        closeStartGameModal();
     }
 });
 
-app.post('/api/games/:gameId/start', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        const { player_id } = req.body;
-
-        let game = activeGames.get(gameId);
-        if (!game) {
-            game = await loadGameFromDB(gameId);
-            if (!game) return res.status(404).json({ success: false, error: 'Game not found' });
-            activeGames.set(gameId, game);
-        }
-
-        if (game.creator_id.toString() !== player_id.toString()) {
-            return res.status(403).json({ success: false, error: 'Only game creator can start the game' });
-        }
-
-        if (game.is_started) {
-            return res.status(400).json({ success: false, error: 'Game already started' });
-        }
-
-        game.is_started = true;
-        game.start_time = new Date();
-        game.last_activity = new Date();
-        
-        await dbClient.query(
-            'UPDATE games SET is_started = true, start_time = CURRENT_TIMESTAMP WHERE game_id = $1',
-            [gameId]
-        );
-
-        res.json({ 
-            success: true, 
-            message: 'Game started successfully',
-            start_time: game.start_time
-        });
-
-    } catch (error) {
-        console.error('❌ Error starting game:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
+// مدیریت زمانی که کاربر صفحه را ترک می‌کند
+window.addEventListener('beforeunload', function() {
+    stopConnectionReporting();
 });
 
-app.post('/api/games/:gameId/join', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        const { player_id } = req.body;
-
-        if (!player_id) {
-            return res.status(400).json({ success: false, error: 'Player ID is required' });
+// مقداردهی اولیه
+document.addEventListener('DOMContentLoaded', function() {
+    updateLiveClock();
+    setInterval(updateLiveClock, 1000);
+    loadUserData();
+    
+    // رفرش خودکار بازی‌های فعال هر 30 ثانیه
+    setInterval(() => {
+        if (document.getElementById('active-games').classList.contains('active')) {
+            loadActiveGames();
         }
-
-        let game = activeGames.get(gameId);
-        let reconnected = false;
-        
-        if (!game) {
-            game = await loadGameFromDB(gameId);
-            if (!game) return res.status(404).json({ success: false, error: 'Game not found or completed' });
-            activeGames.set(gameId, game);
-        }
-        
-        if (game.completed) {
-             return res.status(400).json({ success: false, error: 'Game is completed' });
-        }
-        
-        await dbClient.query(
-            'INSERT INTO users (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING',
-            [player_id]
-        );
-
-        const isPlayerInGame = await dbClient.query(
-            'SELECT score, attempts, is_winner FROM game_sessions WHERE game_id = $1 AND player_id = $2',
-            [gameId, player_id]
-        );
-
-        if (isPlayerInGame.rows.length > 0) {
-            reconnected = true;
-            const playerData = isPlayerInGame.rows[0];
-            game.players.set(player_id, {
-                score: playerData.score,
-                attempts: playerData.attempts,
-                is_winner: playerData.is_winner,
-            });
-            
-        } else {
-            await dbClient.query(
-                'INSERT INTO game_players (game_id, player_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                [gameId, player_id]
-            );
-            await dbClient.query(
-                'INSERT INTO game_sessions (game_id, player_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-                [gameId, player_id]
-            );
-            
-            game.players.set(player_id, { score: 0, attempts: 0, is_winner: false });
-        }
-        
-        const isCreator = (game.creator_id.toString() === player_id.toString());
-        updatePlayerConnection(gameId, player_id, true, isCreator);
-        game.last_activity = new Date();
-
-        res.json({ 
-            success: true, 
-            players_count: game.players.size,
-            creator_id: game.creator_id,
-            is_started: game.is_started,
-            reconnected: reconnected
-        });
-    } catch (error) {
-        console.error('❌ Error joining game:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-app.post('/api/games/:gameId/guess-letter', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        const { player_id, letter } = req.body;
-
-        if (!player_id || !letter) {
-            return res.status(400).json({ success: false, error: 'Player ID and letter are required' });
-        }
-
-        let game = activeGames.get(gameId);
-        if (!game) {
-            game = await loadGameFromDB(gameId);
-            if (!game || game.completed || !game.is_started) {
-                return res.status(404).json({ success: false, error: 'Game not found, completed, or not started' });
-            }
-            activeGames.set(gameId, game);
-        }
-
-        if (game.completed || !game.is_started) {
-            return res.status(400).json({ success: false, error: 'Game is not active or has not started yet' });
-        }
-        
-        if (game.creator_id.toString() === player_id.toString()) {
-             return res.status(403).json({ success: false, error: 'Creator cannot guess' });
-        }
-        
-        const playerState = game.players.get(player_id);
-        if (!playerState) {
-             return res.status(403).json({ success: false, error: 'Player not in this game' });
-        }
-
-
-        const letterUpper = letter.toUpperCase();
-
-        const now = new Date();
-        const timeElapsed = game.start_time ? Math.floor((now - new Date(game.start_time)) / 1000) : 0;
-        const timeLeft = game.time_limit - timeElapsed;
-
-        if (timeLeft <= 0) {
-            await endGame(game, null, 'Time Limit');
-            return res.status(400).json({ success: false, error: 'Time limit reached' });
-        }
-        
-        if (game.guessedLetters.has(letterUpper) || game.incorrectGuesses.has(letterUpper)) {
-            return res.status(400).json({ success: false, error: 'Letter already guessed' });
-        }
-        
-        if (playerState.attempts >= game.max_attempts) {
-            return res.status(400).json({ success: false, error: `You have reached the maximum number of incorrect attempts (${game.max_attempts}).` });
-        }
-
-        const word = game.word;
-        const isCorrect = word.includes(letterUpper);
-        let scoreChange = 0;
-        let isGameCompleted = false;
-
-        if (isCorrect) {
-            game.guessedLetters.add(letterUpper);
-            scoreChange = BASE_CORRECT_SCORE + (game.word.length * 5); 
-            
-            const currentProgress = getWordProgress(word, game.guessedLetters);
-            if (!currentProgress.includes('_')) {
-                isGameCompleted = true;
-            }
-        } else {
-            game.incorrectGuesses.add(letterUpper);
-            playerState.attempts += 1;
-            scoreChange = -20;
-        }
-        
-        if (isCorrect && game.start_time) {
-            scoreChange += Math.max(0, timeLeft * TIME_BONUS_PER_SECOND); 
-        }
-
-        playerState.score = Math.max(0, playerState.score + scoreChange);
-        game.last_activity = now;
-        
-        const updatedWordProgress = getWordProgress(word, game.guessedLetters);
-        
-        await dbClient.query(
-            `UPDATE game_sessions SET score = $1, attempts = $2, is_winner = $3, completed = $4 WHERE game_id = $5 AND player_id = $6`,
-            [playerState.score, playerState.attempts, isGameCompleted, isGameCompleted, gameId, player_id]
-        );
-        
-        await dbClient.query(
-            `UPDATE games SET 
-                guessed_letters = $1, 
-                incorrect_letters = $2,
-                completed = $3,
-                winner_id = $4
-             WHERE game_id = $5`,
-            [Array.from(game.guessedLetters).join(','), Array.from(game.incorrectGuesses).join(','), isGameCompleted, isGameCompleted ? player_id : null, gameId]
-        );
-        
-        if (isGameCompleted) {
-            await endGame(game, player_id, 'Word Guessed');
-        }
-
-        res.json({
-            success: true,
-            is_correct: isCorrect,
-            letter: letterUpper,
-            score_change: scoreChange,
-            current_score: playerState.score,
-            game_completed: isGameCompleted,
-            word_progress: updatedWordProgress
-        });
-
-    } catch (error) {
-        console.error('❌ Error processing guess:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-app.post('/api/games/:gameId/hint', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        const { player_id } = req.body;
-        
-        let game = activeGames.get(gameId);
-        if (!game) {
-            game = await loadGameFromDB(gameId);
-            if (!game || game.completed || !game.is_started) {
-                return res.status(404).json({ success: false, error: 'Game not found, completed, or not started' });
-            }
-            activeGames.set(gameId, game);
-        }
-        
-        if (game.creator_id.toString() === player_id.toString()) {
-            return res.status(403).json({ success: false, error: 'Creator cannot use hints' });
-        }
-        
-        const playerState = game.players.get(player_id);
-        if (!playerState) {
-            return res.status(403).json({ success: false, error: 'Player not in this game' });
-        }
-        
-        const wordLetters = new Set(game.word.split('').filter(l => l !== ' '));
-        const unGuessedLetters = Array.from(wordLetters).filter(letter => 
-            !game.guessedLetters.has(letter) && !game.incorrectGuesses.has(letter)
-        );
-        
-        if (unGuessedLetters.length === 0) {
-            return res.json({ success: false, error: 'No unguessed letters remaining' });
-        }
-        
-        const hintLetter = unGuessedLetters[Math.floor(Math.random() * unGuessedLetters.length)];
-        
-        const scoreChange = -HINT_SCORE_PENALTY;
-        playerState.score = Math.max(0, playerState.score + scoreChange);
-        
-        await dbClient.query(
-            `UPDATE game_sessions SET score = $1 WHERE game_id = $2 AND player_id = $3`,
-            [playerState.score, gameId, player_id]
-        );
-        
-        game.guessedLetters.add(hintLetter);
-        game.last_activity = new Date();
-        
-        const updatedWordProgress = getWordProgress(game.word, game.guessedLetters);
-        
-        await dbClient.query(
-            `UPDATE games SET 
-                guessed_letters = $1
-             WHERE game_id = $2`,
-            [Array.from(game.guessedLetters).join(','), gameId]
-        );
-        
-        let isGameCompleted = false;
-        if (!updatedWordProgress.includes('_')) {
-            isGameCompleted = true;
-            await endGame(game, player_id, 'Word Guessed with Hint');
-        }
-
-        res.json({
-            success: true,
-            hint_letter: hintLetter,
-            score_change: scoreChange,
-            current_score: playerState.score,
-            word_progress: updatedWordProgress,
-            game_completed: isGameCompleted
-        });
-        
-    } catch (error) {
-        console.error('❌ Error processing hint:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-
-app.get('/api/games/:gameId', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        let game = activeGames.get(gameId);
-        
-        if (!game) {
-            game = await loadGameFromDB(gameId);
-            if (!game) return res.status(404).json({ success: false, error: 'Game not found' });
-            activeGames.set(gameId, game);
-        }
-
-        const now = new Date();
-        let timeLeft = game.time_limit;
-        
-        if (game.is_started && game.start_time) {
-            const timeElapsed = Math.floor((now - new Date(game.start_time)) / 1000);
-            timeLeft = Math.max(0, game.time_limit - timeElapsed);
-            
-            if (timeLeft === 0 && !game.completed) {
-                await endGame(game, null, 'Time Limit');
-            }
-        }
-        
-        if (game.completed && !activeGames.has(gameId)) {
-            game = await loadGameFromDB(gameId);
-            if (!game) return res.status(404).json({ success: false, error: 'Game not found or removed from memory' });
-            game.completed = true; 
-        }
-
-
-        const wordProgress = getWordProgress(game.word, game.guessedLetters);
-        
-        const playersArray = await getGamePlayers(gameId); 
-
-        if (game.players.size !== playersArray.length) {
-             game.players.clear();
-             playersArray.forEach(p => game.players.set(p.player_id, {
-                score: p.score,
-                attempts: p.attempts,
-                is_winner: p.is_winner,
-            }));
-        }
-
-
-        res.json({
-            success: true,
-            game: {
-                game_id: game.game_id,
-                creator_id: game.creator_id,
-                category: game.category,
-                max_attempts: game.max_attempts,
-                time_limit: game.time_limit,
-                is_started: game.is_started,
-                completed: game.completed,
-                winner_id: game.winner_id,
-                word_length: game.word.length,
-                guessed_letters: Array.from(game.guessedLetters),
-                incorrect_letters: Array.from(game.incorrectGuesses),
-                word_progress: wordProgress,
-                creator_online: game.creator_online,
-                players_count: playersArray.length,
-                time_left: timeLeft,
-                players: playersArray
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ Error fetching game info:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-app.post('/api/games/:gameId/connect', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        const { player_id } = req.body;
-        
-        let game = activeGames.get(gameId);
-        if (!game) {
-             game = await loadGameFromDB(gameId);
-            if (!game) return res.status(404).json({ success: false, error: 'Game not found' });
-            activeGames.set(gameId, game);
-        }
-        
-        const isCreator = (game.creator_id.toString() === player_id.toString());
-        
-        updatePlayerConnection(gameId, player_id, true, isCreator);
-        
-        if (isCreator && !game.creator_online) {
-            game.creator_online = true;
-            await dbClient.query(
-                'UPDATE games SET creator_online = true WHERE game_id = $1',
-                [gameId]
-            );
-        }
-        
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Error updating connection:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-app.post('/api/games/:gameId/disconnect', async (req, res) => {
-    try {
-        const { gameId } = req.params;
-        const { player_id } = req.body;
-        
-        updatePlayerConnection(gameId, player_id, false);
-        
-        res.json({ success: true });
-    } catch (error) {
-        console.error('❌ Error updating disconnection:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-
-/**
- * API برای دریافت لیست بازی‌های فعال (بدون شروع).
- */
-app.get('/api/games/active', async (req, res) => {
-    try {
-        // کوئری بهینه شده برای رفع مشکل N+1
-        const result = await dbClient.query(`
-            SELECT 
-                g.game_id, 
-                g.category, 
-                g.time_limit, 
-                g.word, 
-                g.max_attempts, 
-                g.created_at, 
-                g.creator_online, 
-                u.full_name as creator_name, 
-                u.username as creator_username,
-                COUNT(gp.player_id) as players_count
-            FROM games g 
-            LEFT JOIN users u ON g.creator_id = u.telegram_id 
-            LEFT JOIN game_players gp ON g.game_id = gp.game_id
-            WHERE g.is_active = true AND g.is_started = false AND g.completed = false
-            GROUP BY g.game_id, u.full_name, u.username
-            ORDER BY g.created_at DESC
-        `);
-
-        const games = result.rows.map(game => ({
-            game_id: game.game_id,
-            creator_name: game.creator_name,
-            creator_username: game.creator_username,
-            category: game.category,
-            players_count: parseInt(game.players_count),
-            max_attempts: game.max_attempts,
-            time_limit: game.time_limit,
-            created_at: game.created_at,
-            word_length: game.word.length,
-            creator_online: game.creator_online
-        }));
-
-        res.json({ success: true, games });
-
-    } catch (error) {
-        console.error('❌ Error fetching active games:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-/**
- * API جدید برای دریافت تاریخچه بازی‌های تکمیل شده کاربر.
- */
-app.get('/api/user/:telegramId/history', async (req, res) => {
-    try {
-        const { telegramId } = req.params;
-
-        const historyResult = await dbClient.query(`
-            SELECT 
-                g.game_id, 
-                g.word,
-                g.category, 
-                g.created_at, 
-                g.winner_id,
-                u.full_name as winner_name,
-                gs.score,
-                gs.is_winner,
-                gs.attempts
-            FROM game_sessions gs
-            JOIN games g ON gs.game_id = g.game_id
-            LEFT JOIN users u ON g.winner_id = u.telegram_id
-            WHERE gs.player_id = $1 AND g.completed = true
-            ORDER BY g.created_at DESC
-            LIMIT 50
-        `, [telegramId]);
-
-        const history = historyResult.rows.map(row => ({
-            game_id: row.game_id,
-            word: row.word, 
-            category: row.category,
-            date: row.created_at,
-            player_score: row.score,
-            is_winner: row.is_winner,
-            attempts: row.attempts,
-            winner_name: row.winner_name || (row.winner_id ? `ID: ${row.winner_id}` : 'None')
-        }));
-        
-        res.json({ success: true, history: history });
-
-    } catch (error) {
-        console.error('❌ Error fetching user history:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-app.get('/api/user/:telegramId', async (req, res) => {
-    try {
-        const { telegramId } = req.params;
-        
-        let userResult = await dbClient.query(
-            'SELECT * FROM users WHERE telegram_id = $1',
-            [telegramId]
-        );
-        
-        if (userResult.rows.length === 0) {
-            await dbClient.query(
-                'INSERT INTO users (telegram_id) VALUES ($1) ON CONFLICT (telegram_id) DO NOTHING',
-                [telegramId]
-            );
-            userResult = await dbClient.query(
-                'SELECT * FROM users WHERE telegram_id = $1',
-                [telegramId]
-            );
-        }
-        
-        const user = userResult.rows[0];
-        res.json({
-            telegram_id: user.telegram_id,
-            full_name: user.full_name,
-            username: user.username,
-            game_score: user.game_score,
-            total_games: user.total_games,
-            wins: user.wins,
-        });
-    } catch (error) {
-        console.error('❌ Error fetching user:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-app.get('/api/stats', async (req, res) => {
-    try {
-        const userCountResult = await dbClient.query('SELECT COUNT(*) FROM users');
-        const userCount = userCountResult.rows[0].count;
-        const activeGamesCountResult = await dbClient.query('SELECT COUNT(*) FROM games WHERE is_active = true AND completed = false');
-        const activeGamesCount = activeGamesCountResult.rows[0].count;
-
-        res.json({ 
-            total_users: parseInt(userCount), 
-            active_games: parseInt(activeGamesCount)
-        });
-    } catch (error) {
-        console.error('❌ Error getting stats:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-
-// --- Cleanup و نگهداری ---
-
-async function cleanupInactiveGames() {
-    try {
-        const inactiveCreatorTimeout = 15 * 60 * 1000;
-        const now = new Date();
-
-        // بررسی وضعیت آنلاین بودن سازنده
-        for (const [key, connection] of playerConnections.entries()) {
-            if (connection.isCreator && (now - connection.lastSeen) > inactiveCreatorTimeout) {
-                const gameId = key.split('_')[0];
-                const game = activeGames.get(gameId);
-                
-                if (game && game.creator_online) {
-                    game.creator_online = false;
-                    await dbClient.query('UPDATE games SET creator_online = false WHERE game_id = $1', [gameId]);
-                }
-            }
-        }
-        
-        // اتمام بازی‌های زمان‌دار که از زمان آن‌ها گذشته
-        const activeGamesResult = await dbClient.query(`
-            SELECT game_id, time_limit, start_time, completed FROM games 
-            WHERE is_active = true AND is_started = true AND completed = false
-        `);
-        
-        for (const row of activeGamesResult.rows) {
-            if (row.start_time && !row.completed) {
-                const timeElapsed = Math.floor((now - row.start_time) / 1000);
-                if (timeElapsed > row.time_limit) {
-                    let game = activeGames.get(row.game_id);
-                    if (!game) {
-                        game = await loadGameFromDB(row.game_id);
-                    }
-                    if (game) {
-                        await endGame(game, null, 'Time Limit Reached by Cleanup');
-                    }
-                }
-            }
-        }
-        
-        // حذف بازی‌های ناتمام و شروع نشده‌ای که سازنده آن‌ها آفلاین شده است
-         await dbClient.query(`
-            UPDATE games SET is_active = false, completed = true, winner_id = NULL
-            WHERE is_active = true AND is_started = false 
-            AND creator_online = false
-            AND created_at < NOW() - INTERVAL '15 minutes'
-        `);
-        // حذف بازی‌های فعال و ناتمامی که خیلی قدیمی شده‌اند
-        await dbClient.query(`
-            UPDATE games SET is_active = false, completed = true, winner_id = NULL
-            WHERE is_active = true AND completed = false 
-            AND created_at < NOW() - INTERVAL '24 hours'
-        `);
-
-        // پاکسازی حافظه سرور برای بازی‌های تکمیل شده
-        for (const [gameId, game] of activeGames.entries()) {
-            if (game.completed && (now - game.last_activity) > 60 * 60 * 1000) {
-                activeGames.delete(gameId);
-                clearGameConnections(gameId);
-            }
-        }
-        
-        console.log(`🧹 Cleaned up inactive/old games.`);
-
-    } catch (error) {
-        console.error('Error cleaning up inactive games:', error);
-    }
-}
-
-// اجرای تمیزکاری هر 10 دقیقه
-setInterval(cleanupInactiveGames, 10 * 60 * 1000);
-
-// هندلر خطا برای درخواست‌های نامعتبر
-app.use((err, req, res, next) => {
-    console.error('💥 Unhandled error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' }); 
-});
-
-// هندلر برای مسیرهای ناموجود
-app.use('*', (req, res) => {
-    res.status(404).json({ success: false, error: 'Endpoint not found' }); 
-});
-
-// راه‌اندازی سرور
-bot.launch();
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
+    }, 30000);
 });
