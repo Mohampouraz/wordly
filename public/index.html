@@ -1,37 +1,30 @@
-<!doctype html>
-<html lang="fa">
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Wordly — Mini WebApp</title>
-  <link rel="stylesheet" href="/style.css" />
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta charset="UTF-8" />
+  <title>Wordly Pro</title>
+  <link rel="stylesheet" href="./ui.css" />
 </head>
-<body dir="rtl">
-  <div class="app-shell">
-    <header class="topbar">
-      <h1>خوش آمدید به Wordly</h1>
-      <p class="subtitle">اپ حرفه‌ای درون تلگرام — نمایش اطلاعات کاربر و تاریخ شمسی</p>
-    </header>
 
-    <main class="card">
-      <div class="welcome">
-        <img class="logo" src="/logo.svg" alt="Wordly" onerror="this.style.display='none'"/>
-        <h2 id="greeting">سلام!</h2>
-        <p id="intro">برای نمایش اطلاعات کاربری روی دکمه زیر کلیک کنید.</p>
+<body>
 
-        <div class="actions">
-          <button id="btnShowAll" class="btn">نمایش اطلاعات من</button>
-          <button id="btnClose" class="btn ghost">بستن وب‌اپ</button>
-        </div>
-      </div>
+  <div class="container">
+    <h1>🎮 Wordly — نسخه حرفه‌ای</h1>
 
-      <div id="modals"></div>
-    </main>
+    <div class="card">
+      <button onclick="createRoom()">ساخت بازی جدید</button>
+      <button onclick="showGames()">لیست بازی‌ها</button>
+    </div>
 
-    <footer class="footer">© Wordly — طراحی شده برای Telegram Web Apps</footer>
+    <div id="game-area" class="card" style="display:none;">
+      <h3>اتاق: <span id="room-id"></span></h3>
+      <div id="game-log" style="white-space:pre-wrap;"></div>
+    </div>
   </div>
 
-  <script src="/script.js"></script>
+  <div id="toast" class="toast"></div>
+
+  <script src="./frontend.js"></script>
+
 </body>
 </html>
