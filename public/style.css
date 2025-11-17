@@ -1,36 +1,61 @@
-/* style.css — Clean, modern Persian UI for Telegram Web App */
-:root{
-  --bg:#0f1724; /* deep navy */
-  --card:#0b1220;
-  --muted:#98a0b3;
-  --accent:#6ee7b7;
-  --glass: rgba(255,255,255,0.04);
+body {
+  margin: 0;
+  background: #0e0e0e;
+  color: white;
+  font-family: Inter, sans-serif;
 }
-*{box-sizing:border-box;font-family: 'Vazirmatn', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,#020617 0%, var(--bg) 60%);color:#e6eef6}
-.app-shell{max-width:900px;margin:36px auto;padding:20px}
-.topbar{padding:20px 24px;border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-.topbar h1{margin:0;font-size:1.6rem}
-.topbar .subtitle{margin:6px 0 0;color:var(--muted)}
-.card{margin-top:18px;padding:26px;border-radius:14px;background:var(--card);box-shadow: 0 10px 40px rgba(2,6,23,0.6)}
-.welcome{display:flex;flex-direction:column;gap:12px;align-items:flex-end}
-.logo{width:72px;height:72px;border-radius:12px;object-fit:cover}
-.btn{background:linear-gradient(90deg, rgba(110,231,183,0.14), rgba(110,231,183,0.08));border:1px solid rgba(110,231,183,0.12);padding:12px 18px;border-radius:12px;color:var(--accent);cursor:pointer;font-weight:600}
-.btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-.actions{display:flex;gap:12px}
-.footer{margin-top:18px;color:var(--muted);text-align:center}
 
-/* Modal styles */
-.modal{width:100%;max-width:520px;margin:18px auto;padding:18px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 20px 60px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
-.modal h3{margin:0 0 6px;font-size:1.1rem}
-.modal p{margin:0;color:var(--muted)}
-.modal .meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
-.chip{padding:8px 12px;border-radius:999px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);font-weight:600}
-.modal .close{margin-top:14px;text-align:left}
-.small{font-size:0.9rem}
+.container {
+  width: 100%;
+  max-width: 900px;
+  margin: auto;
+  padding: 20px;
+}
 
-/* Responsive */
-@media (max-width:600px){
-  .app-shell{margin:12px}
-  .topbar h1{font-size:1.2rem}
+.card {
+  background: #1b1b1b;
+  padding: 20px;
+  border-radius: 18px;
+  margin-top: 20px;
+  box-shadow: 0 0 10px #0004;
+  transition: 0.2s;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+}
+
+button {
+  background: #2f2fff;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+button:hover {
+  background: #4d4dff;
+}
+
+/* Toast Notification */
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #222;
+  padding: 14px 20px;
+  border-radius: 12px;
+  color: white;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: 0.4s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
 }
