@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wordly - بازی حدس کلمه</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
@@ -10,8 +10,9 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
+    
     <div class="container">
-        <!-- هدر مینیمال -->
+        
         <header class="header-minimal">
             <div class="header-content">
                 <div class="logo-minimal">
@@ -22,382 +23,308 @@
                     <div class="user-avatar">
                         <i class="fas fa-user"></i>
                     </div>
-                    <span id="userName">در حال بارگذاری...</span>
+                    <span id="userName">بارگذاری...</span>
                 </div>
             </div>
         </header>
 
-        <!-- تب‌های مینیمال -->
         <nav class="tabs-minimal">
-            <button class="tab-minimal active" data-tab="dashboard">
-                <i class="fas fa-home"></i>
-                <span>داشبورد</span>
+            <button class="tab-minimal active" onclick="openTab('profile-tab', event)">
+                <i class="fas fa-user-circle"></i>
+                پروفایل
             </button>
-            <button class="tab-minimal" data-tab="create-game">
+            <button class="tab-minimal" onclick="openTab('active-games', event)">
+                <i class="fas fa-gamepad"></i>
+                بازی‌های فعال
+                <span class="badge-mini hidden" id="activeGamesCountBadge"></span>
+            </button>
+            <button class="tab-minimal" onclick="openTab('create-game-tab', event)">
                 <i class="fas fa-plus-circle"></i>
-                <span>ایجاد بازی</span>
+                ساخت بازی
             </button>
-            <button class="tab-minimal" data-tab="join-game">
-                <i class="fas fa-users"></i>
-                <span>پیوستن به بازی</span>
-            </button>
-            <button class="tab-minimal" data-tab="active-games">
-                <i class="fas fa-list"></i>
-                <span>بازی‌های فعال</span>
-                <span class="badge-mini" id="activeGamesCount">۰</span>
-            </button>
-            <button class="tab-minimal" data-tab="game-history">
+            <button class="tab-minimal" onclick="openTab('game-history', event)">
                 <i class="fas fa-history"></i>
-                <span>تاریخچه بازی</span>
+                تاریخچه
+            </button>
+            <button class="tab-minimal" onclick="openTab('leaderboard-tab', event)">
+                <i class="fas fa-trophy"></i>
+                رده‌بندی
             </button>
         </nav>
+        
+        <div id="notification-container"></div>
 
-        <!-- محتوای داشبورد -->
-        <div id="dashboard" class="tab-content-minimal active">
-            <!-- کارت خوش‌آمدگویی -->
-            <div class="welcome-card">
-                <div class="welcome-content">
-                    <i class="fas fa-gamepad welcome-icon"></i>
-                    <h2>به Wordly خوش آمدید! 🎮</h2>
-                    <p>یک بازی حدس کلمه هیجان‌انگیز در تلگرام</p>
+        <main class="main-content-wrapper">
+            
+            <div id="profile-tab" class="tab-content-minimal active">
+                
+                <div class="welcome-card">
+                    <div class="welcome-icon"><i class="fas fa-hand-wave"></i></div>
+                    <div class="welcome-content">
+                        <h2 id="greetingMessage">سلام، <span id="fullName">کاربر</span>!</h2>
+                        <p>ساعت فعلی: <span id="liveClock">--:--</span></p>
+                    </div>
                 </div>
-            </div>
 
-            <!-- کارت‌های آمار سریع -->
-            <div class="stats-grid-minimal">
-                <div class="stat-card-minimal">
-                    <div class="stat-icon-minimal primary">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="stat-info-minimal">
-                        <span class="stat-value" id="userScore">۰</span>
-                        <span class="stat-label">امتیاز کل</span>
-                    </div>
-                </div>
-                <div class="stat-card-minimal">
-                    <div class="stat-icon-minimal success">
-                        <i class="fas fa-crown"></i>
-                    </div>
-                    <div class="stat-info-minimal">
-                        <span class="stat-value" id="wins">۰</span>
-                        <span class="stat-label">بردها</span>
-                    </div>
-                </div>
-                <div class="stat-card-minimal">
-                    <div class="stat-icon-minimal info">
-                        <i class="fas fa-gamepad"></i>
-                    </div>
-                    <div class="stat-info-minimal">
-                        <span class="stat-value" id="totalGames">۰</span>
-                        <span class="stat-label">کل بازی‌ها</span>
-                    </div>
-                </div>
-                <div class="stat-card-minimal">
-                    <div class="stat-icon-minimal warning">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div class="stat-info-minimal">
-                        <span class="stat-value" id="winRate">۰٪</span>
-                        <span class="stat-label">نرخ برد</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- کارت اطلاعات کاربری -->
-            <div class="info-card-minimal">
-                <div class="card-header-minimal">
-                    <i class="fas fa-user-circle"></i>
-                    <h3>اطلاعات کاربری</h3>
-                </div>
-                <div class="card-content-minimal">
-                    <div class="info-row-minimal">
-                        <span class="info-label">شناسه:</span>
-                        <span class="info-value" id="userId">---</span>
-                    </div>
-                    <div class="info-row-minimal">
-                        <span class="info-label">نام:</span>
-                        <span class="info-value" id="fullName">---</span>
-                    </div>
-                    <div class="info-row-minimal">
-                        <span class="info-label">کاربری:</span>
-                        <span class="info-value" id="username">---</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- کارت زمان -->
-            <div class="time-card">
-                <div class="time-item">
-                    <i class="fas fa-calendar-alt"></i>
-                    <div>
-                        <div class="time-label">تاریخ امروز</div>
-                        <div class="time-value" id="persianDate">---</div>
-                    </div>
-                </div>
-                <div class="time-item">
-                    <i class="fas fa-clock"></i>
-                    <div>
-                        <div class="time-label">ساعت فعلی</div>
-                        <div class="time-value" id="currentTime">---</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- محتوای ایجاد بازی -->
-        <div id="create-game" class="tab-content-minimal">
-            <div class="card-minimal">
-                <div class="card-header-minimal">
-                    <i class="fas fa-plus-circle"></i>
-                    <h3>ایجاد بازی جدید</h3>
-                </div>
-                <div class="card-content-minimal">
-                    <div class="form-minimal">
-                        <div class="input-group-minimal">
-                            <label for="gameWord">کلمه مورد نظر</label>
-                            <input type="text" id="gameWord" placeholder="کلمه را وارد کنید..." maxlength="20" class="input-minimal">
-                            <small class="input-hint">کلمه باید بین ۳ تا ۲۰ حرف باشد (می‌توانید از فاصله استفاده کنید)</small>
+                <div class="stats-grid-minimal">
+                    <div class="stat-card-minimal">
+                        <div class="stat-icon-minimal primary"><i class="fas fa-star"></i></div>
+                        <div class="stat-info-minimal">
+                            <span class="stat-value" id="userScore">۰</span>
+                            <span class="stat-label">امتیاز کل</span>
                         </div>
-                        
-                        <div class="input-group-minimal">
-                            <label for="gameCategory">دسته‌بندی</label>
-                            <select id="gameCategory" class="select-minimal">
-                                <option value="عمومی">عمومی</option>
-                                <option value="جانوران">جانوران</option>
-                                <option value="میوه‌ها">میوه‌ها</option>
-                                <option value="شهرها">شهرها</option>
-                                <option value="کشورها">کشورها</option>
-                                <option value="اشخاص">اشخاص مشهور</option>
-                                <option value="فیلم">فیلم‌ها</option>
-                                <option value="کتاب">کتاب‌ها</option>
-                            </select>
+                    </div>
+                    <div class="stat-card-minimal">
+                        <div class="stat-icon-minimal success"><i class="fas fa-chart-line"></i></div>
+                        <div class="stat-info-minimal">
+                            <span class="stat-value" id="winRate">۰٪</span>
+                            <span class="stat-label">درصد پیروزی</span>
                         </div>
-                        
-                        <button class="btn-primary-minimal btn-full" id="createGameBtn">
-                            <i class="fas fa-play"></i>
-                            ایجاد بازی
-                        </button>
+                    </div>
+                    <div class="stat-card-minimal">
+                        <div class="stat-icon-minimal info"><i class="fas fa-trophy"></i></div>
+                        <div class="stat-info-minimal">
+                            <span class="stat-value" id="wins">۰</span>
+                            <span class="stat-label">تعداد برد</span>
+                        </div>
+                    </div>
+                    <div class="stat-card-minimal">
+                        <div class="stat-icon-minimal warning"><i class="fas fa-chart-pie"></i></div>
+                        <div class="stat-info-minimal">
+                            <span class="stat-value" id="totalGames">۰</span>
+                            <span class="stat-label">مجموع بازی</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- محتوای پیوستن به بازی -->
-        <div id="join-game" class="tab-content-minimal">
-            <div class="card-minimal">
-                <div class="card-header-minimal">
-                    <i class="fas fa-users"></i>
-                    <h3>پیوستن به بازی</h3>
-                </div>
-                <div class="card-content-minimal">
-                    <div class="form-minimal">
-                        <div class="input-group-minimal">
-                            <label for="gameCode">کد بازی</label>
-                            <input type="text" id="gameCode" placeholder="کد ۶ رقمی بازی" maxlength="6" class="input-minimal" style="text-transform: uppercase">
+                
+                <div class="card-minimal info-card-minimal">
+                    <div class="card-header-minimal">
+                        <i class="fas fa-id-card"></i>
+                        <h3>اطلاعات حساب</h3>
+                    </div>
+                    <div class="card-content-minimal">
+                        <div class="info-row-minimal">
+                            <span class="info-label">نام کامل:</span>
+                            <span class="info-value" id="fullNameDisplay">---</span>
                         </div>
-                        
-                        <button class="btn-success-minimal btn-full" id="joinGameBtn">
-                            <i class="fas fa-sign-in-alt"></i>
-                            پیوستن به بازی
-                        </button>
+                        <div class="info-row-minimal">
+                            <span class="info-label">یوزرنیم:</span>
+                            <span class="info-value" id="usernameDisplay">---</span>
+                        </div>
+                        <div class="info-row-minimal">
+                            <span class="info-label">شناسه تلگرام:</span>
+                            <span class="info-value" id="userId">---</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- محتوای بازی‌های فعال -->
-        <div id="active-games" class="tab-content-minimal">
-            <div class="card-minimal">
-                <div class="card-header-minimal">
-                    <i class="fas fa-list"></i>
-                    <h3>بازی‌های فعال</h3>
-                    <button class="btn-refresh" id="refreshActiveGamesBtn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-                <div class="card-content-minimal">
-                    <div class="games-list-minimal" id="gamesList">
+            </div>
+
+            <div id="active-games" class="tab-content-minimal">
+                
+                <div class="card-minimal">
+                    <div class="card-header-minimal">
+                        <i class="fas fa-list"></i>
+                        <h3>لیست بازی‌های فعال <span id="activeGamesCount">(۰)</span></h3>
+                        <button class="btn-refresh" onclick="loadActiveGames()"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="card-content-minimal games-list-minimal" id="gamesList">
                         <div class="loading-minimal">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>در حال بارگذاری بازی‌های فعال...</span>
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                            <span>در حال بارگذاری بازی‌ها...</span>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- محتوای تاریخچه بازی -->
-        <div id="game-history" class="tab-content-minimal">
-            <div class="card-minimal">
-                <div class="card-header-minimal">
-                    <i class="fas fa-history"></i>
-                    <h3>تاریخچه بازی‌های من</h3>
-                    <button class="btn-refresh" id="refreshHistoryBtn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+            </div>
+            
+            <div id="create-game-tab" class="tab-content-minimal">
+                
+                <div class="card-minimal">
+                    <div class="card-header-minimal">
+                        <i class="fas fa-magic"></i>
+                        <h3>تنظیمات بازی جدید</h3>
+                    </div>
+                    <div class="card-content-minimal">
+                        <div class="form-minimal">
+                            
+                            <div class="input-group-minimal">
+                                <label for="gameWord">کلمه یا عبارت هدف</label>
+                                <input type="text" id="gameWord" class="input-minimal" placeholder="کلمه را وارد کنید (فقط فارسی)" required>
+                                <p class="input-hint">این کلمه توسط سایر بازیکنان حدس زده خواهد شد.</p>
+                            </div>
+                            
+                            <div class="input-group-minimal">
+                                <label for="gameCategory">دسته‌بندی</label>
+                                <select id="gameCategory" class="select-minimal" required>
+                                    <option value="" disabled selected>انتخاب کنید...</option>
+                                    <option value="شهرها">شهرها</option>
+                                    <option value="حیوانات">حیوانات</option>
+                                    <option value="غذاها">غذاها</option>
+                                    <option value="ورزشی">ورزشی</option>
+                                    <option value="متفرقه">متفرقه</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-group-minimal">
+                                <label for="gameTime">مدت زمان حدس (دقیقه)</label>
+                                <select id="gameTime" class="select-minimal" required>
+                                    <option value="300">۵ دقیقه</option>
+                                    <option value="600" selected>۱۰ دقیقه</option>
+                                    <option value="900">۱۵ دقیقه</option>
+                                    <option value="1200">۲۰ دقیقه</option>
+                                </select>
+                            </div>
+                            
+                            <button class="btn-primary-minimal btn-large" onclick="createGame()">
+                                <i class="fas fa-plus"></i>
+                                ایجاد بازی جدید
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-content-minimal">
-                    <div class="games-list-minimal" id="gameHistoryList">
+                
+                <div class="card-minimal">
+                    <div class="card-header-minimal">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <h3>پیوستن با کد بازی</h3>
+                    </div>
+                    <div class="card-content-minimal">
+                        <div class="form-minimal">
+                            <div class="input-group-minimal">
+                                <label for="gameCode">کد بازی</label>
+                                <input type="text" id="gameCode" class="input-minimal" placeholder="مثال: 123456" required>
+                            </div>
+                            <button class="btn-success-minimal btn-large" onclick="joinGame()">
+                                <i class="fas fa-sign-in-alt"></i>
+                                ورود به بازی
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div id="game-history" class="tab-content-minimal">
+                
+                <div class="card-minimal">
+                    <div class="card-header-minimal">
+                        <i class="fas fa-history"></i>
+                        <h3>تاریخچه بازی‌های من</h3>
+                        <button class="btn-refresh" onclick="loadGameHistory()"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="card-content-minimal games-list-minimal" id="historyList">
                         <div class="loading-minimal">
-                            <i class="fas fa-spinner fa-spin"></i>
-                            <span>در حال بارگذاری تاریخچه بازی‌ها...</span>
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                            <span>در حال بارگذاری تاریخچه...</span>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
+            
+            <div id="leaderboard-tab" class="tab-content-minimal">
+                
+                <div class="card-minimal">
+                    <div class="card-header-minimal">
+                        <i class="fas fa-users"></i>
+                        <h3>بازیکنان برتر</h3>
+                        <button class="btn-refresh" onclick="loadLeaderboard()"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="card-content-minimal games-list-minimal" id="leaderboardList">
+                        <div class="loading-minimal">
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                            <span>در حال بارگذاری رده‌بندی...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <!-- مودال بازی -->
     <div id="gameModal" class="modal game-modal">
-        <div class="modal-content game-modal-content">
+        <div class="modal-content">
+            
             <div class="modal-header-minimal">
                 <h2 id="gameModalTitle">بازی حدس کلمه</h2>
-                <span class="close-minimal" id="closeGameModalBtn">&times;</span>
+                <span class="close-minimal" onclick="closeGameModal()"><i class="fas fa-times"></i></span>
             </div>
-            <div class="modal-body">
-                <div class="game-container custom-scrollbar">
-                    <div class="game-stats-minimal">
-                        <div class="game-stat">
-                            <i class="fas fa-clock"></i>
-                            <span id="timer">۰۰:۰۰</span>
-                        </div>
-                        <div class="game-stat">
-                            <i class="fas fa-redo"></i>
-                            <span id="attempts">۰/۰</span>
-                        </div>
-                        <div class="game-stat">
-                            <i class="fas fa-star"></i>
-                            <span id="currentScore">۰</span>
-                        </div>
+            
+            <div class="game-container">
+                
+                <div class="game-stats-minimal">
+                    <div class="game-stat">
+                        <i class="fas fa-tag"></i>
+                        <span id="gameCategoryDisplay">دسته‌بندی: --</span>
                     </div>
-                    
-                    <!-- دسته‌بندی بزرگ -->
-                    <div class="game-category-large" id="gameCategoryDisplay">
-                        دسته‌بندی: عمومی
+                    <div class="game-stat">
+                        <i class="fas fa-user-tag"></i>
+                        <span id="gameCodeDisplay">کد بازی: --</span>
                     </div>
-                    
-                    <div class="word-display-minimal" id="wordDisplay">
-                        <!-- کلمه اینجا نمایش داده می‌شود -->
-                    </div>
-
-                    <div class="game-status-minimal" id="gameStatus">
-                        <!-- وضعیت بازی اینجا نمایش داده می‌شود -->
-                    </div>
-
-                    <!-- بخش نمایش حروف بازیکنان مقابل برای سازنده -->
-                    <div class="opponent-guesses-section" id="opponentGuessesSection">
-                        <h3 class="section-title">حدس‌های بازیکنان مقابل</h3>
-                        <div class="opponent-guesses-container" id="opponentGuessesContainer">
-                            <!-- حدس‌های بازیکنان مقابل اینجا نمایش داده می‌شود -->
-                        </div>
-                    </div>
-                    
-                    <!-- اینپوت باکس برای حدس حرف (فقط برای بازیکنان) -->
-                    <div class="guess-input-section" id="guessInputSection">
-                        <div class="guess-input-minimal">
-                            <input type="text" id="guessInput" placeholder="حرف مورد نظر را وارد کنید..." maxlength="1" class="input-minimal guess-input-field">
-                            <button class="btn-primary-minimal" id="guessBtn">
-                                <i class="fas fa-paper-plane"></i>
-                                حدس بزن
-                            </button>
-                        </div>
-                        
-                        <div class="game-actions-minimal">
-                            <button class="btn-hint-minimal" id="hintBtn">
-                                <i class="fas fa-lightbulb"></i>
-                                راهنمایی (<span id="hintCount">۲</span>)
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- بخش حروف حدس زده شده توسط بازیکنان -->
-                    <div class="player-guesses-section" id="playerGuessesSection">
-                        <h3 class="section-title">حدس‌های بازیکنان</h3>
-                        <div class="player-guesses-container custom-scrollbar" id="playerGuessesContainer">
-                            <!-- حدس‌های بازیکنان اینجا نمایش داده می‌شود -->
-                        </div>
-                    </div>
-
-                    <!-- نمایش امتیاز و جریمه -->
-                    <div class="score-display" id="scoreDisplay">
-                        <span class="score-label">امتیاز فعلی:</span>
-                        <span class="score-value positive" id="currentScoreDisplay">۰</span>
-                        <span class="score-penalty" id="penaltyDisplay">جریمه: ۰</span>
-                    </div>
-                    
-                    <div class="guessed-letters-minimal">
-                        <div class="letters-section">
-                            <h4>حروف صحیح:</h4>
-                            <div class="letters-container-minimal" id="correctLetters">
-                                <!-- حروف صحیح اینجا نمایش داده می‌شود -->
-                            </div>
-                        </div>
-                        <div class="letters-section">
-                            <h4>حروف غلط:</h4>
-                            <div class="letters-container-minimal" id="incorrectLetters">
-                                <!-- حروف غلط اینجا نمایش داده می‌شود -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- نمایش حروف ویژه -->
-                    <div class="special-letters" id="specialLetters">
-                        <!-- حروف ویژه اینجا نمایش داده می‌شود -->
-                    </div>
-
-                    <!-- راهنمای بازی -->
-                    <div class="game-guide" id="gameGuide">
-                        <div class="guide-header">
-                            <i class="fas fa-info-circle"></i>
-                            <span class="guide-title">راهنمای بازی</span>
-                        </div>
-                        <div class="guide-content">
-                            حروف فارسی را حدس بزنید و امتیاز کسب کنید. از راهنمایی‌ها هوشمندانه استفاده کنید!
-                        </div>
-                        <div class="guide-tips">
-                            <div class="guide-tip">
-                                <i class="fas fa-lightbulb"></i>
-                                <span>راهنمایی فقط حروف صحیح را پیشنهاد می‌دهد</span>
-                            </div>
-                            <div class="guide-tip">
-                                <i class="fas fa-clock"></i>
-                                <span>سرعت حدس زدن امتیاز بیشتری دارد</span>
-                            </div>
-                        </div>
+                    <div class="game-stat">
+                        <i class="fas fa-clock"></i>
+                        <span id="timerText">زمان باقیمانده:</span>
+                        <span id="timer" class="pulse">--:--</span>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- مودال جزئیات بازی -->
-    <div id="detailsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header-minimal">
-                <h2>جزئیات بازی</h2>
-                <span class="close-minimal" id="closeDetailsModalBtn">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="game-details-minimal" id="gameDetailsContent">
-                    <!-- جزئیات بازی اینجا نمایش داده می‌شود -->
-                </div>
-            </div>
-        </div>
-    </div>
+                <div class="word-display-minimal" id="wordDisplay">
+                    </div>
 
-    <!-- مودال امتیازات -->
-    <div id="scoreModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header-minimal">
-                <h2>کارت امتیازات</h2>
-                <span class="close-minimal" id="closeScoreModalBtn">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="score-card" id="scoreCardContent">
-                    <!-- کارت امتیازات اینجا نمایش داده می‌شود -->
+                <div class="game-status-minimal" id="gameStatus">
+                    <div class="player-notice-minimal waiting" id="waitingNotice">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span id="waitingMessage">در انتظار شروع بازی توسط سازنده...</span>
+                    </div>
+                    <div class="creator-notice-minimal hidden" id="creatorNotice">
+                        <i class="fas fa-crown"></i>
+                        <span id="creatorMessage">شما سازنده این بازی هستید. لطفاً کلمه را با دوستانتان به اشتراک بگذارید.</span>
+                    </div>
                 </div>
+                
+                <div class="guess-input-section hidden" id="guessInputSection">
+                    <div class="guess-input-minimal">
+                        <input type="text" id="guessInput" class="guess-input-field" placeholder="حدس کلمه یا حرف" maxlength="20" autofocus>
+                    </div>
+                    <button class="btn-success-minimal btn-full" onclick="submitGuess()" id="submitGuessButton">
+                        <i class="fas fa-paper-plane"></i>
+                        ارسال حدس
+                    </button>
+                    
+                    <button class="btn-hint-minimal" onclick="useHint()" id="hintButton">
+                        <i class="fas fa-lightbulb"></i>
+                        درخواست راهنما (۳۰ امتیاز) - (<span id="hintsUsedCount">۰</span>/<span id="maxHintsCount">۲</span>)
+                    </button>
+                </div>
+                
+                <div class="player-guesses-section" id="playerGuessesSection">
+                    <h3 class="section-title">حدس‌های بازیکنان</h3>
+                    <div class="player-guesses-container" id="playerGuessesContainer">
+                        </div>
+                </div>
+                
+                <div class="guessed-letters-minimal">
+                    <div class="letters-section">
+                        <h4>حروف صحیح:</h4>
+                        <div class="letters-container-minimal" id="correctLetters">
+                            </div>
+                    </div>
+                    <div class="letters-section">
+                        <h4>حروف غلط:</h4>
+                        <div class="letters-container-minimal" id="incorrectLetters">
+                            </div>
+                    </div>
+                </div>
+
             </div>
+            
+            <div class="modal-footer-minimal hidden" id="gameControlFooter">
+                <button class="btn-primary-minimal btn-full" id="startGameButton" onclick="startGame()">
+                    <i class="fas fa-play"></i>
+                    شروع بازی
+                </button>
+            </div>
+
         </div>
     </div>
 
