@@ -16,13 +16,13 @@ function toPersianNumber(number) {
 // تابع مدیریت تب‌ها
 function openTab(tabName) {
     // مخفی کردن همه تب‌ها
-    const tabContents = document.getElementsByClassName('tab-content');
+    const tabContents = document.getElementsByClassName('tab-content-minimal');
     for (let tab of tabContents) {
         tab.classList.remove('active');
     }
 
     // غیرفعال کردن همه دکمه‌های تب
-    const tabButtons = document.getElementsByClassName('tab-btn');
+    const tabButtons = document.getElementsByClassName('tab-minimal');
     for (let button of tabButtons) {
         button.classList.remove('active');
     }
@@ -162,8 +162,7 @@ async function loadStats() {
         const response = await fetch('/api/stats');
         if (response.ok) {
             const stats = await response.json();
-            document.getElementById('totalUsers').textContent = toPersianNumber(stats.total_users);
-            document.getElementById('activeUsers').textContent = toPersianNumber(stats.active_users);
+            // آمار کلی در داشبورد نمایش داده می‌شود
         }
     } catch (error) {
         console.error('Error loading stats:', error);
@@ -183,7 +182,7 @@ async function loadActiveGames() {
         }
     } catch (error) {
         console.error('❌ خطا در بارگذاری بازی‌های فعال:', error);
-        document.getElementById('gamesList').innerHTML = '<div class="error">خطا در بارگذاری بازی‌ها</div>';
+        document.getElementById('gamesList').innerHTML = '<div class="loading-minimal"><i class="fas fa-exclamation-triangle"></i><span>خطا در بارگذاری</span></div>';
     }
 }
 
@@ -194,7 +193,7 @@ function displayActiveGames(games) {
 
     if (games.length === 0) {
         gamesList.innerHTML = `
-            <div class="empty-state">
+            <div class="empty-state-minimal">
                 <i class="fas fa-gamepad"></i>
                 <h3>هیچ بازی فعالی وجود ندارد</h3>
                 <p>اولین نفری باشید که بازی ایجاد می‌کند!</p>
@@ -207,31 +206,31 @@ function displayActiveGames(games) {
     activeGamesCount.textContent = toPersianNumber(games.length);
 
     gamesList.innerHTML = games.map(game => `
-        <div class="game-item">
-            <div class="game-header">
-                <div class="game-code">کد: ${game.game_id}</div>
-                <div class="game-category">${game.category}</div>
+        <div class="game-item-minimal">
+            <div class="game-header-minimal">
+                <div class="game-code-minimal">${game.game_id}</div>
+                <div class="game-category-minimal">${game.category}</div>
             </div>
-            <div class="game-info">
-                <div class="info-row">
+            <div class="game-info-minimal">
+                <div class="info-row-compact">
                     <i class="fas fa-user"></i>
                     <span>سازنده: ${game.creator_name || 'ناشناس'} ${game.creator_username ? `(@${game.creator_username})` : ''}</span>
                 </div>
-                <div class="info-row">
+                <div class="info-row-compact">
                     <i class="fas fa-users"></i>
                     <span>بازیکنان: ${toPersianNumber(game.players_count)} نفر</span>
                 </div>
-                <div class="info-row">
+                <div class="info-row-compact">
                     <i class="fas fa-font"></i>
                     <span>طول کلمه: ${toPersianNumber(game.word_length)} حرف</span>
                 </div>
-                <div class="info-row">
+                <div class="info-row-compact">
                     <i class="fas fa-clock"></i>
-                    <span>زمان: ${toPersianNumber(Math.floor(game.time_limit / 60))}:${toPersianNumber(game.time_limit % 60)} دقیقه</span>
+                    <span>زمان: ${toPersianNumber(Math.floor(game.time_limit / 60))}:${toPersianNumber(game.time_limit % 60)}</span>
                 </div>
             </div>
-            <div class="game-actions">
-                <button class="btn btn-success btn-small" onclick="joinExistingGame('${game.game_id}')">
+            <div class="game-actions-minimal">
+                <button class="btn-success-minimal btn-small" onclick="joinExistingGame('${game.game_id}')">
                     <i class="fas fa-sign-in-alt"></i>
                     پیوستن
                 </button>
@@ -328,6 +327,7 @@ async function startGame() {
         if (result.success) {
             showNotification('بازی شروع شد! بازیکنان می‌توانند حدس بزنند.', 'success');
             closeStartGameModal();
+            currentGame.is_started = true;
             openGameModal();
         } else {
             showNotification(result.error || 'خطا در شروع بازی', 'error');
@@ -388,7 +388,8 @@ async function joinExistingGame(gameCode) {
                     is_started: gameData.is_started,
                     guessed_letters: gameData.guessed_letters,
                     incorrect_letters: gameData.incorrect_letters,
-                    word_progress: gameData.word_progress
+                    word_progress: gameData.word_progress,
+                    word: gameData.word
                 };
 
                 isCreator = (gameData.creator_id === currentUser.telegram_id);
@@ -444,14 +445,14 @@ function initializeGame() {
     if (isCreator) {
         if (currentGame.is_started) {
             gameStatus.innerHTML = `
-                <div class="creator-notice">
+                <div class="creator-notice-minimal">
                     <i class="fas fa-crown"></i>
                     <span>شما سازنده این بازی هستید. بازی شروع شده و بازیکنان در حال حدس زدن هستند.</span>
                 </div>
             `;
         } else {
             gameStatus.innerHTML = `
-                <div class="creator-notice">
+                <div class="creator-notice-minimal">
                     <i class="fas fa-crown"></i>
                     <span>شما سازنده این بازی هستید. برای شروع بازی روی دکمه "شروع بازی" کلیک کنید.</span>
                 </div>
@@ -460,14 +461,14 @@ function initializeGame() {
     } else {
         if (currentGame.is_started) {
             gameStatus.innerHTML = `
-                <div class="player-notice">
+                <div class="player-notice-minimal">
                     <i class="fas fa-gamepad"></i>
-                    <span>شما بازیکن هستید. حروف را حدس بزنید!</span>
+                    <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
                 </div>
             `;
         } else {
             gameStatus.innerHTML = `
-                <div class="player-notice waiting">
+                <div class="player-notice-minimal waiting">
                     <i class="fas fa-clock"></i>
                     <span>در انتظار شروع بازی توسط سازنده...</span>
                 </div>
@@ -475,14 +476,13 @@ function initializeGame() {
         }
     }
 
-    // ایجاد شبکه حروف
-    createLettersGrid();
-    
     // نمایش پیشرفت کلمه
     if (currentGame.word_progress) {
         displayWordProgress(currentGame.word_progress);
+    } else if (currentGame.word) {
+        displayWordProgress('_'.repeat(currentGame.word.length));
     } else {
-        displayWordProgress('_'.repeat(currentGame.word ? currentGame.word.length : 10));
+        displayWordProgress('_______');
     }
     
     // نمایش حروف حدس زده شده
@@ -503,47 +503,91 @@ function initializeGame() {
     // تنظیم تعداد حدس‌ها
     updateAttemptsDisplay();
     
+    // تنظیم دکمه‌ها
+    document.getElementById('hintBtn').disabled = isCreator || !currentGame.is_started;
+    document.getElementById('guessBtn').disabled = isCreator || !currentGame.is_started;
+    document.getElementById('guessInput').disabled = isCreator || !currentGame.is_started;
+    
     // بازنشانی راهنمایی‌ها
     hintsUsed = 0;
     document.getElementById('hintCount').textContent = toPersianNumber(2);
-    document.getElementById('hintBtn').disabled = isCreator || !currentGame.is_started;
     
     // ذخیره زمان شروع
     gameStartTime = new Date();
+    
+    // فوکوس روی اینپوت
+    if (!isCreator && currentGame.is_started) {
+        setTimeout(() => {
+            document.getElementById('guessInput').focus();
+        }, 500);
+    }
 }
 
-// تابع ایجاد شبکه حروف فارسی
-function createLettersGrid() {
-    const lettersGrid = document.getElementById('lettersGrid');
-    lettersGrid.innerHTML = '';
+// تابع نمایش پیشرفت کلمه با انیمیشن
+function displayWordProgress(wordProgress) {
+    const wordDisplay = document.getElementById('wordDisplay');
+    wordDisplay.innerHTML = '';
     
-    const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی';
+    const currentLetters = wordDisplay.querySelectorAll('.letter-minimal');
+    const newLetters = wordProgress.split('');
     
-    // غیرفعال کردن حروف اگر کاربر سازنده است یا بازی شروع نشده
-    const isDisabled = isCreator || !currentGame.is_started;
-    
-    persianLetters.split('').forEach(letter => {
-        const letterButton = document.createElement('button');
-        letterButton.className = `letter-btn`;
+    newLetters.forEach((char, index) => {
+        const letterElement = document.createElement('div');
+        letterElement.className = 'letter-minimal';
         
-        // بررسی آیا حرف قبلاً حدس زده شده
-        const isGuessed = (currentGame.guessed_letters && currentGame.guessed_letters.includes(letter)) ||
-                         (currentGame.incorrect_letters && currentGame.incorrect_letters.includes(letter));
-        
-        if (isGuessed) {
-            const isCorrect = currentGame.guessed_letters && currentGame.guessed_letters.includes(letter);
-            letterButton.classList.add(isCorrect ? 'correct' : 'incorrect');
-            letterButton.disabled = true;
-        } else if (isDisabled) {
-            letterButton.classList.add('disabled');
-            letterButton.disabled = true;
+        if (char === ' ') {
+            letterElement.classList.add('space');
+            letterElement.innerHTML = '&nbsp;';
+        } else {
+            letterElement.textContent = char;
+            
+            // اگر حرف از حالت _ به حرف واقعی تغییر کرده، انیمیشن نشان بده
+            const currentChar = currentLetters[index] ? currentLetters[index].textContent : '_';
+            if (currentChar === '_' && char !== '_') {
+                letterElement.classList.add('revealed');
+            } else if (char !== '_') {
+                letterElement.classList.add('revealed');
+                letterElement.style.animation = 'none';
+            }
         }
         
-        letterButton.textContent = letter;
-        letterButton.onclick = () => !isDisabled && guessLetter(letter);
-        
-        lettersGrid.appendChild(letterButton);
+        wordDisplay.appendChild(letterElement);
     });
+}
+
+// تابع به‌روزرسانی حروف حدس زده شده
+function updateGuessedLetters(correctLetters, incorrectLetters) {
+    const correctContainer = document.getElementById('correctLetters');
+    const incorrectContainer = document.getElementById('incorrectLetters');
+    
+    correctContainer.innerHTML = correctLetters.map(letter => `
+        <div class="letter-badge correct">${letter}</div>
+    `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+    
+    incorrectContainer.innerHTML = incorrectLetters.map(letter => `
+        <div class="letter-badge incorrect">${letter}</div>
+    `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+}
+
+// تابع ارسال حدس
+async function submitGuess() {
+    const guessInput = document.getElementById('guessInput');
+    const letter = guessInput.value.trim().toUpperCase();
+    
+    if (!letter || letter.length !== 1) {
+        showNotification('لطفاً فقط یک حرف وارد کنید', 'warning');
+        return;
+    }
+
+    // بررسی حروف فارسی
+    const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی';
+    if (!persianLetters.includes(letter)) {
+        showNotification('لطفاً فقط حروف فارسی وارد کنید', 'warning');
+        guessInput.value = '';
+        return;
+    }
+
+    await guessLetter(letter);
 }
 
 // تابع حدس زدن حرف
@@ -569,8 +613,11 @@ async function guessLetter(letter) {
         const result = await response.json();
 
         if (result.success) {
+            // پاک کردن اینپوت
+            document.getElementById('guessInput').value = '';
+            
             // به‌روزرسانی وضعیت بازی
-            updateGameState(result, letter);
+            updateGameState(result);
             
             if (result.game_completed || result.game_over) {
                 endGame(result.game_completed);
@@ -585,8 +632,8 @@ async function guessLetter(letter) {
 }
 
 // تابع به‌روزرسانی وضعیت بازی
-function updateGameState(result, letter) {
-    // به‌روزرسانی نمایش کلمه
+function updateGameState(result) {
+    // به‌روزرسانی نمایش کلمه با انیمیشن
     displayWordProgress(result.word_progress);
     
     // به‌روزرسانی حروف حدس زده شده
@@ -603,53 +650,13 @@ function updateGameState(result, letter) {
             currentGame.attempts + 1;
         updateAttemptsDisplay();
     }
-    
-    // غیرفعال کردن حرف حدس زده شده
-    const letterButtons = document.querySelectorAll('.letter-btn');
-    letterButtons.forEach(btn => {
-        if (btn.textContent === letter) {
-            btn.classList.add(result.is_correct ? 'correct' : 'incorrect');
-            btn.disabled = true;
-        }
-    });
 
     // نمایش نتیجه حدس
     if (result.is_correct) {
-        showNotification(`حرف "${letter}" صحیح است! +${toPersianNumber(result.score)} امتیاز`, 'success');
+        showNotification(`حرف "${result.letter}" صحیح است! +${toPersianNumber(result.score)} امتیاز`, 'success');
     } else {
-        showNotification(`حرف "${letter}" غلط است! ${toPersianNumber(result.score)} امتیاز`, 'error');
+        showNotification(`حرف "${result.letter}" غلط است! ${toPersianNumber(result.score)} امتیاز`, 'error');
     }
-}
-
-// تابع نمایش پیشرفت کلمه
-function displayWordProgress(wordProgress) {
-    const wordDisplay = document.getElementById('wordDisplay');
-    wordDisplay.innerHTML = '';
-    
-    wordProgress.split('').forEach((char, index) => {
-        const letterElement = document.createElement('div');
-        letterElement.className = 'letter';
-        
-        if (char === ' ') {
-            letterElement.classList.add('space');
-            letterElement.innerHTML = '&nbsp;';
-        } else {
-            letterElement.textContent = char;
-            if (char !== '_') {
-                letterElement.classList.add('revealed');
-            }
-        }
-        
-        wordDisplay.appendChild(letterElement);
-    });
-}
-
-// تابع به‌روزرسانی حروف حدس زده شده
-function updateGuessedLetters(correctLetters, incorrectLetters) {
-    document.getElementById('correctLettersList').textContent = 
-        correctLetters.length > 0 ? correctLetters.join('، ') : '-';
-    document.getElementById('incorrectLettersList').textContent = 
-        incorrectLetters.length > 0 ? incorrectLetters.join('، ') : '-';
 }
 
 // تابع شروع تایمر بازی
@@ -687,7 +694,7 @@ function updateAttemptsDisplay() {
     if (!currentGame) return;
     const remaining = currentGame.max_attempts - currentGame.attempts;
     document.getElementById('attempts').textContent = 
-        `${toPersianNumber(currentGame.attempts)}/${toPersianNumber(currentGame.max_attempts)} (${toPersianNumber(remaining)} باقی‌مانده)`;
+        `${toPersianNumber(currentGame.attempts)}/${toPersianNumber(currentGame.max_attempts)}`;
 }
 
 // تابع استفاده از راهنمایی
@@ -705,7 +712,7 @@ function useHint() {
         document.getElementById('hintBtn').disabled = true;
     }
     
-    // نمایش یک حرف تصادفی که هنوز حدس زده نشده
+    // پیدا کردن حروف حدس زده نشده
     const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی'.split('');
     const availableLetters = persianLetters.filter(letter => 
         !currentGame.guessed_letters?.includes(letter) && 
@@ -715,6 +722,10 @@ function useHint() {
     if (availableLetters.length > 0) {
         const randomLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
         showNotification(`راهنمایی: حرف "${randomLetter}" را امتحان کنید! (۳۰- امتیاز)`, 'warning');
+        
+        // قرار دادن حرف در اینپوت
+        document.getElementById('guessInput').value = randomLetter;
+        document.getElementById('guessInput').focus();
     } else {
         showNotification('همه حروف حدس زده شده‌اند!', 'info');
     }
@@ -724,13 +735,10 @@ function useHint() {
 function endGame(isWin) {
     stopGameTimer();
     
-    // غیرفعال کردن همه حروف
-    const letterButtons = document.querySelectorAll('.letter-btn');
-    letterButtons.forEach(btn => {
-        btn.disabled = true;
-    });
-    
+    // غیرفعال کردن دکمه‌ها و اینپوت
     document.getElementById('hintBtn').disabled = true;
+    document.getElementById('guessBtn').disabled = true;
+    document.getElementById('guessInput').disabled = true;
 
     if (isWin) {
         showNotification(`تبریک! شما برنده شدید! 🎉 امتیاز نهایی: ${toPersianNumber(currentGame.score)}`, 'success');
@@ -767,21 +775,23 @@ function showNotification(message, type = 'info') {
         position: fixed;
         top: 20px;
         right: 20px;
-        background: ${type === 'success' ? 'linear-gradient(135deg, #28a745, #20c997)' : 
-                     type === 'error' ? 'linear-gradient(135deg, #dc3545, #e83e8c)' : 
-                     type === 'warning' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
-                     'linear-gradient(135deg, #17a2b8, #6f42c1)'};
+        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #0da271)' : 
+                     type === 'error' ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 
+                     type === 'warning' ? 'linear-gradient(135deg, #f59e0b, #eab308)' : 
+                     'linear-gradient(135deg, #06b6d4, #0891b2)'};
         color: white;
-        padding: 15px 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         z-index: 1000;
         font-family: Vazirmatn, sans-serif;
-        max-width: 400px;
+        max-width: 320px;
         animation: slideInRight 0.3s ease;
+        font-size: 0.9rem;
+        font-weight: 500;
     `;
     notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
             <i class="fas fa-${type === 'success' ? 'check-circle' : 
                            type === 'error' ? 'exclamation-circle' : 
                            type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
@@ -798,7 +808,13 @@ function showNotification(message, type = 'info') {
                 notification.remove();
             }
         }, 300);
-    }, 4000);
+    }, 3000);
+}
+
+// تابع رفرش بازی‌های فعال
+function refreshActiveGames() {
+    showNotification('در حال بروزرسانی لیست بازی‌ها...', 'info');
+    loadActiveGames();
 }
 
 // تابع تبدیل تاریخ میلادی به شمسی
@@ -853,11 +869,14 @@ function updateLiveClock() {
     document.getElementById('persianDate').textContent = persianDate.formatted;
 }
 
-// تابع رفرش بازی‌های فعال
-function refreshActiveGames() {
-    showNotification('در حال بروزرسانی لیست بازی‌ها...', 'info');
-    loadActiveGames();
-}
+// مدیریت ارسال با Enter
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('guessInput')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            submitGuess();
+        }
+    });
+});
 
 // بستن مودال با کلیک خارج از آن
 window.onclick = function(event) {
@@ -875,56 +894,6 @@ document.addEventListener('keydown', function(event) {
         closeStartGameModal();
     }
 });
-
-// اضافه کردن انیمیشن‌های CSS
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    @keyframes winPulse {
-        0% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-        }
-        50% {
-            transform: scale(1.05);
-            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-        }
-        100% {
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-        }
-    }
-    
-    .win-animation {
-        animation: winPulse 2s ease-in-out;
-    }
-    
-    .player-notice.waiting {
-        background: linear-gradient(135deg, #6c757d, #495057) !important;
-    }
-`;
-document.head.appendChild(style);
 
 // مقداردهی اولیه
 document.addEventListener('DOMContentLoaded', function() {
