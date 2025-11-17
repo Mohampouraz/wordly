@@ -10,6 +10,22 @@ let gameStateInterval = null;
 let connectionInterval = null;
 let gameExpired = false;
 
+// NEW: Competitive Mode Variables
+let currentCompetitiveMatch = null;
+let competitiveTimer = null;
+let competitiveTimeLeft = 120; // 2 minutes per word
+let competitiveWords = [];
+let currentWordIndex = 0;
+let competitiveHintsUsed = 0;
+let competitiveScores = { player1: 0, player2: 0 };
+let competitiveStats = {
+    player1: { correct: 0, wrong: 0, time: 0 },
+    player2: { correct: 0, wrong: 0, time: 0 }
+};
+let competitiveMatchInterval = null;
+let isCompetitiveMatchActive = false;
+let competitiveMatchId = null;
+
 // تابع تبدیل اعداد به فارسی
 function toPersianNumber(number) {
     const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
@@ -37,6 +53,14 @@ function openTab(tabName) {
     
     if (tabName === 'game-history') {
         loadGameHistory();
+    }
+    
+    // NEW: Load competitive data when tab is opened
+    if (tabName === 'competitive-mode') {
+        loadCompetitiveStats();
+        loadOnlinePlayersCount();
+        loadWaitingMatches();
+        loadLeaderboard();
     }
 }
 
@@ -150,6 +174,655 @@ function updateUserInterface(userData) {
     const winRate = userData.total_games > 0 ? Math.round((userData.wins / userData.total_games) * 100) : 0;
     document.getElementById('winRate').textContent = toPersianNumber(winRate) + '٪';
 }
+
+// NEW: Load Competitive Stats
+async function loadCompetitiveStats() {
+    if (!currentUser) return;
+    
+    try {
+        const response = await fetch(`/api/user/${currentUser.telegram_id}/competitive-stats`);
+        if (response.ok) {
+            const stats = await response.json();
+            
+            document.getElementById('competitiveWins').textContent = toPersianNumber(stats.competitive_wins || 0);
+            document.getElementById('competitiveScore').textContent = toPersianNumber(stats.competitive_score || 0);
+            document.getElementById('leagueRank').textContent = stats.league_rank ? toPersianNumber(stats.league_rank) : '--';
+        }
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری آمار مسابقه‌ای:', error);
+    }
+}
+
+// NEW: Load Online Players Count
+async function loadOnlinePlayersCount() {
+    try {
+        const response = await fetch('/api/competitive/online-players');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('onlinePlayers').textContent = toPersianNumber(data.count || 0);
+        }
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری تعداد بازیکنان آنلاین:', error);
+    }
+}
+
+// NEW: Load Waiting Matches
+async function loadWaitingMatches() {
+    try {
+        const response = await fetch('/api/competitive/waiting-matches');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('waitingMatches').textContent = toPersianNumber(data.count || 0);
+        }
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری مسابقات منتظر:', error);
+    }
+}
+
+// NEW: Load Leaderboard
+async function loadLeaderboard() {
+    try {
+        const response = await fetch('/api/competitive/leaderboard?limit=5');
+        if (response.ok) {
+            const data = await response.json();
+            displayLeaderboardPreview(data.players);
+        }
+    } catch (error) {
+        console.error('❌ خطا در بارگذاری رتبه‌بندی:', error);
+    }
+}
+
+// NEW: Display Leaderboard Preview
+function displayLeaderboardPreview(players) {
+    const container = document.getElementById('leaderboardPreview');
+    
+    if (!players || players.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state-minimal">
+                <i class="fas fa-trophy"></i>
+                <p>هنوز رتبه‌ای ثبت نشده است</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = players.map((player, index) => `
+        <div class="leaderboard-item">
+            <div class="leaderboard-rank ${index < 3 ? 'top-' + (index + 1) : ''}">
+                ${toPersianNumber(index + 1)}
+            </div>
+            <div class="leaderboard-player">
+                <div class="leaderboard-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name">${player.full_name}</div>
+                    <div class="leaderboard-score">${toPersianNumber(player.competitive_score)} امتیاز</div>
+                </div>
+            </div>
+        </div>
+    `).join('') + `
+        <div class="leaderboard-more" onclick="openFullLeaderboard()">
+            مشاهده رتبه‌بندی کامل
+        </div>
+    `;
+}
+
+// NEW: Start Quick Match
+async function startQuickMatch() {
+    if (!currentUser) {
+        showNotification('لطفاً منتظر بمانید اطلاعات کاربر بارگذاری شود', 'error');
+        return;
+    }
+    
+    try {
+        showNotification('در حال پیدا کردن حریف...', 'info');
+        
+        const response = await fetch('/api/competitive/quick-match', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id,
+                player_name: currentUser.full_name
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            competitiveMatchId = result.match_id;
+            openCompetitiveModal();
+            startCompetitiveMatchPolling();
+        } else {
+            showNotification(result.error || 'خطا در پیدا کردن حریف', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در شروع مسابقه سریع:', error);
+        showNotification('خطا در برقراری ارتباط', 'error');
+    }
+}
+
+// NEW: Open Competitive Modal
+function openCompetitiveModal() {
+    document.getElementById('competitiveModal').style.display = 'flex';
+    document.getElementById('player1Name').textContent = currentUser.full_name;
+    document.getElementById('player1Score').textContent = '۰ امتیاز';
+    
+    // Reset competitive state
+    competitiveWords = [];
+    currentWordIndex = 0;
+    competitiveHintsUsed = 0;
+    competitiveScores = { player1: 0, player2: 0 };
+    competitiveStats = {
+        player1: { correct: 0, wrong: 0, time: 0 },
+        player2: { correct: 0, wrong: 0, time: 0 }
+    };
+    
+    updateCompetitiveUI();
+}
+
+// NEW: Close Competitive Modal
+function closeCompetitiveModal() {
+    document.getElementById('competitiveModal').style.display = 'none';
+    stopCompetitiveTimer();
+    stopCompetitiveMatchPolling();
+    
+    if (competitiveMatchId) {
+        leaveCompetitiveMatch();
+    }
+}
+
+// NEW: Start Competitive Match Polling
+function startCompetitiveMatchPolling() {
+    if (competitiveMatchInterval) {
+        clearInterval(competitiveMatchInterval);
+    }
+    
+    competitiveMatchInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/competitive/match/${competitiveMatchId}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                updateCompetitiveMatchState(result.match);
+            }
+        } catch (error) {
+            console.error('❌ خطا در به‌روزرسانی وضعیت مسابقه:', error);
+        }
+    }, 2000);
+}
+
+// NEW: Stop Competitive Match Polling
+function stopCompetitiveMatchPolling() {
+    if (competitiveMatchInterval) {
+        clearInterval(competitiveMatchInterval);
+        competitiveMatchInterval = null;
+    }
+}
+
+// NEW: Update Competitive Match State
+function updateCompetitiveMatchState(match) {
+    // Update opponent info
+    if (match.player2_id && match.player2_id !== currentUser.telegram_id) {
+        document.getElementById('player2Name').textContent = match.player2_name || 'حریف';
+        document.getElementById('player2Score').textContent = toPersianNumber(match.player2_score) + ' امتیاز';
+        document.getElementById('player2Status').innerHTML = '<i class="fas fa-circle online"></i>';
+    }
+    
+    // Update scores
+    if (match.player1_id === currentUser.telegram_id) {
+        competitiveScores.player1 = match.player1_score;
+        competitiveScores.player2 = match.player2_score;
+    } else {
+        competitiveScores.player1 = match.player2_score;
+        competitiveScores.player2 = match.player1_score;
+    }
+    
+    document.getElementById('player1Score').textContent = toPersianNumber(competitiveScores.player1) + ' امتیاز';
+    document.getElementById('player2Score').textContent = toPersianNumber(competitiveScores.player2) + ' امتیاز';
+    
+    // Update stats
+    updateCompetitiveStatsBars();
+    
+    // Start match if both players are ready
+    if (match.status === 'active' && !isCompetitiveMatchActive) {
+        startCompetitiveMatch(match);
+    }
+    
+    // End match if completed
+    if (match.status === 'completed') {
+        endCompetitiveMatch(match);
+    }
+}
+
+// NEW: Start Competitive Match
+function startCompetitiveMatch(match) {
+    isCompetitiveMatchActive = true;
+    competitiveWords = match.words || [];
+    currentWordIndex = 0;
+    
+    document.getElementById('competitiveModalTitle').textContent = 'مسابقه در حال انجام!';
+    document.getElementById('matchCategory').textContent = match.category || 'عمومی';
+    
+    startCompetitiveWord();
+}
+
+// NEW: Start Competitive Word
+function startCompetitiveWord() {
+    if (currentWordIndex >= competitiveWords.length) {
+        // All words completed
+        return;
+    }
+    
+    const currentWord = competitiveWords[currentWordIndex];
+    competitiveTimeLeft = 120; // 2 minutes
+    
+    document.getElementById('currentWordNumber').textContent = toPersianNumber(currentWordIndex + 1);
+    displayCompetitiveWordProgress(currentWord.word);
+    startCompetitiveTimer();
+    
+    // Enable input
+    document.getElementById('competitiveGuessInput').disabled = false;
+    document.getElementById('competitiveGuessBtn').disabled = false;
+    document.getElementById('competitiveHintBtn').disabled = false;
+    document.getElementById('skipWordBtn').disabled = false;
+    
+    // Reset hints for this word
+    competitiveHintsUsed = 0;
+    document.getElementById('competitiveHintCount').textContent = toPersianNumber(3);
+}
+
+// NEW: Display Competitive Word Progress
+function displayCompetitiveWordProgress(word) {
+    const display = document.getElementById('competitiveWordDisplay');
+    display.innerHTML = '';
+    
+    for (let i = 0; i < word.length; i++) {
+        const letterElement = document.createElement('div');
+        letterElement.className = 'letter-minimal';
+        letterElement.textContent = '_';
+        display.appendChild(letterElement);
+    }
+    
+    // Update progress bar
+    const progress = ((currentWordIndex) / competitiveWords.length) * 100;
+    document.getElementById('wordProgressBar').style.width = progress + '%';
+}
+
+// NEW: Start Competitive Timer
+function startCompetitiveTimer() {
+    stopCompetitiveTimer();
+    
+    competitiveTimer = setInterval(() => {
+        competitiveTimeLeft--;
+        updateCompetitiveTimerDisplay();
+        
+        if (competitiveTimeLeft <= 0) {
+            skipCompetitiveWord();
+        }
+    }, 1000);
+}
+
+// NEW: Stop Competitive Timer
+function stopCompetitiveTimer() {
+    if (competitiveTimer) {
+        clearInterval(competitiveTimer);
+        competitiveTimer = null;
+    }
+}
+
+// NEW: Update Competitive Timer Display
+function updateCompetitiveTimerDisplay() {
+    const minutes = Math.floor(competitiveTimeLeft / 60);
+    const seconds = competitiveTimeLeft % 60;
+    const timerText = `${toPersianNumber(minutes)}:${toPersianNumber(seconds.toString().padStart(2, '0'))}`;
+    
+    document.getElementById('matchTimer').textContent = timerText;
+    
+    if (competitiveTimeLeft < 30) {
+        document.getElementById('matchTimer').style.color = '#ef4444';
+        document.getElementById('matchTimer').style.fontWeight = 'bold';
+    } else if (competitiveTimeLeft < 60) {
+        document.getElementById('matchTimer').style.color = '#f59e0b';
+    } else {
+        document.getElementById('matchTimer').style.color = 'var(--gray-700)';
+    }
+}
+
+// NEW: Submit Competitive Guess
+async function submitCompetitiveGuess() {
+    const input = document.getElementById('competitiveGuessInput');
+    const letter = input.value.trim().toUpperCase();
+    
+    if (!letter || letter.length !== 1) {
+        showNotification('لطفاً فقط یک حرف وارد کنید', 'warning');
+        return;
+    }
+
+    const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی';
+    if (!persianLetters.includes(letter)) {
+        showNotification('لطفاً فقط حروف فارسی وارد کنید', 'warning');
+        input.value = '';
+        return;
+    }
+
+    await guessCompetitiveLetter(letter);
+    input.value = '';
+    input.focus();
+}
+
+// NEW: Guess Competitive Letter
+async function guessCompetitiveLetter(letter) {
+    if (!isCompetitiveMatchActive || !competitiveMatchId) return;
+    
+    try {
+        const response = await fetch(`/api/competitive/match/${competitiveMatchId}/guess`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id,
+                letter: letter,
+                word_index: currentWordIndex,
+                time_remaining: competitiveTimeLeft
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            updateCompetitiveWordProgress(result.word_progress);
+            updateCompetitiveUsedLetters(result.used_letters);
+            
+            if (result.is_correct) {
+                competitiveStats.player1.correct++;
+                showNotification(`حرف "${letter}" صحیح است! +${toPersianNumber(result.score)} امتیاز`, 'success');
+            } else {
+                competitiveStats.player1.wrong++;
+                showNotification(`حرف "${letter}" غلط است!`, 'error');
+            }
+            
+            updateCompetitiveStatsBars();
+            
+            // Check if word is completed
+            if (result.word_completed) {
+                showNotification(`کلمه کامل شد! +${toPersianNumber(result.bonus_score)} امتیاز`, 'success');
+                setTimeout(() => {
+                    currentWordIndex++;
+                    if (currentWordIndex < competitiveWords.length) {
+                        startCompetitiveWord();
+                    } else {
+                        // All words completed
+                        completeCompetitiveMatch();
+                    }
+                }, 1500);
+            }
+        } else {
+            showNotification(result.error || 'خطا در پردازش حدس', 'error');
+        }
+    } catch (error) {
+        console.error('❌ خطا در ارسال حدس مسابقه:', error);
+        showNotification('خطا در ارسال حدس', 'error');
+    }
+}
+
+// NEW: Update Competitive Word Progress
+function updateCompetitiveWordProgress(wordProgress) {
+    const display = document.getElementById('competitiveWordDisplay');
+    const letters = display.children;
+    
+    for (let i = 0; i < wordProgress.length; i++) {
+        if (wordProgress[i] !== '_' && wordProgress[i] !== ' ') {
+            letters[i].textContent = wordProgress[i];
+            letters[i].classList.add('revealed');
+            letters[i].style.animation = 'letterReveal 0.5s ease';
+        }
+    }
+}
+
+// NEW: Update Competitive Used Letters
+function updateCompetitiveUsedLetters(usedLetters) {
+    const container = document.getElementById('competitiveUsedLetters');
+    container.innerHTML = '';
+    
+    usedLetters.forEach(letter => {
+        const letterElement = document.createElement('div');
+        letterElement.className = 'letter-used';
+        letterElement.textContent = letter;
+        container.appendChild(letterElement);
+    });
+}
+
+// NEW: Update Competitive Stats Bars
+function updateCompetitiveStatsBars() {
+    // Player 1 stats
+    const player1Total = competitiveStats.player1.correct + competitiveStats.player1.wrong;
+    const player1CorrectPercent = player1Total > 0 ? (competitiveStats.player1.correct / player1Total) * 100 : 0;
+    const player1WrongPercent = player1Total > 0 ? (competitiveStats.player1.wrong / player1Total) * 100 : 0;
+    
+    document.getElementById('player1CorrectBar').style.width = player1CorrectPercent + '%';
+    document.getElementById('player1WrongBar').style.width = player1WrongPercent + '%';
+    document.getElementById('player1Correct').textContent = toPersianNumber(competitiveStats.player1.correct);
+    document.getElementById('player1Wrong').textContent = toPersianNumber(competitiveStats.player1.wrong);
+    
+    // Player 2 stats (simulated for now - would come from server)
+    document.getElementById('player2Correct').textContent = toPersianNumber(competitiveStats.player2.correct);
+    document.getElementById('player2Wrong').textContent = toPersianNumber(competitiveStats.player2.wrong);
+}
+
+// NEW: Use Competitive Hint
+function useCompetitiveHint() {
+    if (competitiveHintsUsed >= 3 || !isCompetitiveMatchActive) return;
+    
+    competitiveHintsUsed++;
+    document.getElementById('competitiveHintCount').textContent = toPersianNumber(3 - competitiveHintsUsed);
+    
+    // Deduct points for using hint
+    competitiveScores.player1 = Math.max(0, competitiveScores.player1 - 20);
+    document.getElementById('player1Score').textContent = toPersianNumber(competitiveScores.player1) + ' امتیاز';
+    
+    // Simple hint implementation - reveal a random letter
+    const currentWord = competitiveWords[currentWordIndex].word;
+    const hiddenLetters = [];
+    const display = document.getElementById('competitiveWordDisplay');
+    
+    for (let i = 0; i < currentWord.length; i++) {
+        if (display.children[i].textContent === '_') {
+            hiddenLetters.push(i);
+        }
+    }
+    
+    if (hiddenLetters.length > 0) {
+        const randomIndex = hiddenLetters[Math.floor(Math.random() * hiddenLetters.length)];
+        const letter = currentWord[randomIndex];
+        
+        display.children[randomIndex].textContent = letter;
+        display.children[randomIndex].classList.add('revealed');
+        display.children[randomIndex].style.animation = 'letterReveal 0.5s ease';
+        
+        showNotification(`راهنمایی: حرف "${letter}" را پیدا کردید! (۲۰- امتیاز)`, 'warning');
+    }
+    
+    if (competitiveHintsUsed >= 3) {
+        document.getElementById('competitiveHintBtn').disabled = true;
+    }
+}
+
+// NEW: Skip Competitive Word
+function skipCompetitiveWord() {
+    if (!isCompetitiveMatchActive) return;
+    
+    showNotification('کلمه رد شد!', 'info');
+    currentWordIndex++;
+    
+    if (currentWordIndex < competitiveWords.length) {
+        startCompetitiveWord();
+    } else {
+        completeCompetitiveMatch();
+    }
+}
+
+// NEW: Complete Competitive Match
+async function completeCompetitiveMatch() {
+    isCompetitiveMatchActive = false;
+    stopCompetitiveTimer();
+    
+    try {
+        const response = await fetch(`/api/competitive/match/${competitiveMatchId}/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id,
+                final_score: competitiveScores.player1,
+                stats: competitiveStats.player1
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('مسابقه با موفقیت به پایان رسید!', 'success');
+            setTimeout(() => {
+                showCompetitiveResults(result.results);
+            }, 1000);
+        }
+    } catch (error) {
+        console.error('❌ خطا در تکمیل مسابقه:', error);
+    }
+}
+
+// NEW: End Competitive Match
+function endCompetitiveMatch(match) {
+    isCompetitiveMatchActive = false;
+    stopCompetitiveTimer();
+    showCompetitiveResults(match.final_results);
+}
+
+// NEW: Show Competitive Results
+function showCompetitiveResults(results) {
+    closeCompetitiveModal();
+    
+    // Determine winner
+    const isWinner = results.winner_id === currentUser.telegram_id;
+    
+    // Update results UI
+    document.getElementById('resultsTitle').textContent = isWinner ? 'شما برنده شدید! 🏆' : 'مسابقه به پایان رسید';
+    document.getElementById('resultsHeader').className = isWinner ? 'results-header winner' : 'results-header';
+    
+    document.getElementById('finalPlayer1Name').textContent = currentUser.full_name;
+    document.getElementById('finalPlayer1Score').textContent = toPersianNumber(results.player1_score);
+    
+    document.getElementById('finalPlayer2Name').textContent = results.player2_name || 'حریف';
+    document.getElementById('finalPlayer2Score').textContent = toPersianNumber(results.player2_score);
+    
+    if (isWinner) {
+        document.getElementById('finalPlayer1').classList.add('winner');
+        document.getElementById('finalPlayer1Badge').textContent = 'برنده';
+        document.getElementById('finalPlayer2Badge').textContent = 'بازنده';
+    } else {
+        document.getElementById('finalPlayer2').classList.add('winner');
+        document.getElementById('finalPlayer1Badge').textContent = 'بازنده';
+        document.getElementById('finalPlayer2Badge').textContent = 'برنده';
+    }
+    
+    document.getElementById('resultsCorrectWords').textContent = 
+        `${toPersianNumber(results.correct_words)}/${toPersianNumber(competitiveWords.length)}`;
+    document.getElementById('resultsAvgTime').textContent = 
+        `${toPersianNumber(Math.round(results.average_time))} ثانیه`;
+    document.getElementById('resultsEarnedPoints').textContent = 
+        `+${toPersianNumber(results.earned_points)}`;
+    
+    // Show results modal
+    document.getElementById('competitiveResultsModal').style.display = 'flex';
+}
+
+// NEW: Leave Competitive Match
+async function leaveCompetitiveMatch() {
+    try {
+        await fetch(`/api/competitive/match/${competitiveMatchId}/leave`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_id: currentUser.telegram_id
+            })
+        });
+    } catch (error) {
+        console.error('❌ خطا در ترک مسابقه:', error);
+    }
+}
+
+// NEW: Play Again Competitive
+function playAgainCompetitive() {
+    closeResultsModal();
+    startQuickMatch();
+}
+
+// NEW: Share Competitive Results
+function shareCompetitiveResults() {
+    // In a real implementation, this would share results via Telegram or other platforms
+    showNotification('نتایج با موفقیت کپی شد!', 'success');
+    
+    // For demo purposes, just copy to clipboard
+    const resultsText = `نتایج مسابقه Wordly:
+🏆 ${document.getElementById('finalPlayer1Name').textContent}: ${document.getElementById('finalPlayer1Score').textContent}
+🎯 ${document.getElementById('finalPlayer2Name').textContent}: ${document.getElementById('finalPlayer2Score').textContent}
+    
+مسابقه دهید: ${window.location.href}`;
+    
+    navigator.clipboard.writeText(resultsText).catch(() => {
+        // Fallback if clipboard API not available
+    });
+}
+
+// NEW: Close Results Modal
+function closeResultsModal() {
+    document.getElementById('competitiveResultsModal').style.display = 'none';
+}
+
+// NEW: Update Competitive UI
+function updateCompetitiveUI() {
+    // Reset UI elements
+    document.getElementById('competitiveWordDisplay').innerHTML = '';
+    document.getElementById('competitiveUsedLetters').innerHTML = '';
+    document.getElementById('wordProgressBar').style.width = '0%';
+    document.getElementById('competitiveHintCount').textContent = toPersianNumber(3);
+    
+    // Disable input until match starts
+    document.getElementById('competitiveGuessInput').disabled = true;
+    document.getElementById('competitiveGuessBtn').disabled = true;
+    document.getElementById('competitiveHintBtn').disabled = true;
+    document.getElementById('skipWordBtn').disabled = true;
+    
+    // Reset stats bars
+    updateCompetitiveStatsBars();
+}
+
+// NEW: Open Create Competitive Modal
+function openCreateCompetitiveModal() {
+    // Implementation for creating custom competitive matches
+    showNotification('این قابلیت به زودی اضافه خواهد شد', 'info');
+}
+
+// NEW: Open Join Competitive Modal
+function openJoinCompetitiveModal() {
+    // Implementation for joining existing competitive matches
+    showNotification('این قابلیت به زودی اضافه خواهد شد', 'info');
+}
+
+// NEW: Open Full Leaderboard
+function openFullLeaderboard() {
+    // Implementation for full leaderboard view
+    showNotification('این قابلیت به زودی اضافه خواهد شد', 'info');
+}
+
+// بقیه توابع موجود...
 
 // تابع بارگذاری آمار
 async function loadStats() {
@@ -1266,25 +1939,41 @@ document.addEventListener('DOMContentLoaded', function() {
             joinGame();
         }
     });
+    
+    // NEW: Competitive mode Enter key support
+    document.getElementById('competitiveGuessInput')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            submitCompetitiveGuess();
+        }
+    });
 });
 
 // بستن مودال با کلیک خارج از آن
 window.onclick = function(event) {
     const gameModal = document.getElementById('gameModal');
+    const competitiveModal = document.getElementById('competitiveModal');
+    const resultsModal = document.getElementById('competitiveResultsModal');
     
     if (event.target === gameModal) closeGameModal();
+    if (event.target === competitiveModal) closeCompetitiveModal();
+    if (event.target === resultsModal) closeResultsModal();
 }
 
 // مدیریت کلیدهای صفحه‌کلید
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeGameModal();
+        closeCompetitiveModal();
+        closeResultsModal();
     }
 });
 
 // مدیریت زمانی که کاربر صفحه را ترک می‌کند
 window.addEventListener('beforeunload', function() {
     stopConnectionReporting();
+    if (competitiveMatchId) {
+        leaveCompetitiveMatch();
+    }
 });
 
 // مدیریت visibility change
@@ -1305,6 +1994,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(() => {
         if (document.getElementById('active-games').classList.contains('active')) {
             loadActiveGames();
+        }
+        if (document.getElementById('competitive-mode').classList.contains('active')) {
+            loadOnlinePlayersCount();
+            loadWaitingMatches();
         }
     }, 5000);
 });
