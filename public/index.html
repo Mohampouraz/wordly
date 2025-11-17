@@ -1,30 +1,264 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <title>Wordly Pro</title>
-  <link rel="stylesheet" href="./ui.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل کاربری - ربات بازی</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-
 <body>
+    <div class="container">
+        <!-- هدر -->
+        <header class="header">
+            <div class="logo">
+                <i class="fab fa-telegram"></i>
+                <div>
+                    <h1>پنل کاربری</h1>
+                    <p class="subtitle">ربات بازی تعاملی</p>
+                </div>
+            </div>
+            <div class="user-badge" id="userBadge">
+                <i class="fas fa-user"></i>
+                <span id="userName">در حال بارگذاری...</span>
+            </div>
+        </header>
 
-  <div class="container">
-    <h1>🎮 Wordly — نسخه حرفه‌ای</h1>
+        <!-- نوتیفیکیشن آنلاین -->
+        <div id="notification" class="notification hidden">
+            <div class="notification-content">
+                <i class="fas fa-bell"></i>
+                <span id="notificationText"></span>
+                <button class="notification-close" onclick="hideNotification()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
 
-    <div class="card">
-      <button onclick="createRoom()">ساخت بازی جدید</button>
-      <button onclick="showGames()">لیست بازی‌ها</button>
+        <!-- کارت اطلاعات اصلی -->
+        <div class="main-card">
+            <div class="card-header">
+                <i class="fas fa-id-card"></i>
+                <h2>اطلاعات کاربری</h2>
+            </div>
+            <div class="card-content">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-icon user-id">
+                            <i class="fas fa-fingerprint"></i>
+                        </div>
+                        <div class="info-content">
+                            <label>شناسه کاربری</label>
+                            <span id="userId" class="info-value">---</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon user-name">
+                            <i class="fas fa-user-tag"></i>
+                        </div>
+                        <div class="info-content">
+                            <label>نام کامل</label>
+                            <span id="fullName" class="info-value">---</span>
+                        </div>
+                    </div>
+                    
+                    <div class="info-item">
+                        <div class="info-icon user-username">
+                            <i class="fas fa-at"></i>
+                        </div>
+                        <div class="info-content">
+                            <label>نام کاربری</label>
+                            <span id="username" class="info-value">---</span>
+                        </div>
+                    </div>
+
+                    <div class="info-item">
+                        <div class="info-icon user-score">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="info-content">
+                            <label>امتیاز بازی</label>
+                            <span id="gameScore" class="info-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- کارت‌های اطلاعات زمانی -->
+        <div class="cards-container">
+            <div class="info-card">
+                <div class="card-icon persian-date">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="card-info">
+                    <h3>تاریخ امروز</h3>
+                    <p id="persianDate" class="card-value">---</p>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="card-icon current-time">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="card-info">
+                    <h3>ساعت فعلی</h3>
+                    <p id="currentTime" class="card-value">---</p>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="card-icon first-seen">
+                    <i class="fas fa-sign-in-alt"></i>
+                </div>
+                <div class="card-info">
+                    <h3>اولین بازدید</h3>
+                    <p id="firstSeen" class="card-value">---</p>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <div class="card-icon last-seen">
+                    <i class="fas fa-eye"></i>
+                </div>
+                <div class="card-info">
+                    <h3>آخرین بازدید</h3>
+                    <p id="lastSeen" class="card-value">---</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- آمار ربات -->
+        <div class="stats-card">
+            <div class="stats-header">
+                <i class="fas fa-chart-bar"></i>
+                <h2>آمار ربات</h2>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-icon total-users">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <label>کل کاربران</label>
+                        <span id="totalUsers" class="stat-value">0</span>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon online-users">
+                        <i class="fas fa-wifi"></i>
+                    </div>
+                    <div class="stat-info">
+                        <label>کاربران آنلاین</label>
+                        <span id="onlineUsers" class="stat-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- دکمه‌های اقدام -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showUserModal()">
+                <i class="fas fa-user-circle"></i>
+                مشاهده کامل پروفایل
+            </button>
+            <button class="btn btn-secondary" onclick="showTimeModal()">
+                <i class="fas fa-clock"></i>
+                اطلاعات زمانی
+            </button>
+            <button class="btn btn-success" onclick="simulateGame()">
+                <i class="fas fa-gamepad"></i>
+                شبیه‌سازی بازی
+            </button>
+        </div>
     </div>
 
-    <div id="game-area" class="card" style="display:none;">
-      <h3>اتاق: <span id="room-id"></span></h3>
-      <div id="game-log" style="white-space:pre-wrap;"></div>
+    <!-- مودال پروفایل -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>پروفایل کامل کاربر</h2>
+                <span class="close" onclick="closeUserModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info">
+                    <div class="modal-item">
+                        <i class="fas fa-id-badge"></i>
+                        <div>
+                            <strong>شناسه تلگرام:</strong>
+                            <span id="modalUserId">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-item">
+                        <i class="fas fa-user"></i>
+                        <div>
+                            <strong>نام کامل:</strong>
+                            <span id="modalFullName">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-item">
+                        <i class="fas fa-at"></i>
+                        <div>
+                            <strong>نام کاربری:</strong>
+                            <span id="modalUsername">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-item">
+                        <i class="fas fa-trophy"></i>
+                        <div>
+                            <strong>امتیاز بازی:</strong>
+                            <span id="modalGameScore">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div id="toast" class="toast"></div>
+    <!-- مودال اطلاعات زمانی -->
+    <div id="timeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>اطلاعات زمانی دقیق</h2>
+                <span class="close" onclick="closeTimeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="modal-info">
+                    <div class="modal-item">
+                        <i class="fas fa-calendar"></i>
+                        <div>
+                            <strong>تاریخ شمسی:</strong>
+                            <span id="modalPersianDate">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-item">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <strong>ساعت دقیق:</strong>
+                            <span id="modalCurrentTime">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-item">
+                        <i class="fas fa-history"></i>
+                        <div>
+                            <strong>اولین بازدید:</strong>
+                            <span id="modalFirstSeen">---</span>
+                        </div>
+                    </div>
+                    <div class="modal-item">
+                        <i class="fas fa-redo"></i>
+                        <div>
+                            <strong>آخرین بازدید:</strong>
+                            <span id="modalLastSeen">---</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-  <script src="./frontend.js"></script>
-
+    <script src="script.js"></script>
 </body>
 </html>
