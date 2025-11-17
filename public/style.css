@@ -528,6 +528,7 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
+    gap: 8px;
 }
 
 .game-code-minimal {
@@ -786,6 +787,7 @@ body {
     border-radius: var(--radius);
     font-weight: 500;
     font-size: 0.9rem;
+    flex-wrap: wrap;
 }
 
 .creator-notice-minimal {
@@ -926,7 +928,86 @@ body {
     line-height: 1.5;
 }
 
-/* انیمیشن‌ها */
+/* نشانگر آنلاین */
+.online-indicator {
+    color: #10b981;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.online-indicator i {
+    font-size: 0.6rem;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* بج‌های وضعیت */
+.online-badge {
+    background: #10b981;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.offline-badge {
+    background: #6b7280;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+/* استایل برای تاریخچه بازی */
+.success {
+    color: #10b981;
+}
+
+.danger {
+    color: #ef4444;
+}
+
+/* نوتیفیکیشن سفارشی */
+.custom-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-family: Vazirmatn, sans-serif;
+    max-width: 320px;
+    animation: slideInRight 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.custom-notification.success {
+    background: linear-gradient(135deg, #10b981, #0da271);
+}
+
+.custom-notification.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.custom-notification.warning {
+    background: linear-gradient(135deg, #f59e0b, #eab308);
+}
+
 @keyframes slideInRight {
     from {
         transform: translateX(100%);
@@ -949,6 +1030,7 @@ body {
     }
 }
 
+/* انیمیشن‌ها */
 @keyframes winPulse {
     0% {
         transform: scale(1);
@@ -1013,6 +1095,17 @@ body {
     
     .game-modal .modal-content {
         margin: 2% auto;
+    }
+    
+    .creator-notice-minimal, .player-notice-minimal {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .online-badge, .offline-badge {
+        margin-right: 0;
+        align-self: flex-start;
     }
 }
 
