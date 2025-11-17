@@ -1,7 +1,7 @@
 const { Client } = require('pg');
 require('dotenv').config();
 
-const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5";
+const DATABASE_URL = process.env.DATABASE_URL;
 
 async function resetDatabase() {
     const client = new Client({
@@ -15,11 +15,12 @@ async function resetDatabase() {
         await client.connect();
         console.log('Connected to database successfully');
 
-        // لیست تمام جداول
+        // دریافت لیست تمام جداول
         const tablesQuery = `
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema = 'public'
+            AND table_type = 'BASE TABLE'
         `;
         const tablesResult = await client.query(tablesQuery);
         const tables = tablesResult.rows.map(row => row.table_name);
@@ -29,20 +30,20 @@ async function resetDatabase() {
             return;
         }
 
-        // غیرفعال کردن constraintها
-        await client.query('SET session_replication_role = replica;');
+        console.log(`Found ${tables.length} tables:`, tables);
 
-        // حذف تمام جداول
+        // حذف جداول به ترتیب و با CASCADE برای مدیریت وابستگی‌ها
         for (const table of tables) {
-            console.log(`Dropping table: ${table}`);
-            await client.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
+            try {
+                console.log(`Dropping table: ${table}`);
+                await client.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
+                console.log(`Table ${table} dropped successfully`);
+            } catch (error) {
+                console.error(`Error dropping table ${table}:`, error.message);
+            }
         }
 
-        // فعال کردن مجدد constraintها
-        await client.query('SET session_replication_role = DEFAULT;');
-
         console.log('Database reset completed successfully!');
-        console.log(`Dropped ${tables.length} tables: ${tables.join(', ')}`);
 
     } catch (error) {
         console.error('Error resetting database:', error);
