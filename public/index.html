@@ -37,6 +37,11 @@
                     <i class="fas fa-gamepad"></i>
                     بازی
                 </button>
+                <button class="tab-btn" onclick="openTab('active-games')">
+                    <i class="fas fa-list"></i>
+                    بازی‌های فعال
+                    <span class="badge" id="activeGamesCount">۰</span>
+                </button>
                 <button class="tab-btn" onclick="openTab('stats')">
                     <i class="fas fa-chart-bar"></i>
                     آمار
@@ -144,7 +149,7 @@
                         <div class="form-group">
                             <label for="gameWord">کلمه مورد نظر</label>
                             <input type="text" id="gameWord" placeholder="کلمه را وارد کنید..." maxlength="20">
-                            <small>کلمه باید بین ۳ تا ۲۰ حرف باشد</small>
+                            <small>کلمه باید بین ۳ تا ۲۰ حرف باشد (می‌توانید از فاصله استفاده کنید)</small>
                         </div>
                         
                         <div class="form-group">
@@ -163,7 +168,7 @@
                         
                         <button class="btn btn-primary btn-large" onclick="createGame()">
                             <i class="fas fa-play"></i>
-                            شروع بازی
+                            ایجاد بازی
                         </button>
                     </div>
                 </div>
@@ -186,6 +191,21 @@
                             <i class="fas fa-sign-in-alt"></i>
                             پیوستن به بازی
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- محتوای تب بازی‌های فعال -->
+        <div id="active-games" class="tab-content">
+            <div class="main-card">
+                <div class="card-header">
+                    <i class="fas fa-list"></i>
+                    <h2>بازی‌های فعال</h2>
+                </div>
+                <div class="card-content">
+                    <div class="games-list" id="gamesList">
+                        <div class="loading">در حال بارگذاری بازی‌های فعال...</div>
                     </div>
                 </div>
             </div>
@@ -303,13 +323,13 @@
                         <i class="fas fa-tag"></i>
                         <span id="gameCategoryDisplay">دسته‌بندی: عمومی</span>
                     </div>
+
+                    <div class="game-status" id="gameStatus">
+                        <!-- وضعیت بازی اینجا نمایش داده می‌شود -->
+                    </div>
                     
-                    <div class="guess-input">
-                        <input type="text" id="guessInput" placeholder="حدس خود را وارد کنید..." maxlength="20">
-                        <button class="btn btn-primary" onclick="submitGuess()">
-                            <i class="fas fa-paper-plane"></i>
-                            ارسال حدس
-                        </button>
+                    <div class="letters-grid" id="lettersGrid">
+                        <!-- حروف الفبا برای حدس زدن -->
                     </div>
                     
                     <div class="hint-section">
@@ -319,9 +339,41 @@
                         </button>
                     </div>
                     
-                    <div class="guess-history" id="guessHistory">
-                        <!-- تاریخچه حدس‌ها اینجا نمایش داده می‌شود -->
+                    <div class="guessed-letters">
+                        <h4>حروف حدس زده شده:</h4>
+                        <div class="letters-container">
+                            <div class="correct-letters" id="correctLetters">
+                                <strong>صحیح:</strong> <span id="correctLettersList">-</span>
+                            </div>
+                            <div class="incorrect-letters" id="incorrectLetters">
+                                <strong>غلط:</strong> <span id="incorrectLettersList">-</span>
+                            </div>
+                        </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال شروع بازی (برای سازنده) -->
+    <div id="startGameModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>شروع بازی</h2>
+                <span class="close" onclick="closeStartGameModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="start-game-info">
+                    <i class="fas fa-play-circle success-icon"></i>
+                    <h3>بازی شما ایجاد شد!</h3>
+                    <p>کد بازی: <strong id="createdGameCode">---</strong></p>
+                    <p>تعداد بازیکنان حاضر: <strong id="currentPlayersCount">۱</strong></p>
+                    <p>برای شروع بازی روی دکمه زیر کلیک کنید:</p>
+                    <button class="btn btn-success btn-large" onclick="startGame()">
+                        <i class="fas fa-play"></i>
+                        شروع بازی
+                    </button>
+                    <small>پس از شروع بازی، دیگر نمی‌توانید حروف را حدس بزنید و فقط بازیکنان دیگر می‌توانند بازی کنند.</small>
                 </div>
             </div>
         </div>
