@@ -8,6 +8,7 @@ let gameStartTime = null;
 let isCreator = false;
 let gameStateInterval = null;
 let connectionInterval = null;
+let gameExpired = false;
 
 // تابع تبدیل اعداد به فارسی
 function toPersianNumber(number) {
@@ -204,7 +205,9 @@ function displayActiveGames(games) {
 
     activeGamesCount.textContent = toPersianNumber(games.length);
 
-    gamesList.innerHTML = games.map(game => `
+    gamesList.innerHTML = games.map(game => {
+        const timeRemaining = formatTime(game.remaining_time);
+        return `
         <div class="game-item-minimal">
             <div class="game-header-minimal">
                 <div class="game-code-minimal">${game.game_id}</div>
@@ -226,7 +229,7 @@ function displayActiveGames(games) {
                 </div>
                 <div class="info-row-compact">
                     <i class="fas fa-clock"></i>
-                    <span>زمان: ${toPersianNumber(Math.floor(game.time_limit / 60))}:${toPersianNumber(game.time_limit % 60)}</span>
+                    <span>زمان باقی‌مانده: ${timeRemaining}</span>
                 </div>
             </div>
             <div class="game-actions-minimal">
@@ -236,7 +239,15 @@ function displayActiveGames(games) {
                 </button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+// تابع فرمت زمان
+function formatTime(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${toPersianNumber(minutes)}:${toPersianNumber(secs.toString().padStart(2, '0'))}`;
 }
 
 // تابع ایجاد بازی جدید
@@ -270,29 +281,11 @@ async function createGame() {
         const result = await response.json();
 
         if (result.success) {
-            currentGame = {
-                game_id: result.game_id,
-                word: word.toUpperCase(),
-                category: category,
-                max_attempts: result.max_attempts,
-                time_limit: result.time_limit,
-                attempts: 0,
-                score: 0,
-                creator_id: currentUser.telegram_id,
-                is_started: true, // بازی بلافاصله شروع می‌شود
-                creator_online: true,
-                completed: false
-            };
-
-            isCreator = true;
-            showNotification('بازی با موفقیت ایجاد و شروع شد! 🎮', 'success');
+            showNotification('بازی با موفقیت ایجاد شد! 🎮', 'success');
             document.getElementById('gameWord').value = '';
             
-            // مستقیماً به بازی هدایت شو
-            openGameModal();
-            
-            // شروع پولینگ برای به‌روزرسانی وضعیت بازی
-            startGameStatePolling(result.game_id);
+            // بارگذاری مجدد لیست بازی‌ها
+            loadActiveGames();
             
         } else {
             showNotification('خطا در ایجاد بازی', 'error');
@@ -327,17 +320,20 @@ function startGameStatePolling(gameId) {
                     currentGame.creator_online = gameData.creator_online;
                     currentGame.completed = gameData.completed;
                     currentGame.winner_id = gameData.winner_id;
+                    currentGame.remaining_time = gameData.remaining_time;
                     
-                    // اگر بازی در حال اجراست، رابط را به‌روزرسانی کن
-                    if (document.getElementById('gameModal').style.display === 'block') {
-                        updateGameInterface();
+                    // به‌روزرسانی رابط
+                    updateGameInterface();
+                    
+                    // بررسی انقضای زمان
+                    if (gameData.remaining_time <= 0 && !gameExpired) {
+                        gameExpired = true;
+                        endGameByTimeout();
                     }
-                }
-                
-                // اگر بازی تمام شده، پولینگ را متوقف کن
-                if (gameData.completed) {
-                    clearInterval(gameStateInterval);
-                    if (currentGame) {
+                    
+                    // اگر بازی تمام شده، پولینگ را متوقف کن
+                    if (gameData.completed) {
+                        clearInterval(gameStateInterval);
                         endGame(currentGame.winner_id === currentUser.telegram_id);
                     }
                 }
@@ -439,7 +435,6 @@ async function joinExistingGame(gameCode) {
                     attempts: gameData.attempts || 0,
                     score: 0,
                     creator_id: gameData.creator_id,
-                    is_started: gameData.is_started,
                     guessed_letters: gameData.guessed_letters || [],
                     incorrect_letters: gameData.incorrect_letters || [],
                     word_progress: gameData.word_progress || '_'.repeat(gameData.word.length),
@@ -447,7 +442,8 @@ async function joinExistingGame(gameCode) {
                     completed: gameData.completed,
                     creator_online: gameData.creator_online,
                     winner_id: gameData.winner_id,
-                    players_count: gameData.players_count
+                    players_count: gameData.players_count,
+                    remaining_time: gameData.remaining_time
                 };
 
                 isCreator = (gameData.creator_id === currentUser.telegram_id);
@@ -459,7 +455,7 @@ async function joinExistingGame(gameCode) {
                 }
                 document.getElementById('gameCode').value = '';
                 
-                // مستقیماً به بازی هدایت شو
+                // باز کردن بازی
                 openGameModal();
                 
                 // شروع پولینگ برای وضعیت بازی
@@ -500,9 +496,11 @@ function closeGameModal() {
         gameStateInterval = null;
     }
     
+    // بازی فقط از رابط کاربری بسته می‌شود، از سرور حذف نمی‌شود
     currentGame = null;
     hintsUsed = 0;
     isCreator = false;
+    gameExpired = false;
 }
 
 // تابع مقداردهی اولیه بازی
@@ -562,14 +560,14 @@ function updateGameInterface() {
     );
 
     // تنظیم تایمر
-    timeLeft = currentGame.time_limit || 180;
+    timeLeft = currentGame.remaining_time || 180;
     updateTimerDisplay();
     
     // تنظیم تعداد حدس‌ها
     updateAttemptsDisplay();
     
     // تنظیم دکمه‌ها بر اساس نقش
-    const isGameActive = !currentGame.completed;
+    const isGameActive = !currentGame.completed && timeLeft > 0;
     document.getElementById('hintBtn').disabled = isCreator || !isGameActive;
     document.getElementById('guessBtn').disabled = isCreator || !isGameActive;
     document.getElementById('guessInput').disabled = isCreator || !isGameActive;
@@ -665,10 +663,7 @@ async function submitGuess() {
 
 // تابع حدس زدن حرف
 async function guessLetter(letter) {
-    if (!currentGame || !currentUser || isCreator || currentGame.completed) return;
-
-    // محاسبه زمان سپری شده
-    const timeSpent = Math.floor((new Date() - gameStartTime) / 1000);
+    if (!currentGame || !currentUser || isCreator || currentGame.completed || timeLeft <= 0) return;
 
     try {
         const response = await fetch(`/api/games/${currentGame.game_id}/guess-letter`, {
@@ -678,8 +673,7 @@ async function guessLetter(letter) {
             },
             body: JSON.stringify({
                 player_id: currentUser.telegram_id,
-                letter: letter,
-                time_spent: timeSpent
+                letter: letter
             })
         });
 
@@ -692,8 +686,8 @@ async function guessLetter(letter) {
             // به‌روزرسانی وضعیت بازی
             updateGameState(result);
             
-            if (result.game_completed || result.game_over) {
-                endGame(result.game_completed);
+            if (result.game_completed) {
+                endGame(true);
             }
         } else {
             showNotification(result.error || 'خطا در پردازش حدس', 'error');
@@ -726,6 +720,12 @@ function updateGameState(result) {
         updateAttemptsDisplay();
     }
 
+    // به‌روزرسانی زمان باقی‌مانده
+    if (result.remaining_time !== undefined) {
+        timeLeft = result.remaining_time;
+        updateTimerDisplay();
+    }
+
     // نمایش نتیجه حدس
     if (result.is_correct) {
         showNotification(`حرف "${result.letter}" صحیح است! +${toPersianNumber(result.score)} امتیاز`, 'success');
@@ -742,8 +742,9 @@ function startGameTimer() {
         timeLeft--;
         updateTimerDisplay();
         
-        if (timeLeft <= 0) {
-            endGame(false);
+        if (timeLeft <= 0 && !gameExpired) {
+            gameExpired = true;
+            endGameByTimeout();
         }
     }, 1000);
 }
@@ -758,10 +759,19 @@ function stopGameTimer() {
 
 // تابع به‌روزرسانی نمایش تایمر
 function updateTimerDisplay() {
-    const minutes = Math.floor(timeLeft / 60);
-    const seconds = timeLeft % 60;
-    const timerText = `${toPersianNumber(minutes.toString().padStart(2, '0'))}:${toPersianNumber(seconds.toString().padStart(2, '0'))}`;
+    const timerText = formatTime(timeLeft);
     document.getElementById('timer').textContent = timerText;
+    
+    // تغییر رنگ تایمر وقتی زمان کم است
+    const timerElement = document.getElementById('timer');
+    if (timeLeft < 60) {
+        timerElement.style.color = '#ef4444';
+        timerElement.style.fontWeight = 'bold';
+    } else if (timeLeft < 180) {
+        timerElement.style.color = '#f59e0b';
+    } else {
+        timerElement.style.color = 'var(--text-primary)';
+    }
 }
 
 // تابع به‌روزرسانی نمایش تعداد حدس‌ها
@@ -773,7 +783,7 @@ function updateAttemptsDisplay() {
 
 // تابع استفاده از راهنمایی
 function useHint() {
-    if (!currentGame || hintsUsed >= 2 || isCreator || currentGame.completed) return;
+    if (!currentGame || hintsUsed >= 2 || isCreator || currentGame.completed || timeLeft <= 0) return;
     
     // کسر امتیاز برای استفاده از راهنمایی
     currentGame.score -= 30;
@@ -802,6 +812,32 @@ function useHint() {
         document.getElementById('guessInput').focus();
     } else {
         showNotification('همه حروف حدس زده شده‌اند!', 'info');
+    }
+}
+
+// تابع پایان بازی به دلیل اتمام زمان
+function endGameByTimeout() {
+    stopGameTimer();
+    stopConnectionReporting();
+    
+    // غیرفعال کردن دکمه‌ها و اینپوت
+    document.getElementById('hintBtn').disabled = true;
+    document.getElementById('guessBtn').disabled = true;
+    document.getElementById('guessInput').disabled = true;
+
+    showNotification(`زمان بازی به پایان رسید! ⌛`, 'warning');
+    
+    const gameStatus = document.getElementById('gameStatus');
+    gameStatus.innerHTML = `
+        <div class="player-notice-minimal">
+            <i class="fas fa-clock"></i>
+            <span>زمان بازی به پایان رسید! منتظر اعلام برنده نهایی باشید.</span>
+        </div>
+    `;
+
+    // نمایش کلمه کامل
+    if (currentGame.word) {
+        displayWordProgress(currentGame.word);
     }
 }
 
@@ -877,7 +913,7 @@ function showGameResult() {
         gameStatus.innerHTML = `
             <div class="player-notice-minimal">
                 <i class="fas fa-flag-checkered"></i>
-                <span>بازی تمام شد! هیچ برنده‌ای نداشت.</span>
+                <span>بازی تمام شد! زمان به پایان رسید.</span>
             </div>
         `;
         showNotification(`بازی تمام شد!`, 'info');
@@ -1027,7 +1063,6 @@ async function viewGameDetails(gameId) {
                 attempts: result.game.attempts || 0,
                 score: 0,
                 creator_id: result.game.creator_id,
-                is_started: result.game.is_started,
                 guessed_letters: result.game.guessed_letters || [],
                 incorrect_letters: result.game.incorrect_letters || [],
                 word_progress: result.game.word_progress,
@@ -1048,56 +1083,11 @@ async function viewGameDetails(gameId) {
     }
 }
 
-// تابع تبدیل تاریخ میلادی به شمسی
-function toPersianDate(gregorianDate) {
-    const date = new Date(gregorianDate);
-    const gregorianYear = date.getFullYear();
-    const gregorianMonth = date.getMonth() + 1;
-    const gregorianDay = date.getDate();
-    
-    const gregorian = [gregorianYear, gregorianMonth, gregorianDay];
-    const persian = gregorian_to_jalali(gregorian[0], gregorian[1], gregorian[2]);
-    
-    const persianMonths = [
-        'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-        'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
-    ];
-    
-    return {
-        year: persian[0],
-        month: persian[1],
-        day: persian[2],
-        monthName: persianMonths[persian[1] - 1],
-        formatted: `${toPersianNumber(persian[2])} ${persianMonths[persian[1] - 1]} ${toPersianNumber(persian[0])}`
-    };
-}
-
-function gregorian_to_jalali(gy, gm, gd) {
-    var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-    var jy = (gy <= 1600) ? 0 : 979;
-    gy -= (gy <= 1600) ? 621 : 1600;
-    var gy2 = (gm > 2) ? (gy + 1) : gy;
-    var days = (365 * gy) + (parseInt((gy2 + 3) / 4)) - (parseInt((gy2 + 99) / 100)) 
-        + (parseInt((gy2 + 399) / 400)) - 80 + gd + g_d_m[gm - 1];
-    jy += 33 * (parseInt(days / 12053)); 
-    days %= 12053;
-    jy += 4 * (parseInt(days / 1461));
-    days %= 1461;
-    jy += parseInt((days - 1) / 365);
-    if (days > 365) days = (days - 1) % 365;
-    var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
-    var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
-    return [jy, jm, jd];
-}
-
 // تابع به‌روزرسانی ساعت زنده
 function updateLiveClock() {
     const now = new Date();
     const timeString = now.toLocaleTimeString('fa-IR');
     document.getElementById('currentTime').textContent = timeString;
-    
-    const persianDate = toPersianDate(now);
-    document.getElementById('persianDate').textContent = persianDate.formatted;
 }
 
 // مدیریت ارسال با Enter
@@ -1138,6 +1128,17 @@ document.addEventListener('keydown', function(event) {
 // مدیریت زمانی که کاربر صفحه را ترک می‌کند
 window.addEventListener('beforeunload', function() {
     stopConnectionReporting();
+});
+
+// مدیریت visibility change (وقتی کاربر به تب دیگر می‌رود)
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        // کاربر صفحه را ترک کرده
+        stopConnectionReporting();
+    } else if (currentGame && !currentGame.completed) {
+        // کاربر برگشته - اتصال مجدد
+        startConnectionReporting();
+    }
 });
 
 // مقداردهی اولیه
