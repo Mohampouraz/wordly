@@ -1,3 +1,9 @@
+/*
+================================
+  1. Base & Utilities
+================================
+*/
+
 * {
     margin: 0;
     padding: 0;
@@ -31,6 +37,10 @@
     --radius: 12px;
     --radius-lg: 16px;
     --radius-xl: 20px;
+    
+    /* متغیرهای جدید برای محاسبات ریسپانسیو */
+    --header-height-default: 73px; 
+    --header-height-mobile: 65px;
 }
 
 body {
@@ -41,9 +51,12 @@ body {
     min-height: 100vh;
     padding: 0;
     direction: rtl;
+    /* جلوگیری از پرش صفحه در اسکرول عمودی موبایل */
+    overscroll-behavior-y: contain; 
 }
 
 .container {
+    width: 100%; /* تضمین عرض کامل در موبایل */
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
@@ -52,6 +65,32 @@ body {
     position: relative;
     overflow-x: hidden;
 }
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
+}
+
+
+/*
+================================
+  2. Header & Tabs
+================================
+*/
 
 /* هدر مینیمال */
 .header-minimal {
@@ -101,6 +140,7 @@ body {
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--gray-700);
+    flex-shrink: 0;
 }
 
 .user-avatar {
@@ -121,11 +161,13 @@ body {
     background: white;
     border-bottom: 1px solid var(--gray-200);
     padding: 0 16px;
-    overflow-x: auto;
+    /* تضمین اسکرول افقی و جلوگیری از اسکرول بدنه */
+    overflow-x: auto; 
+    overscroll-behavior-x: contain;
     position: sticky;
-    top: 73px;
+    top: var(--header-height-default); /* استفاده از متغیر */
     z-index: 99;
-    scrollbar-width: none;
+    scrollbar-width: none; 
     -ms-overflow-style: none;
 }
 
@@ -134,7 +176,8 @@ body {
 }
 
 .tab-minimal {
-    flex: 1;
+    /* جلوگیری از کوچک شدن تب‌ها و اطمینان از اسکرول افقی */
+    flex: 0 0 auto; 
     padding: 16px 12px;
     border: none;
     background: transparent;
@@ -146,7 +189,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-width: 80px;
     border-bottom: 2px solid transparent;
     white-space: nowrap;
@@ -183,6 +226,7 @@ body {
     display: none;
     padding: 20px;
     animation: fadeIn 0.3s ease;
+    /* محاسبه ارتفاع باقی مانده */
     min-height: calc(100vh - 140px);
 }
 
@@ -200,6 +244,13 @@ body {
         transform: translateY(0); 
     }
 }
+
+
+/*
+================================
+  3. Main Components (Cards & Forms)
+================================
+*/
 
 /* کارت خوش‌آمدگویی */
 .welcome-card {
@@ -255,8 +306,9 @@ body {
 
 /* گرید آمار مینیمال */
 .stats-grid-minimal {
+    /* استفاده از minmax برای نمایش بهتر قبل از شکستن به تک ستون */
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
     gap: 12px;
     margin-bottom: 24px;
 }
@@ -323,6 +375,7 @@ body {
 
 .stat-info-minimal {
     flex: 1;
+    min-width: 0; /* برای جلوگیری از سرریز محتوای طولانی */
 }
 
 .stat-value {
@@ -331,6 +384,9 @@ body {
     font-weight: 700;
     color: var(--gray-800);
     line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .stat-label {
@@ -338,6 +394,9 @@ body {
     font-size: 0.8rem;
     color: var(--gray-500);
     margin-top: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* کارت‌های مینیمال */
@@ -370,11 +429,16 @@ body {
     color: var(--gray-800);
     margin: 0;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .card-header-minimal i {
     color: var(--primary);
     font-size: 1.1rem;
+    flex-shrink: 0;
 }
 
 .card-content-minimal {
@@ -400,7 +464,8 @@ body {
     font-size: 0.9rem;
 }
 
-.input-minimal {
+.input-minimal,
+.select-minimal {
     padding: 12px 16px;
     border: 2px solid var(--gray-300);
     border-radius: var(--radius);
@@ -408,9 +473,12 @@ body {
     font-size: 1rem;
     transition: all 0.3s ease;
     background: white;
+    width: 100%;
+    box-sizing: border-box; 
 }
 
-.input-minimal:focus {
+.input-minimal:focus,
+.select-minimal:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -418,20 +486,10 @@ body {
 }
 
 .select-minimal {
-    padding: 12px 16px;
-    border: 2px solid var(--gray-300);
-    border-radius: var(--radius);
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    background: white;
     cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.select-minimal:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    -webkit-appearance: none; 
+    -moz-appearance: none;
+    appearance: none;
 }
 
 .input-hint {
@@ -444,51 +502,15 @@ body {
 .btn-primary-minimal {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: white;
-    border: none;
-    padding: 14px 24px;
-    border-radius: var(--radius);
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow);
-    position: relative;
-    overflow: hidden;
-}
-
-.btn-primary-minimal::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.btn-primary-minimal:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-primary-minimal:hover::before {
-    opacity: 1;
-}
-
-.btn-primary-minimal:active {
-    transform: translateY(0);
 }
 
 .btn-success-minimal {
     background: linear-gradient(135deg, var(--success), var(--success-dark));
     color: white;
+}
+
+.btn-primary-minimal,
+.btn-success-minimal {
     border: none;
     padding: 14px 24px;
     border-radius: var(--radius);
@@ -500,12 +522,13 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
 }
 
+.btn-primary-minimal::before,
 .btn-success-minimal::before {
     content: '';
     position: absolute;
@@ -518,13 +541,20 @@ body {
     transition: opacity 0.3s ease;
 }
 
-.btn-success-minimal:hover {
+.btn-primary-minimal:hover:not(:disabled),
+.btn-success-minimal:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
-.btn-success-minimal:hover::before {
+.btn-primary-minimal:hover:not(:disabled)::before,
+.btn-success-minimal:hover:not(:disabled)::before {
     opacity: 1;
+}
+
+.btn-primary-minimal:active,
+.btn-success-minimal:active {
+    transform: translateY(0);
 }
 
 .btn-full {
@@ -548,10 +578,11 @@ body {
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .btn-refresh:hover {
@@ -570,12 +601,18 @@ body {
     box-shadow: var(--shadow);
 }
 
+.info-card-minimal .card-content-minimal {
+    padding: 12px 24px; /* بهینه‌سازی شده برای محتوای لیست مانند */
+}
+
 .info-row-minimal {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 12px 0;
     border-bottom: 1px solid var(--gray-100);
+    flex-wrap: wrap; /* اجازه به شکستن خط در صورت نیاز */
+    gap: 8px;
 }
 
 .info-row-minimal:last-child {
@@ -585,12 +622,16 @@ body {
 .info-label {
     color: var(--gray-600);
     font-size: 0.9rem;
+    flex-shrink: 0;
 }
 
 .info-value {
     color: var(--gray-800);
     font-weight: 500;
     font-size: 0.9rem;
+    text-align: left; 
+    min-width: 0;
+    flex: 1;
 }
 
 /* کارت زمان */
@@ -604,7 +645,7 @@ body {
 
 .time-item {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 16px;
     padding: 12px 0;
 }
@@ -617,6 +658,7 @@ body {
     color: var(--primary);
     font-size: 1.2rem;
     width: 24px;
+    flex-shrink: 0;
 }
 
 .time-label {
@@ -676,31 +718,27 @@ body {
     align-items: center;
     margin-bottom: 12px;
     gap: 8px;
-    flex-wrap: wrap;
+    flex-wrap: wrap; 
+}
+
+.game-code-minimal,
+.game-category-minimal,
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
 }
 
 .game-code-minimal {
     background: var(--primary);
     color: white;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
 }
 
 .game-category-minimal {
     background: var(--gray-100);
     color: var(--gray-700);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-}
-
-.status-badge {
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 600;
 }
 
 .status-badge.started {
@@ -726,11 +764,19 @@ body {
     gap: 8px;
     color: var(--gray-600);
     font-size: 0.8rem;
+    min-width: 0;
 }
 
 .info-row-compact i {
     color: var(--primary);
     width: 14px;
+    flex-shrink: 0;
+}
+
+.info-row-compact span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .game-actions-minimal {
@@ -760,6 +806,13 @@ body {
     opacity: 0.5;
 }
 
+
+/*
+================================
+  4. Modal & Game Play
+================================
+*/
+
 /* مودال‌ها - کاملاً ریسپانسیو */
 .modal {
     display: none;
@@ -774,11 +827,14 @@ body {
     backdrop-filter: blur(5px);
     padding: 10px;
     box-sizing: border-box;
+    /* تنظیم برای قرارگیری مرکزی در دسکتاپ و بهینه‌سازی در موبایل */
+    display: flex; 
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
     background-color: #fefefe;
-    margin: 0 auto;
     border: 1px solid #888;
     border-radius: var(--radius-lg);
     animation: slideIn 0.3s ease;
@@ -788,6 +844,7 @@ body {
     flex-direction: column;
     width: 100%;
     max-width: 440px;
+    overflow: hidden; /* ضروری برای اسکرول داخلی */
 }
 
 @keyframes slideIn {
@@ -823,13 +880,17 @@ body {
     color: var(--gray-800);
     margin: 0;
     flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .close-minimal {
     font-size: 1.5rem;
     color: var(--gray-500);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     width: 32px;
     height: 32px;
     display: flex;
@@ -848,12 +909,14 @@ body {
 /* کانتینر بازی - کاملاً ریسپانسیو */
 .game-container {
     padding: 20px;
-    overflow-y: auto;
-    flex: 1;
+    /* این بخش امکان اسکرول محتوای بازی را فراهم می‌کند */
+    flex: 1 1 0%; 
     display: flex;
     flex-direction: column;
     gap: 16px;
     min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
 }
 
 .game-stats-minimal {
@@ -865,6 +928,7 @@ body {
     border: 1px solid var(--gray-200);
     flex-shrink: 0;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .game-stat {
@@ -938,6 +1002,7 @@ body {
     position: relative;
     overflow: hidden;
     flex-shrink: 0;
+    flex: 0 0 auto;
 }
 
 .letter-minimal.space {
@@ -1003,11 +1068,10 @@ body {
     border: 1px solid #d6d8db;
 }
 
-/* بخش اینپوت حدس - بهبود یافته برای کیبورد موبایل */
+/* بخش اینپوت حدس */
 .guess-input-section {
     margin: 0;
     flex-shrink: 0;
-    padding-bottom: env(safe-area-inset-bottom, 20px);
 }
 
 .guess-input-minimal {
@@ -1040,11 +1104,11 @@ body {
 /* بخش حدس‌های بازیکنان */
 .player-guesses-section {
     margin: 0;
-    display: none;
-    flex: 1;
+    display: flex;
+    /* امکان بزرگ شدن برای پر کردن فضای خالی و مدیریت اسکرول */
+    flex: 1 1 0%; 
     min-height: 0;
     overflow: hidden;
-    display: flex;
     flex-direction: column;
 }
 
@@ -1064,8 +1128,10 @@ body {
     border: 1px solid var(--gray-200);
     border-radius: var(--radius);
     padding: 12px;
-    flex: 1;
+    /* مدیریت اسکرول محتوای حدس‌ها */
+    flex: 1 1 0%; 
     overflow-y: auto;
+    overscroll-behavior-y: contain;
     min-height: 120px;
 }
 
@@ -1106,6 +1172,7 @@ body {
     border-radius: 4px;
     font-size: 0.75rem;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .guess-result.correct {
@@ -1124,6 +1191,7 @@ body {
     color: var(--gray-500);
     font-size: 0.75rem;
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 @keyframes fadeInUp {
@@ -1171,6 +1239,7 @@ body {
     min-width: 28px;
     text-align: center;
     transition: all 0.3s ease;
+    flex-shrink: 0;
 }
 
 .letter-badge.correct {
@@ -1200,7 +1269,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 6px;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--shadow);
     width: 100%;
     position: relative;
@@ -1235,6 +1304,13 @@ body {
     transform: none;
 }
 
+
+/*
+================================
+  5. Status & Notifications & General Utilities
+================================
+*/
+
 /* نشانگر آنلاین */
 .online-indicator {
     color: #10b981;
@@ -1249,41 +1325,31 @@ body {
     animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
 /* بج‌های وضعیت */
-.online-badge {
-    background: #10b981;
-    color: white;
+.online-badge,
+.offline-badge,
+.waiting-badge {
     padding: 4px 8px;
     border-radius: 12px;
     font-size: 0.7rem;
     font-weight: 600;
-    margin-right: 8px;
+    margin-right: 4px; 
+    flex-shrink: 0;
+}
+
+.online-badge {
+    background: #10b981;
+    color: white;
 }
 
 .offline-badge {
     background: #6b7280;
     color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 8px;
 }
 
 .waiting-badge {
     background: #f59e0b;
     color: white;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 8px;
 }
 
 /* استایل برای تاریخچه بازی */
@@ -1293,64 +1359,6 @@ body {
 
 .danger {
     color: #ef4444;
-}
-
-/* استایل جدید برای حروف در تاریخچه بازی */
-.game-history-letters {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin: 12px 0;
-    padding: 12px;
-    background: var(--gray-50);
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-}
-
-.history-letters-section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.history-letters-section h4 {
-    font-size: 0.8rem;
-    color: var(--gray-600);
-    margin: 0;
-    font-weight: 600;
-}
-
-.history-letters-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    min-height: 24px;
-    align-items: center;
-}
-
-.history-letter-badge {
-    padding: 3px 6px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    min-width: 24px;
-    text-align: center;
-}
-
-.history-letter-badge.correct {
-    background: var(--success);
-    color: white;
-}
-
-.history-letter-badge.incorrect {
-    background: var(--danger);
-    color: white;
-}
-
-.no-letters {
-    color: var(--gray-400);
-    font-size: 0.8rem;
-    font-style: italic;
 }
 
 /* نوتیفیکیشن سفارشی */
@@ -1387,274 +1395,9 @@ body {
     background: linear-gradient(135deg, #06b6d4, #0891b2);
 }
 
-@keyframes slideInRight {
-    from {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-@keyframes slideOutRight {
-    from {
-        transform: translateX(0);
-        opacity: 1;
-    }
-    to {
-        transform: translateX(100%);
-        opacity: 0;
-    }
-}
-
-/* انیمیشن‌ها */
-@keyframes winPulse {
-    0% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-    }
-    50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-    }
-    100% {
-        transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-    }
-}
-
-.win-animation {
-    animation: winPulse 2s ease-in-out;
-}
-
-/* رسپانسیو - بهینه‌سازی برای موبایل */
-@media (max-width: 480px) {
-    .container {
-        box-shadow: none;
-    }
-    
-    .header-minimal {
-        padding: 12px 16px;
-    }
-    
-    .tabs-minimal {
-        top: 65px;
-        padding: 0 12px;
-    }
-    
-    .tab-minimal {
-        padding: 12px 8px;
-        min-width: 70px;
-        font-size: 0.75rem;
-    }
-    
-    .tab-minimal i {
-        font-size: 1.1rem;
-    }
-    
-    .tab-content-minimal {
-        padding: 16px;
-        min-height: calc(100vh - 125px);
-    }
-    
-    .stats-grid-minimal {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-card-minimal {
-        padding: 16px 12px;
-    }
-    
-    /* بهینه‌سازی مودال برای موبایل */
-    .modal {
-        padding: 5px;
-    }
-    
-    .modal-content {
-        max-height: 98vh;
-        border-radius: var(--radius);
-    }
-    
-    .modal-header-minimal {
-        padding: 16px 20px;
-    }
-    
-    .modal-header-minimal h2 {
-        font-size: 1.2rem;
-    }
-    
-    .game-container {
-        padding: 16px;
-        gap: 12px;
-    }
-    
-    .game-stats-minimal {
-        padding: 12px;
-        gap: 8px;
-    }
-    
-    .game-stat {
-        font-size: 0.8rem;
-    }
-    
-    .game-stat i {
-        font-size: 1rem;
-    }
-    
-    .game-category-large {
-        font-size: 1rem;
-        padding: 10px 12px;
-    }
-    
-    .word-display-minimal {
-        padding: 12px 10px;
-        min-height: 50px;
-    }
-    
-    .letter-minimal {
-        width: 26px;
-        height: 32px;
-        font-size: 0.9rem;
-    }
-    
-    .creator-notice-minimal, .player-notice-minimal {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        font-size: 0.8rem;
-        padding: 10px 12px;
-    }
-    
-    .online-badge, .offline-badge, .waiting-badge {
-        margin-right: 0;
-        align-self: flex-start;
-        font-size: 0.65rem;
-    }
-    
-    .guess-input-field {
-        padding: 12px;
-        font-size: 1rem;
-    }
-    
-    .player-guess-item {
-        flex-direction: column;
-        gap: 4px;
-        text-align: center;
-        font-size: 0.75rem;
-    }
-    
-    .player-name,
-    .player-guess,
-    .guess-time {
-        flex: none;
-        width: 100%;
-    }
-    
-    .guess-time {
-        text-align: center;
-    }
-    
-    .guessed-letters-minimal {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-    
-    .btn-hint-minimal {
-        padding: 8px 12px;
-        font-size: 0.8rem;
-    }
-    
-    /* بهبود بخش تاریخچه برای موبایل */
-    .game-history-letters {
-        grid-template-columns: 1fr;
-        gap: 8px;
-        padding: 8px;
-    }
-    
-    .history-letters-section h4 {
-        font-size: 0.75rem;
-    }
-    
-    .history-letter-badge {
-        font-size: 0.7rem;
-        padding: 2px 4px;
-        min-width: 20px;
-    }
-}
-
-@media (max-width: 360px) {
-    .game-stats-minimal {
-        flex-direction: column;
-        gap: 8px;
-    }
-    
-    .game-stat {
-        flex-direction: row;
-        justify-content: space-between;
-        text-align: right;
-    }
-    
-    .letter-minimal {
-        width: 24px;
-        height: 30px;
-        font-size: 0.85rem;
-    }
-    
-    .modal-header-minimal {
-        padding: 12px 16px;
-    }
-    
-    .modal-header-minimal h2 {
-        font-size: 1.1rem;
-    }
-}
-
-/* اسکرول بار سفارشی */
-::-webkit-scrollbar {
-    width: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--gray-400);
-    border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
-
 /* بهبود استایل برای اینپوت و دکمه */
 .guess-input-minimal .btn-primary-minimal {
     margin-top: 8px;
-}
-
-/* استایل‌های اضافی برای زیبایی */
-.error {
-    color: var(--danger);
-    text-align: center;
-    padding: 20px;
-    font-weight: 500;
-}
-
-.loading-minimal .fa-spinner {
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* افکت‌های hover پیشرفته */
-.btn-primary-minimal, .btn-success-minimal, .btn-hint-minimal {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* گرادیانت‌های زیبا برای کارت‌ها */
@@ -1664,20 +1407,11 @@ body {
 
 /* سایه‌های بهبود یافته */
 .card-minimal, .game-item-minimal, .stat-card-minimal {
-    box-shadow: 
-        0 1px 3px 0 rgba(0, 0, 0, 0.1),
-        0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow);
 }
 
 .card-minimal:hover, .game-item-minimal:hover, .stat-card-minimal:hover {
-    box-shadow: 
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
-
-/* انیمیشن‌های ظریف برای تعاملات */
-.tab-minimal, .btn-refresh, .close-minimal {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-lg);
 }
 
 /* بهبود خوانایی برای متن‌ها */
@@ -1702,24 +1436,6 @@ h1, h2, h3, h4 {
     cursor: not-allowed;
 }
 
-/* بهبود ظاهر اسکرول‌بار در موبایل */
-@media (max-width: 480px) {
-    ::-webkit-scrollbar {
-        width: 4px;
-    }
-}
-
-/* استایل برای پیام‌های خالی */
-.empty-state-minimal h3 {
-    margin-bottom: 8px;
-    color: var(--gray-600);
-}
-
-.empty-state-minimal p {
-    color: var(--gray-500);
-    font-size: 0.9rem;
-}
-
 /* کلاس‌های کمکی برای نمایش/مخفی کردن */
 .hidden {
     display: none !important;
@@ -1737,7 +1453,59 @@ select:focus-visible {
     outline-offset: 2px;
 }
 
-/* انیمیشن برای لودینگ */
+/* استایل برای پیام‌های خالی */
+.empty-state-minimal h3 {
+    margin-bottom: 8px;
+    color: var(--gray-600);
+}
+
+.empty-state-minimal p {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+/* انیمیشن‌ها */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes winPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.win-animation {
+    animation: winPulse 2s ease-in-out;
+}
+
 @keyframes pulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
@@ -1747,842 +1515,205 @@ select:focus-visible {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* استایل جدید برای نمایش حروف بازیکنان مقابل برای سازنده */
-.opponent-guesses-section {
-    margin: 0;
-    flex-shrink: 0;
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
-.opponent-guesses-container {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 12px;
-    max-height: 150px;
-    overflow-y: auto;
+
+/*
+================================
+  6. Responsive Adjustments (Mobile Overrides)
+================================
+*/
+
+/* بهینه‌سازی برای نمایشگرهای بزرگتر از 480 پیکسل */
+@media (min-width: 481px) {
+    .container {
+        /* در دسکتاپ، سایه نمایش داده می‌شود */
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
 }
 
-.opponent-guess-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--gray-200);
-    font-size: 0.8rem;
-}
 
-.opponent-guess-item:last-child {
-    border-bottom: none;
-}
-
-.opponent-name {
-    font-weight: 600;
-    color: var(--gray-700);
-    flex: 1;
-}
-
-.opponent-letter {
-    flex: 1;
-    text-align: center;
-    font-weight: 600;
-}
-
-.opponent-result {
-    flex: 1;
-    text-align: left;
-    font-size: 0.75rem;
-}
-
-.opponent-result.correct {
-    color: var(--success);
-    font-weight: 600;
-}
-
-.opponent-result.incorrect {
-    color: var(--danger);
-    font-weight: 600;
-}
-
-/* استایل برای جریمه امتیاز */
-.penalty-notice {
-    background: linear-gradient(135deg, #fee2e2, #fecaca);
-    color: #dc2626;
-    padding: 12px 16px;
-    border-radius: var(--radius);
-    border: 1px solid #fecaca;
-    margin: 12px 0;
-    font-weight: 500;
-    font-size: 0.85rem;
-    text-align: center;
-}
-
-/* بهبود بخش کیبورد موبایل در مودال بازی */
-@media (max-height: 700px) {
-    .game-container {
-        padding: 12px;
-        gap: 10px;
+/* Mobile Optimization - max-width: 480px */
+@media (max-width: 480px) {
+    
+    .container {
+        /* حذف سایه در موبایل برای ظاهر تمام صفحه */
+        box-shadow: none; 
     }
     
-    .word-display-minimal {
-        padding: 10px 8px;
-        min-height: 45px;
+    .header-minimal {
+        padding: 12px 16px;
+    }
+
+    .tabs-minimal {
+        /* تنظیم موقعیت Sticky بر اساس ارتفاع موبایلی هدر */
+        top: var(--header-height-mobile); 
+        padding: 0 12px;
     }
     
-    .letter-minimal {
-        width: 22px;
-        height: 28px;
-        font-size: 0.8rem;
+    .tab-minimal {
+        padding: 12px 8px;
+        min-width: 70px;
+        font-size: 0.75rem;
     }
     
-    .guess-input-section {
-        padding-bottom: env(safe-area-inset-bottom, 10px);
+    .tab-content-minimal {
+        padding: 16px;
+        /* محاسبه مجدد ارتفاع */
+        min-height: calc(100vh - 125px); 
     }
-}
-
-/* استایل برای حروف پیشنهادی راهنمایی */
-.hint-suggestion {
-    background: linear-gradient(135deg, var(--warning), #eab308);
-    color: white;
-    padding: 8px 12px;
-    border-radius: var(--radius);
-    margin: 8px 0;
-    font-weight: 600;
-    text-align: center;
-    animation: pulse 2s infinite;
-}
-
-/* استایل برای نمایش جزئیات بازی در تاریخچه */
-.game-details-minimal {
-    background: var(--gray-50);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin: 12px 0;
-    border: 1px solid var(--gray-200);
-}
-
-.detail-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.detail-row:last-child {
-    border-bottom: none;
-}
-
-.detail-label {
-    color: var(--gray-600);
-    font-size: 0.85rem;
-    font-weight: 500;
-}
-
-.detail-value {
-    color: var(--gray-800);
-    font-size: 0.85rem;
-    font-weight: 600;
-}
-
-.detail-value.win {
-    color: var(--success);
-}
-
-.detail-value.lose {
-    color: var(--danger);
-}
-
-/* استایل برای نمایش امتیاز و جریمه */
-.score-display {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: var(--gray-100);
-    border-radius: var(--radius);
-    margin: 8px 0;
-}
-
-.score-label {
-    font-weight: 600;
-    color: var(--gray-700);
-    font-size: 0.9rem;
-}
-
-.score-value {
-    font-weight: 700;
-    font-size: 1rem;
-}
-
-.score-value.positive {
-    color: var(--success);
-}
-
-.score-value.negative {
-    color: var(--danger);
-}
-
-.score-penalty {
-    color: var(--danger);
-    font-size: 0.8rem;
-    margin-right: auto;
-}
-
-/* استایل برای وضعیت آنلاین بازیکنان */
-.players-online-status {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin: 12px 0;
-}
-
-.player-status-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-}
-
-.player-avatar-small {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 0.8rem;
-}
-
-.player-details {
-    flex: 1;
-}
-
-.player-details .player-name {
-    font-weight: 600;
-    color: var(--gray-800);
-    font-size: 0.9rem;
-    margin-bottom: 2px;
-}
-
-.player-meta {
-    display: flex;
-    gap: 12px;
-    font-size: 0.75rem;
-    color: var(--gray-500);
-}
-
-.player-status {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.7rem;
-}
-
-.player-status.online {
-    color: var(--success);
-}
-
-.player-status.offline {
-    color: var(--gray-400);
-}
-
-/* استایل برای نمایش پیشرفت بازی */
-.game-progress-minimal {
-    margin: 16px 0;
-}
-
-.progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
-
-.progress-label {
-    font-size: 0.9rem;
-    color: var(--gray-700);
-    font-weight: 600;
-}
-
-.progress-value {
-    font-size: 0.85rem;
-    color: var(--gray-600);
-}
-
-.progress-bar {
-    height: 8px;
-    background: var(--gray-200);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-.progress-fill.warning {
-    background: linear-gradient(135deg, var(--warning), #eab308);
-}
-
-.progress-fill.danger {
-    background: linear-gradient(135deg, var(--danger), #dc2626);
-}
-
-/* استایل برای نمایش رتبه‌بندی */
-.leaderboard-minimal {
-    margin: 20px 0;
-}
-
-.leaderboard-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    margin-bottom: 8px;
-    transition: all 0.3s ease;
-}
-
-.leaderboard-item:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow);
-}
-
-.leaderboard-rank {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: var(--gray-200);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--gray-700);
-}
-
-.leaderboard-rank.top-1 {
-    background: linear-gradient(135deg, #f59e0b, #eab308);
-    color: white;
-}
-
-.leaderboard-rank.top-2 {
-    background: linear-gradient(135deg, #6b7280, #4b5563);
-    color: white;
-}
-
-.leaderboard-rank.top-3 {
-    background: linear-gradient(135deg, #92400e, #78350f);
-    color: white;
-}
-
-.leaderboard-player {
-    flex: 1;
-}
-
-.leaderboard-name {
-    font-weight: 600;
-    color: var(--gray-800);
-    font-size: 0.9rem;
-    margin-bottom: 2px;
-}
-
-.leaderboard-stats {
-    display: flex;
-    gap: 12px;
-    font-size: 0.75rem;
-    color: var(--gray-500);
-}
-
-.leaderboard-score {
-    font-weight: 700;
-    color: var(--primary);
-    font-size: 0.9rem;
-}
-
-/* استایل برای نمایش نوتیفیکیشن‌های پیشرفته */
-.advanced-notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: white;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-xl);
-    z-index: 10000;
-    max-width: 350px;
-    animation: slideInRight 0.3s ease;
-    border-left: 4px solid var(--primary);
-}
-
-.notification-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 16px;
-    background: var(--gray-50);
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.notification-icon {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.8rem;
-}
-
-.notification-icon.success {
-    background: var(--success);
-    color: white;
-}
-
-.notification-icon.error {
-    background: var(--danger);
-    color: white;
-}
-
-.notification-icon.warning {
-    background: var(--warning);
-    color: white;
-}
-
-.notification-icon.info {
-    background: var(--info);
-    color: white;
-}
-
-.notification-title {
-    font-weight: 600;
-    color: var(--gray-800);
-    font-size: 0.9rem;
-}
-
-.notification-content {
-    padding: 16px;
-    color: var(--gray-700);
-    font-size: 0.85rem;
-    line-height: 1.5;
-}
-
-.notification-actions {
-    display: flex;
-    gap: 8px;
-    padding: 12px 16px;
-    background: var(--gray-50);
-    border-top: 1px solid var(--gray-200);
-}
-
-/* استایل برای نمایش تایمر معکوس پیشرفته */
-.countdown-timer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px 16px;
-    background: linear-gradient(135deg, #1f2937, #374151);
-    color: white;
-    border-radius: var(--radius);
-    margin: 12px 0;
-}
-
-.countdown-segment {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-.countdown-value {
-    font-size: 1.4rem;
-    font-weight: 700;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 8px;
-    border-radius: 6px;
-    min-width: 40px;
-    text-align: center;
-}
-
-.countdown-label {
-    font-size: 0.7rem;
-    opacity: 0.8;
-}
-
-.countdown-separator {
-    font-size: 1.2rem;
-    font-weight: 700;
-    opacity: 0.7;
-}
-
-/* استایل برای نمایش کارت امتیازات */
-.score-card {
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    padding: 20px;
-    margin: 16px 0;
-    box-shadow: var(--shadow);
-}
-
-.score-card-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--gray-200);
-}
-
-.score-card-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--gray-800);
-    margin: 0;
-}
-
-.score-breakdown {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.score-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-}
-
-.score-item-label {
-    color: var(--gray-600);
-    font-size: 0.9rem;
-}
-
-.score-item-value {
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.score-item-value.positive {
-    color: var(--success);
-}
-
-.score-item-value.negative {
-    color: var(--danger);
-}
-
-.score-total {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 0;
-    border-top: 2px solid var(--gray-200);
-    margin-top: 8px;
-}
-
-.score-total-label {
-    font-weight: 700;
-    color: var(--gray-800);
-    font-size: 1rem;
-}
-
-.score-total-value {
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: var(--primary);
-}
-
-/* استایل برای نمایش حروف ویژه */
-.special-letters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 12px 0;
-}
-
-.special-letter {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-}
-
-.special-letter.vowel {
-    background: linear-gradient(135deg, #ec4899, #db2777);
-    color: white;
-}
-
-.special-letter.consonant {
-    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    color: white;
-}
-
-.special-letter.rare {
-    background: linear-gradient(135deg, #f59e0b, #eab308);
-    color: white;
-}
-
-/* استایل برای نمایش آمار پیشرفته */
-.advanced-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin: 20px 0;
-}
-
-.stat-item-advanced {
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    padding: 16px;
-    text-align: center;
-    transition: all 0.3s ease;
-}
-
-.stat-item-advanced:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow);
-}
-
-.stat-value-advanced {
-    font-size: 1.8rem;
-    font-weight: 700;
-    color: var(--primary);
-    margin-bottom: 4px;
-}
-
-.stat-label-advanced {
-    font-size: 0.8rem;
-    color: var(--gray-600);
-    font-weight: 500;
-}
-
-.stat-trend {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    font-size: 0.7rem;
-    margin-top: 4px;
-}
-
-.stat-trend.positive {
-    color: var(--success);
-}
-
-.stat-trend.negative {
-    color: var(--danger);
-}
-
-/* استایل برای نمایش راهنمای بازی */
-.game-guide {
-    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-    border: 1px solid #bae6fd;
-    border-radius: var(--radius);
-    padding: 16px;
-    margin: 16px 0;
-}
-
-.guide-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.guide-title {
-    font-weight: 600;
-    color: #0c4a6e;
-    font-size: 0.9rem;
-}
-
-.guide-content {
-    color: #0369a1;
-    font-size: 0.8rem;
-    line-height: 1.5;
-}
-
-.guide-tips {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 10px;
-}
-
-.guide-tip {
-    display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    font-size: 0.75rem;
-}
-
-.guide-tip i {
-    color: #0ea5e9;
-    margin-top: 2px;
-}
-
-/* رسپانسیو برای نمایش‌های کوچک‌تر */
-@media (max-width: 380px) {
-    .advanced-stats {
+    
+    /* Stats Grid: تک ستون شدن در موبایل */
+    .stats-grid-minimal {
         grid-template-columns: 1fr;
     }
     
-    .countdown-timer {
-        padding: 8px 12px;
+    .stat-card-minimal {
+        padding: 16px 12px;
     }
     
-    .countdown-value {
+    /* بهینه‌سازی مودال برای موبایل */
+    .modal {
+        padding: 0; 
+        /* مودال از پایین صفحه باز می‌شود */
+        align-items: flex-end; 
+    }
+
+    .modal-content {
+        max-height: 98vh;
+        border-radius: var(--radius) var(--radius) 0 0; /* فقط گوشه‌های بالا گرد */
+        width: 100%; 
+        margin: 0;
+    }
+    
+    .modal-header-minimal {
+        padding: 16px 20px;
+    }
+    
+    .modal-header-minimal h2 {
         font-size: 1.2rem;
-        min-width: 32px;
-        padding: 6px;
     }
     
-    .special-letter {
-        width: 32px;
-        height: 32px;
+    .game-container {
+        padding: 16px;
+        gap: 12px;
+    }
+    
+    .game-stats-minimal {
+        padding: 12px;
+        gap: 8px;
+    }
+    
+    .game-stat {
         font-size: 0.8rem;
     }
     
-    .notification-actions {
-        flex-direction: column;
+    .game-category-large {
+        font-size: 1rem;
+        padding: 10px 12px;
     }
     
-    .leaderboard-stats {
+    .word-display-minimal {
+        padding: 12px 10px;
+        min-height: 50px;
+    }
+    
+    .letter-minimal {
+        width: 26px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+    
+    .creator-notice-minimal, .player-notice-minimal {
+        /* تبدیل به ستون برای خوانایی بهتر در فضای کم */
+        flex-direction: column; 
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.8rem;
+        padding: 10px 12px;
+    }
+    
+    .online-badge, .offline-badge, .waiting-badge {
+        margin-right: 0;
+        align-self: flex-start;
+        font-size: 0.65rem;
+    }
+    
+    .guess-input-field {
+        padding: 12px;
+        font-size: 1rem;
+    }
+    
+    /* لیست حدس‌ها: تبدیل به ستون برای جلوگیری از سرریز */
+    .player-guess-item {
         flex-direction: column;
         gap: 4px;
+        text-align: center;
+        font-size: 0.75rem;
+        padding: 8px 0;
+    }
+    
+    .player-name,
+    .player-guess,
+    .guess-time {
+        flex: none;
+        width: 100%;
+        text-align: center;
+        /* اجازه به شکستن خط در صورت نیاز */
+        white-space: normal; 
+        overflow: visible;
+        text-overflow: clip;
+    }
+    
+    /* حروف حدس زده شده: تک ستون شدن */
+    .guessed-letters-minimal {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .btn-hint-minimal {
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+
+    /* بهبود ظاهر اسکرول‌بار در موبایل */
+    ::-webkit-scrollbar {
+        width: 4px;
     }
 }
 
-/* انیمیشن‌های ویژه */
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.shake {
-    animation: shake 0.5s ease-in-out;
-}
-
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 5px rgba(102, 126, 234, 0.5); }
-    50% { box-shadow: 0 0 20px rgba(102, 126, 234, 0.8); }
-}
-
-.glow {
-    animation: glow 2s ease-in-out infinite;
-}
-
-@keyframes slideInUp {
-    from {
-        transform: translateY(100%);
-        opacity: 0;
+/* Very Small Mobile Optimization - max-width: 360px */
+@media (max-width: 360px) {
+    /* آمار بازی: چیدمان ستونی و سپس محتوای هر آمار به صورت ردیفی */
+    .game-stats-minimal {
+        flex-direction: column;
+        gap: 8px;
     }
-    to {
-        transform: translateY(0);
-        opacity: 1;
+    
+    .game-stat {
+        flex-direction: row;
+        justify-content: space-between;
+        text-align: right;
     }
-}
+    
+    .game-stat span {
+        text-align: left;
+    }
 
-.slide-in-up {
-    animation: slideInUp 0.3s ease;
-}
-
-/* استایل برای حالت تاریک (آماده برای آینده) */
-@media (prefers-color-scheme: dark) {
-    .dark-mode {
-        --gray-50: #111827;
-        --gray-100: #1f2937;
-        --gray-200: #374151;
-        --gray-300: #4b5563;
-        --gray-400: #6b7280;
-        --gray-500: #9ca3af;
-        --gray-600: #d1d5db;
-        --gray-700: #e5e7eb;
-        --gray-800: #f3f4f6;
-        --gray-900: #f9fafb;
+    .letter-minimal {
+        width: 24px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+    
+    .modal-header-minimal {
+        padding: 12px 16px;
+    }
+    
+    .modal-header-minimal h2 {
+        font-size: 1.1rem;
     }
 }
-
-/* بهبودهای دسترسی */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* استایل برای حالت بارگذاری پیشرفته */
-.skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-}
-
-@keyframes loading {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
-
-.skeleton-text {
-    height: 1em;
-    border-radius: 4px;
-    margin-bottom: 8px;
-}
-
-.skeleton-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-}
-
-/* استایل برای اسکرول‌های سفارشی */
-.custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: var(--gray-400) var(--gray-100);
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: var(--gray-400);
-    border-radius: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: var(--gray-500);
-}
-
-/* پایان فایل استایل */
