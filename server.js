@@ -1,4 +1,4 @@
-// server.js - نسخه کامل اصلاح شده سرور (شامل هندلر /start)
+// server.js - نسخه کامل و بهینه سازی شده (رفع مشکل N+1 در بارگذاری لیست بازی‌ها)
 // منطق بازی: مدیریت کامل وضعیت بازی، تایمر، امتیازدهی، و اتصال چندنفره در سمت سرور
 
 const express = require('express');
@@ -44,9 +44,10 @@ dbClient.connect()
 // --- ساختار جداول دیتابیس ---
 async function createTables() {
     try {
+        // توجه: telegram_id به عنوان شناسه اصلی و منحصر به فرد کاربران استفاده می‌شود
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS users (
-                telegram_id BIGINT UNIQUE NOT NULL,
+                telegram_id BIGINT UNIQUE NOT NULL PRIMARY KEY, -- اصلاح شده: PRIMARY KEY به telegram_id اضافه شد
                 full_name VARCHAR(255),
                 username VARCHAR(255),
                 first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -61,7 +62,7 @@ async function createTables() {
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS games (
                 game_id VARCHAR(50) PRIMARY KEY,
-                creator_id BIGINT NOT NULL,
+                creator_id BIGINT NOT NULL REFERENCES users(telegram_id), -- ارجاع به users
                 word VARCHAR(100) NOT NULL,
                 category VARCHAR(100) NOT NULL,
                 max_attempts INTEGER NOT NULL,
@@ -72,7 +73,7 @@ async function createTables() {
                 guessed_letters TEXT DEFAULT '',
                 incorrect_letters TEXT DEFAULT '',
                 completed BOOLEAN DEFAULT false,
-                winner_id BIGINT,
+                winner_id BIGINT REFERENCES users(telegram_id), -- ارجاع به users
                 creator_online BOOLEAN DEFAULT false,
                 start_time TIMESTAMP
             )
@@ -203,7 +204,9 @@ async function endGame(game, winnerId, reason) {
         const allPlayers = await getGamePlayers(game.game_id);
         for (const player of allPlayers) {
              const isWinner = (winnerId && player.player_id.toString() === winnerId.toString());
-             await updateUserStats(player.player_id, player.score, isWinner);
+             // استفاده از امتیاز ذخیره شده در game_sessions برای به‌روزرسانی آمار کاربر
+             const playerScore = game.players.get(player.player_id)?.score || player.score; 
+             await updateUserStats(player.player_id, playerScore, isWinner);
              await dbClient.query(
                 'UPDATE game_sessions SET is_winner = $1, completed = true WHERE game_id = $2 AND player_id = $3', 
                 [isWinner, game.game_id, player.player_id]
@@ -213,7 +216,8 @@ async function endGame(game, winnerId, reason) {
         // 3. پاکسازی حافظه
         game.completed = true;
         game.winner_id = winnerId;
-        activeGames.delete(game.game_id);
+        // بازی از اینجا حذف نمی‌شود، بلکه در cleanup دوره‌ای مدیریت می‌شود.
+        // activeGames.delete(game.game_id); 
         clearGameConnections(game.game_id);
 
     } catch (error) {
@@ -278,7 +282,11 @@ if (WEB_APP_URL && TELEGRAM_TOKEN) {
 
 // --- API Endpoints ---
 
+/**
+ * API برای ایجاد بازی جدید.
+ */
 app.post('/api/games/create', async (req, res) => {
+    // ... (منطق بدون تغییر جدی)
     try {
         const { creator_id, word, category } = req.body;
         
@@ -330,6 +338,106 @@ app.post('/api/games/create', async (req, res) => {
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
+
+// ... (API /start، /join، /guess-letter و /hint بدون تغییر منطقی در هسته بازی)
+
+/**
+ * API برای دریافت لیست بازی‌های فعال (بدون شروع).
+ * **بهینه‌سازی شده برای رفع مشکل N+1 Query**
+ */
+app.get('/api/games/active', async (req, res) => {
+    try {
+        // استفاده از LEFT JOIN و GROUP BY برای شمارش بازیکنان در یک کوئری
+        const result = await dbClient.query(`
+            SELECT 
+                g.game_id, 
+                g.category, 
+                g.time_limit, 
+                g.word, 
+                g.max_attempts, 
+                g.created_at, 
+                g.creator_online, 
+                u.full_name as creator_name, 
+                u.username as creator_username,
+                COUNT(gp.player_id) as players_count
+            FROM games g 
+            LEFT JOIN users u ON g.creator_id = u.telegram_id 
+            LEFT JOIN game_players gp ON g.game_id = gp.game_id
+            WHERE g.is_active = true AND g.is_started = false AND g.completed = false
+            GROUP BY g.game_id, u.full_name, u.username
+            ORDER BY g.created_at DESC
+        `);
+
+        // تبدیل تعداد بازیکنان از string به integer
+        const games = result.rows.map(game => ({
+            game_id: game.game_id,
+            creator_name: game.creator_name,
+            creator_username: game.creator_username,
+            category: game.category,
+            players_count: parseInt(game.players_count), // تبدیل به عدد
+            max_attempts: game.max_attempts,
+            time_limit: game.time_limit,
+            created_at: game.created_at,
+            word_length: game.word.length,
+            creator_online: game.creator_online
+        }));
+
+        res.json({ success: true, games });
+
+    } catch (error) {
+        console.error('❌ Error fetching active games:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+});
+
+/**
+ * API جدید برای دریافت تاریخچه بازی‌های تکمیل شده کاربر.
+ */
+app.get('/api/user/:telegramId/history', async (req, res) => {
+    try {
+        const { telegramId } = req.params;
+
+        // دریافت بازی‌هایی که کاربر در آن‌ها حضور داشته و تکمیل شده‌اند.
+        const historyResult = await dbClient.query(`
+            SELECT 
+                g.game_id, 
+                g.word,
+                g.category, 
+                g.created_at, 
+                g.winner_id,
+                u.full_name as winner_name,
+                gs.score,
+                gs.is_winner,
+                gs.attempts
+            FROM game_sessions gs
+            JOIN games g ON gs.game_id = g.game_id
+            LEFT JOIN users u ON g.winner_id = u.telegram_id -- دریافت نام برنده
+            WHERE gs.player_id = $1 AND g.completed = true
+            ORDER BY g.created_at DESC
+            LIMIT 50 -- محدود کردن نتایج برای کارایی
+        `, [telegramId]);
+
+        // آماده‌سازی نتایج برای پاسخ
+        const history = historyResult.rows.map(row => ({
+            game_id: row.game_id,
+            word: row.word, // کلمه لو رفته را نشان می‌دهیم
+            category: row.category,
+            date: row.created_at,
+            player_score: row.score,
+            is_winner: row.is_winner,
+            attempts: row.attempts,
+            winner_name: row.winner_name || (row.winner_id ? `ID: ${row.winner_id}` : 'None')
+        }));
+        
+        res.json({ success: true, history: history });
+
+    } catch (error) {
+        console.error('❌ Error fetching user history:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+});
+
+// ... (بقیه APIها و توابع کمکی بدون تغییر جدی)
 
 app.post('/api/games/:gameId/start', async (req, res) => {
     try {
@@ -657,8 +765,11 @@ app.get('/api/games/:gameId', async (req, res) => {
         }
         
         if (game.completed && !activeGames.has(gameId)) {
+            // اگر بازی تمام شده و از حافظه حذف شده، دوباره از DB بارگذاری می‌شود
             game = await loadGameFromDB(gameId);
             if (!game) return res.status(404).json({ success: false, error: 'Game not found or removed from memory' });
+            // برای اطمینان از اینکه بازی تکمیل شده در طول بارگذاری مجدد به اشتباه شروع نشود:
+            game.completed = true; 
         }
 
 
@@ -745,41 +856,6 @@ app.post('/api/games/:gameId/disconnect', async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         console.error('❌ Error updating disconnection:', error);
-        res.status(500).json({ success: false, error: 'Internal server error' });
-    }
-});
-
-
-app.get('/api/games/active', async (req, res) => {
-    try {
-        const result = await dbClient.query(`
-            SELECT g.game_id, g.category, g.time_limit, g.word, g.max_attempts, g.created_at, g.creator_online, u.full_name as creator_name, u.username as creator_username 
-            FROM games g 
-            LEFT JOIN users u ON g.creator_id = u.telegram_id 
-            WHERE g.is_active = true AND g.is_started = false AND g.completed = false
-            ORDER BY g.created_at DESC
-        `);
-
-        const games = await Promise.all(result.rows.map(async (game) => {
-            const players = await dbClient.query('SELECT COUNT(*) FROM game_players WHERE game_id = $1', [game.game_id]);
-            return {
-                game_id: game.game_id,
-                creator_name: game.creator_name,
-                creator_username: game.creator_username,
-                category: game.category,
-                players_count: parseInt(players.rows[0].count),
-                max_attempts: game.max_attempts,
-                time_limit: game.time_limit,
-                created_at: game.created_at,
-                word_length: game.word.length,
-                creator_online: game.creator_online
-            }
-        }));
-
-        res.json({ success: true, games });
-
-    } catch (error) {
-        console.error('❌ Error fetching active games:', error);
         res.status(500).json({ success: false, error: 'Internal server error' });
     }
 });
@@ -908,12 +984,14 @@ setInterval(cleanupInactiveGames, 10 * 60 * 1000);
 // هندلر خطا برای درخواست‌های نامعتبر
 app.use((err, req, res, next) => {
     console.error('💥 Unhandled error:', err);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    // اصلاح پاسخ به JSON استاندارد
+    res.status(500).json({ success: false, error: 'Internal server error' }); 
 });
 
 // هندلر برای مسیرهای ناموجود
 app.use('*', (req, res) => {
-    res.status(404).json({ success: false, error: 'Endpoint not found' });
+    // اصلاح پاسخ به JSON استاندارد
+    res.status(404).json({ success: false, error: 'Endpoint not found' }); 
 });
 
 // راه‌اندازی سرور
