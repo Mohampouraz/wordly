@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>پنل کاربری - ربات بازی</title>
+    <title>پنل کاربری - بازی حدس کلمه</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- اسکریپت رسمی تلگرام -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -18,7 +17,7 @@
                 <i class="fab fa-telegram"></i>
                 <div>
                     <h1>پنل کاربری</h1>
-                    <p class="subtitle">ربات بازی تعاملی</p>
+                    <p class="subtitle">بازی حدس کلمه</p>
                 </div>
             </div>
             <div class="user-badge" id="userBadge">
@@ -27,181 +26,301 @@
             </div>
         </header>
 
-        <!-- کارت اطلاعات اصلی -->
-        <div class="main-card">
-            <div class="card-header">
-                <i class="fas fa-id-card"></i>
-                <h2>اطلاعات کاربری</h2>
+        <!-- تب‌ها -->
+        <div class="tabs-container">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="openTab('profile')">
+                    <i class="fas fa-user"></i>
+                    پروفایل
+                </button>
+                <button class="tab-btn" onclick="openTab('game')">
+                    <i class="fas fa-gamepad"></i>
+                    بازی
+                </button>
+                <button class="tab-btn" onclick="openTab('stats')">
+                    <i class="fas fa-chart-bar"></i>
+                    آمار
+                </button>
             </div>
-            <div class="card-content">
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-icon user-id">
-                            <i class="fas fa-fingerprint"></i>
-                        </div>
-                        <div class="info-content">
-                            <label>شناسه کاربری</label>
-                            <span id="userId" class="info-value">---</span>
-                        </div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="info-icon user-name">
-                            <i class="fas fa-user-tag"></i>
-                        </div>
-                        <div class="info-content">
-                            <label>نام کامل</label>
-                            <span id="fullName" class="info-value">---</span>
-                        </div>
-                    </div>
-                    
-                    <div class="info-item">
-                        <div class="info-icon user-username">
-                            <i class="fas fa-at"></i>
-                        </div>
-                        <div class="info-content">
-                            <label>نام کاربری</label>
-                            <span id="username" class="info-value">---</span>
-                        </div>
-                    </div>
+        </div>
 
-                    <div class="info-item">
-                        <div class="info-icon user-score">
-                            <i class="fas fa-trophy"></i>
+        <!-- محتوای تب پروفایل -->
+        <div id="profile" class="tab-content active">
+            <!-- کارت اطلاعات اصلی -->
+            <div class="main-card">
+                <div class="card-header">
+                    <i class="fas fa-id-card"></i>
+                    <h2>اطلاعات کاربری</h2>
+                </div>
+                <div class="card-content">
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <div class="info-icon user-id">
+                                <i class="fas fa-fingerprint"></i>
+                            </div>
+                            <div class="info-content">
+                                <label>شناسه کاربری</label>
+                                <span id="userId" class="info-value">---</span>
+                            </div>
                         </div>
-                        <div class="info-content">
-                            <label>امتیاز بازی</label>
-                            <span id="gameScore" class="info-value">0</span>
+                        
+                        <div class="info-item">
+                            <div class="info-icon user-name">
+                                <i class="fas fa-user-tag"></i>
+                            </div>
+                            <div class="info-content">
+                                <label>نام کامل</label>
+                                <span id="fullName" class="info-value">---</span>
+                            </div>
                         </div>
+                        
+                        <div class="info-item">
+                            <div class="info-icon user-username">
+                                <i class="fas fa-at"></i>
+                            </div>
+                            <div class="info-content">
+                                <label>نام کاربری</label>
+                                <span id="username" class="info-value">---</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- کارت‌های اطلاعات زمانی -->
+            <div class="cards-container">
+                <div class="info-card">
+                    <div class="card-icon persian-date">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>تاریخ امروز</h3>
+                        <p id="persianDate" class="card-value">---</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="card-icon current-time">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>ساعت فعلی</h3>
+                        <p id="currentTime" class="card-value">---</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="card-icon first-seen">
+                        <i class="fas fa-sign-in-alt"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>اولین بازدید</h3>
+                        <p id="firstSeen" class="card-value">---</p>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="card-icon last-seen">
+                        <i class="fas fa-eye"></i>
+                    </div>
+                    <div class="card-info">
+                        <h3>آخرین بازدید</h3>
+                        <p id="lastSeen" class="card-value">---</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- کارت‌های اطلاعات زمانی -->
-        <div class="cards-container">
-            <div class="info-card">
-                <div class="card-icon persian-date">
-                    <i class="fas fa-calendar-alt"></i>
+        <!-- محتوای تب بازی -->
+        <div id="game" class="tab-content">
+            <!-- کارت ایجاد بازی -->
+            <div class="main-card">
+                <div class="card-header">
+                    <i class="fas fa-plus-circle"></i>
+                    <h2>ایجاد بازی جدید</h2>
                 </div>
-                <div class="card-info">
-                    <h3>تاریخ امروز</h3>
-                    <p id="persianDate" class="card-value">---</p>
-                </div>
-            </div>
-
-            <div class="info-card">
-                <div class="card-icon current-time">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="card-info">
-                    <h3>ساعت فعلی</h3>
-                    <p id="currentTime" class="card-value">---</p>
-                </div>
-            </div>
-
-            <div class="info-card">
-                <div class="card-icon first-seen">
-                    <i class="fas fa-sign-in-alt"></i>
-                </div>
-                <div class="card-info">
-                    <h3>اولین بازدید</h3>
-                    <p id="firstSeen" class="card-value">---</p>
-                </div>
-            </div>
-
-            <div class="info-card">
-                <div class="card-icon last-seen">
-                    <i class="fas fa-eye"></i>
-                </div>
-                <div class="card-info">
-                    <h3>آخرین بازدید</h3>
-                    <p id="lastSeen" class="card-value">---</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- آمار ربات -->
-        <div class="stats-card">
-            <div class="stats-header">
-                <i class="fas fa-chart-bar"></i>
-                <h2>آمار ربات</h2>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-icon total-users">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-info">
-                        <label>کل کاربران</label>
-                        <span id="totalUsers" class="stat-value">0</span>
+                <div class="card-content">
+                    <div class="game-form">
+                        <div class="form-group">
+                            <label for="gameWord">کلمه مورد نظر</label>
+                            <input type="text" id="gameWord" placeholder="کلمه را وارد کنید..." maxlength="20">
+                            <small>کلمه باید بین ۳ تا ۲۰ حرف باشد</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gameCategory">دسته‌بندی</label>
+                            <select id="gameCategory">
+                                <option value="عمومی">عمومی</option>
+                                <option value="جانوران">جانوران</option>
+                                <option value="میوه‌ها">میوه‌ها</option>
+                                <option value="شهرها">شهرها</option>
+                                <option value="کشورها">کشورها</option>
+                                <option value="اشخاص">اشخاص مشهور</option>
+                                <option value="فیلم">فیلم‌ها</option>
+                                <option value="کتاب">کتاب‌ها</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn btn-primary btn-large" onclick="createGame()">
+                            <i class="fas fa-play"></i>
+                            شروع بازی
+                        </button>
                     </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-icon active-users">
-                        <i class="fas fa-user-check"></i>
-                    </div>
-                    <div class="stat-info">
-                        <label>کاربران فعال</label>
-                        <span id="activeUsers" class="stat-value">0</span>
+            </div>
+
+            <!-- کارت پیوستن به بازی -->
+            <div class="main-card">
+                <div class="card-header">
+                    <i class="fas fa-users"></i>
+                    <h2>پیوستن به بازی</h2>
+                </div>
+                <div class="card-content">
+                    <div class="join-game-form">
+                        <div class="form-group">
+                            <label for="gameCode">کد بازی</label>
+                            <input type="text" id="gameCode" placeholder="کد ۶ رقمی بازی" maxlength="6" style="text-transform: uppercase">
+                        </div>
+                        
+                        <button class="btn btn-success btn-large" onclick="joinGame()">
+                            <i class="fas fa-sign-in-alt"></i>
+                            پیوستن به بازی
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- دکمه‌های اقدام -->
-        <div class="action-buttons">
-            <button class="btn btn-primary" onclick="showUserModal()">
-                <i class="fas fa-user-circle"></i>
-                مشاهده کامل پروفایل
-            </button>
-            <button class="btn btn-success" onclick="simulateGame()">
-                <i class="fas fa-gamepad"></i>
-                شبیه‌سازی بازی
-            </button>
-            <button class="btn btn-info" onclick="refreshUserData()">
-                <i class="fas fa-sync-alt"></i>
-                بروزرسانی اطلاعات
-            </button>
+        <!-- محتوای تب آمار -->
+        <div id="stats" class="tab-content">
+            <!-- آمار ربات -->
+            <div class="stats-card">
+                <div class="stats-header">
+                    <i class="fas fa-chart-bar"></i>
+                    <h2>آمار ربات</h2>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-icon total-users">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <label>کل کاربران</label>
+                            <span id="totalUsers" class="stat-value">۰</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon active-users">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <label>کاربران فعال</label>
+                            <span id="activeUsers" class="stat-value">۰</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- آمار کاربر -->
+            <div class="main-card">
+                <div class="card-header">
+                    <i class="fas fa-trophy"></i>
+                    <h2>آمار بازی‌های شما</h2>
+                </div>
+                <div class="card-content">
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-icon total-games">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <div class="stat-info">
+                                <label>کل بازی‌ها</label>
+                                <span id="totalGames" class="stat-value">۰</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon wins">
+                                <i class="fas fa-crown"></i>
+                            </div>
+                            <div class="stat-info">
+                                <label>بردها</label>
+                                <span id="wins" class="stat-value">۰</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon score">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div class="stat-info">
+                                <label>امتیاز کل</label>
+                                <span id="userScore" class="stat-value">۰</span>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon rate">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-info">
+                                <label>نرخ برد</label>
+                                <span id="winRate" class="stat-value">۰٪</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- مودال پروفایل -->
-    <div id="userModal" class="modal">
-        <div class="modal-content">
+    <!-- مودال بازی -->
+    <div id="gameModal" class="modal game-modal">
+        <div class="modal-content game-modal-content">
             <div class="modal-header">
-                <h2>پروفایل کامل کاربر</h2>
-                <span class="close" onclick="closeUserModal()">&times;</span>
+                <h2 id="gameModalTitle">بازی حدس کلمه</h2>
+                <span class="close" onclick="closeGameModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <div class="modal-info">
-                    <div class="modal-item">
-                        <i class="fas fa-id-badge"></i>
-                        <div>
-                            <strong>شناسه تلگرام:</strong>
-                            <span id="modalUserId">---</span>
+                <div class="game-info">
+                    <div class="game-stats">
+                        <div class="stat">
+                            <i class="fas fa-clock"></i>
+                            <span id="timer">۰۰:۰۰</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-redo"></i>
+                            <span id="attempts">۰/۰</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-star"></i>
+                            <span id="currentScore">۰</span>
                         </div>
                     </div>
-                    <div class="modal-item">
-                        <i class="fas fa-user"></i>
-                        <div>
-                            <strong>نام کامل:</strong>
-                            <span id="modalFullName">---</span>
-                        </div>
+                    
+                    <div class="word-display" id="wordDisplay">
+                        <!-- کلمه اینجا نمایش داده می‌شود -->
                     </div>
-                    <div class="modal-item">
-                        <i class="fas fa-at"></i>
-                        <div>
-                            <strong>نام کاربری:</strong>
-                            <span id="modalUsername">---</span>
-                        </div>
+                    
+                    <div class="category">
+                        <i class="fas fa-tag"></i>
+                        <span id="gameCategoryDisplay">دسته‌بندی: عمومی</span>
                     </div>
-                    <div class="modal-item">
-                        <i class="fas fa-trophy"></i>
-                        <div>
-                            <strong>امتیاز بازی:</strong>
-                            <span id="modalGameScore">0</span>
-                        </div>
+                    
+                    <div class="guess-input">
+                        <input type="text" id="guessInput" placeholder="حدس خود را وارد کنید..." maxlength="20">
+                        <button class="btn btn-primary" onclick="submitGuess()">
+                            <i class="fas fa-paper-plane"></i>
+                            ارسال حدس
+                        </button>
+                    </div>
+                    
+                    <div class="hint-section">
+                        <button class="btn btn-hint" onclick="useHint()" id="hintBtn">
+                            <i class="fas fa-lightbulb"></i>
+                            راهنمایی (<span id="hintCount">۲</span>)
+                        </button>
+                    </div>
+                    
+                    <div class="guess-history" id="guessHistory">
+                        <!-- تاریخچه حدس‌ها اینجا نمایش داده می‌شود -->
                     </div>
                 </div>
             </div>
