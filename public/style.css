@@ -13,61 +13,23 @@
     --info: #17a2b8;
     --dark: #343a40;
     --light: #f8f9fa;
+    --border: #e9ecef;
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
 body {
-    font-family: 'Vazir', sans-serif;
+    font-family: 'Vazirmatn', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
     line-height: 1.6;
     min-height: 100vh;
     padding: 20px;
+    direction: rtl;
 }
 
 .container {
-    max-width: 800px;
+    max-width: 1200px;
     margin: 0 auto;
-}
-
-/* نوتیفیکیشن */
-.notification {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    left: 20px;
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-    padding: 15px 20px;
-    border-radius: 15px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    transform: translateY(-100px);
-    opacity: 0;
-    transition: all 0.3s ease;
-}
-
-.notification.show {
-    transform: translateY(0);
-    opacity: 1;
-}
-
-.notification.hidden {
-    display: none;
-}
-
-.notification-content {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.notification-close {
-    background: none;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 5px;
-    margin-right: auto;
 }
 
 /* هدر */
@@ -80,7 +42,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
 }
 
 .logo {
@@ -117,13 +79,75 @@ body {
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
+/* تب‌ها */
+.tabs-container {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.tabs {
+    display: flex;
+    background: #f8f9fa;
+    border-radius: 15px 15px 0 0;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 15px 20px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.tab-btn:hover {
+    background: rgba(255, 255, 255, 0.5);
+    color: var(--primary);
+}
+
+.tab-btn.active {
+    background: white;
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.tab-content {
+    display: none;
+    background: white;
+    padding: 30px;
+    border-radius: 0 0 15px 15px;
+}
+
+.tab-content.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* کارت اصلی */
 .main-card {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 20px;
     margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     overflow: hidden;
 }
 
@@ -144,10 +168,97 @@ body {
     padding: 30px;
 }
 
+/* فرم‌ها */
+.game-form, .join-game-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: bold;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.form-group input, .form-group select {
+    padding: 12px 15px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group small {
+    color: #666;
+    font-size: 0.8rem;
+}
+
+/* دکمه‌ها */
+.btn {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.btn-large {
+    padding: 15px 30px;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--success), #20c997);
+    color: white;
+}
+
+.btn-hint {
+    background: linear-gradient(135deg, var(--warning), #fd7e14);
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+/* گرید اطلاعات */
 .info-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
 }
 
 .info-item {
@@ -158,7 +269,7 @@ body {
     background: var(--light);
     border-radius: 15px;
     transition: all 0.3s ease;
-    border: 1px solid #e9ecef;
+    border: 1px solid var(--border);
 }
 
 .info-item:hover {
@@ -209,7 +320,7 @@ body {
     backdrop-filter: blur(10px);
     padding: 25px;
     border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     display: flex;
     align-items: center;
     gap: 20px;
@@ -256,7 +367,7 @@ body {
     backdrop-filter: blur(10px);
     border-radius: 20px;
     margin-bottom: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow);
     overflow: hidden;
 }
 
@@ -271,7 +382,7 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 0;
 }
 
@@ -281,14 +392,15 @@ body {
     gap: 20px;
     padding: 25px;
     transition: all 0.3s ease;
+    border-bottom: 1px solid var(--border);
 }
 
 .stat-item:hover {
     background: #f8f9fa;
 }
 
-.stat-item:nth-child(1) {
-    border-left: 1px solid #e9ecef;
+.stat-item:nth-child(odd) {
+    border-left: 1px solid var(--border);
 }
 
 .stat-icon {
@@ -304,7 +416,11 @@ body {
 }
 
 .total-users { background: var(--primary); }
-.online-users { background: var(--success); }
+.active-users { background: var(--success); }
+.total-games { background: var(--info); }
+.wins { background: var(--warning); }
+.score { background: #9b59b6; }
+.rate { background: #e74c3c; }
 
 .stat-info label {
     display: block;
@@ -319,51 +435,172 @@ body {
     font-size: 1.3rem;
 }
 
-/* دکمه‌ها */
-.action-buttons {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 15px;
+/* مودال بازی */
+.game-modal .modal-content {
+    max-width: 600px;
+    width: 95%;
+    border-radius: 20px;
+    overflow: hidden;
 }
 
-.btn {
-    padding: 15px 20px;
-    border: none;
+.game-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.game-stats {
+    display: flex;
+    justify-content: space-around;
+    background: var(--light);
+    padding: 15px;
     border-radius: 15px;
-    font-family: 'Vazir', sans-serif;
-    font-size: 0.9rem;
+    border: 1px solid var(--border);
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-weight: bold;
-    cursor: pointer;
+    color: #333;
+}
+
+.stat i {
+    color: var(--primary);
+    font-size: 1.2rem;
+}
+
+.word-display {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 20px;
+    background: var(--light);
+    border-radius: 15px;
+    border: 2px solid var(--border);
+    min-height: 80px;
+    align-items: center;
+}
+
+.letter {
+    width: 40px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: bold;
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.letter.space {
+    width: 20px;
+    background: transparent;
+    border: none;
+}
+
+.letter.revealed {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+
+.category {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    transition: all 0.3s ease;
-    text-decoration: none;
+    padding: 10px;
+    background: linear-gradient(135deg, var(--info), #3498db);
+    color: white;
+    border-radius: 10px;
+    font-weight: bold;
 }
 
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+.guess-input {
+    display: flex;
+    gap: 10px;
+}
+
+.guess-input input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.guess-input input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.hint-section {
+    display: flex;
+    justify-content: center;
+}
+
+.guess-history {
+    max-height: 200px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 15px;
+    background: var(--light);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.guess-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+.guess-letters {
+    display: flex;
+    gap: 5px;
+    flex: 1;
+    justify-content: center;
+}
+
+.guess-letter {
+    width: 30px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.guess-letter.correct {
+    background: var(--success);
     color: white;
 }
 
-.btn-secondary {
-    background: linear-gradient(135deg, #6c757d, #495057);
+.guess-letter.wrong-position {
+    background: var(--warning);
     color: white;
 }
 
-.btn-success {
-    background: linear-gradient(135deg, #28a745, #20c997);
+.guess-letter.wrong {
+    background: var(--danger);
     color: white;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.btn:active {
-    transform: translateY(0);
 }
 
 /* مودال */
@@ -430,59 +667,6 @@ body {
     padding: 30px;
 }
 
-.modal-info {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.modal-item {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 10px;
-}
-
-.modal-item i {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 1rem;
-    flex-shrink: 0;
-}
-
-.modal-item i.fa-id-badge { background: var(--primary); }
-.modal-item i.fa-user { background: var(--success); }
-.modal-item i.fa-at { background: var(--info); }
-.modal-item i.fa-trophy { background: var(--warning); }
-.modal-item i.fa-calendar { background: #ff6b6b; }
-.modal-item i.fa-clock { background: #4834d4; }
-.modal-item i.fa-history { background: #00d2d3; }
-.modal-item i.fa-redo { background: #f368e0; }
-
-.modal-item div {
-    flex: 1;
-}
-
-.modal-item strong {
-    display: block;
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.modal-item span {
-    font-weight: bold;
-    color: #333;
-    font-size: 1rem;
-}
-
 /* رسپانسیو */
 @media (max-width: 768px) {
     .container {
@@ -495,6 +679,14 @@ body {
         text-align: center;
     }
     
+    .tabs {
+        flex-direction: column;
+    }
+    
+    .tab-content {
+        padding: 20px;
+    }
+    
     .cards-container {
         grid-template-columns: 1fr;
     }
@@ -503,29 +695,27 @@ body {
         grid-template-columns: 1fr;
     }
     
-    .stat-item:nth-child(1) {
+    .stat-item:nth-child(odd) {
         border-left: none;
-        border-bottom: 1px solid #e9ecef;
     }
     
-    .action-buttons {
+    .info-grid {
         grid-template-columns: 1fr;
     }
     
-    .info-item {
+    .guess-input {
         flex-direction: column;
-        text-align: center;
+    }
+    
+    .game-stats {
+        flex-direction: column;
         gap: 10px;
+        align-items: center;
     }
     
     .modal-content {
         width: 95%;
         margin: 10% auto;
-    }
-    
-    .notification {
-        right: 10px;
-        left: 10px;
     }
 }
 
@@ -539,5 +729,11 @@ body {
     .btn {
         font-size: 0.8rem;
         padding: 12px 15px;
+    }
+    
+    .letter {
+        width: 30px;
+        height: 40px;
+        font-size: 1rem;
     }
 }
