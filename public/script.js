@@ -6,6 +6,7 @@ let timeLeft = 0;
 let hintsUsed = 0;
 let gameStartTime = null;
 let isCreator = false;
+let gameStateInterval = null;
 
 // تابع تبدیل اعداد به فارسی
 function toPersianNumber(number) {
@@ -146,14 +147,6 @@ function updateUserInterface(userData) {
     
     const winRate = userData.total_games > 0 ? Math.round((userData.wins / userData.total_games) * 100) : 0;
     document.getElementById('winRate').textContent = toPersianNumber(winRate) + '٪';
-
-    if (userData.first_seen) {
-        const firstSeenDate = toPersianDate(userData.first_seen);
-        const lastSeenDate = toPersianDate(userData.last_seen);
-        
-        document.getElementById('firstSeen').textContent = firstSeenDate.formatted;
-        document.getElementById('lastSeen').textContent = lastSeenDate.formatted;
-    }
 }
 
 // تابع بارگذاری آمار
@@ -286,6 +279,9 @@ async function createGame() {
             showNotification('بازی با موفقیت ایجاد شد! 🎮', 'success');
             document.getElementById('gameWord').value = '';
             openStartGameModal(result.game_id);
+            
+            // شروع پولینگ برای به‌روزرسانی تعداد بازیکنان
+            startPlayerCountPolling(result.game_id);
         } else {
             showNotification('خطا در ایجاد بازی', 'error');
         }
@@ -293,6 +289,32 @@ async function createGame() {
         console.error('❌ خطا در ایجاد بازی:', error);
         showNotification('خطا در ایجاد بازی', 'error');
     }
+}
+
+// تابع پولینگ برای به‌روزرسانی تعداد بازیکنان
+function startPlayerCountPolling(gameId) {
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+    }
+    
+    gameStateInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/games/${gameId}`);
+            const result = await response.json();
+            
+            if (result.success) {
+                document.getElementById('currentPlayersCount').textContent = 
+                    toPersianNumber(result.game.players_count);
+                
+                // اگر بازی شروع شده، پولینگ را متوقف کن
+                if (result.game.is_started) {
+                    clearInterval(gameStateInterval);
+                }
+            }
+        } catch (error) {
+            console.error('❌ خطا در به‌روزرسانی تعداد بازیکنان:', error);
+        }
+    }, 3000);
 }
 
 // تابع باز کردن مودال شروع بازی
@@ -305,6 +327,10 @@ function openStartGameModal(gameCode) {
 // تابع بستن مودال شروع بازی
 function closeStartGameModal() {
     document.getElementById('startGameModal').style.display = 'none';
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+        gameStateInterval = null;
+    }
 }
 
 // تابع شروع بازی (فقط توسط سازنده)
@@ -382,13 +408,13 @@ async function joinExistingGame(gameCode) {
                     category: gameData.category,
                     max_attempts: gameData.max_attempts,
                     time_limit: gameData.time_limit,
-                    attempts: gameData.attempts,
+                    attempts: gameData.attempts || 0,
                     score: 0,
                     creator_id: gameData.creator_id,
                     is_started: gameData.is_started,
-                    guessed_letters: gameData.guessed_letters,
-                    incorrect_letters: gameData.incorrect_letters,
-                    word_progress: gameData.word_progress,
+                    guessed_letters: gameData.guessed_letters || [],
+                    incorrect_letters: gameData.incorrect_letters || [],
+                    word_progress: gameData.word_progress || '_'.repeat(gameData.word.length),
                     word: gameData.word
                 };
 
@@ -397,6 +423,8 @@ async function joinExistingGame(gameCode) {
                 if (isCreator) {
                     if (!currentGame.is_started) {
                         openStartGameModal(gameCode);
+                        // شروع پولینگ برای سازنده
+                        startPlayerCountPolling(gameCode);
                     } else {
                         showNotification('شما سازنده این بازی هستید که قبلاً شروع شده است', 'info');
                         openGameModal();
@@ -404,7 +432,14 @@ async function joinExistingGame(gameCode) {
                 } else {
                     showNotification(`به بازی پیوستید! تعداد بازیکنان: ${toPersianNumber(result.players_count)}`, 'success');
                     document.getElementById('gameCode').value = '';
-                    openGameModal();
+                    
+                    if (currentGame.is_started) {
+                        openGameModal();
+                    } else {
+                        // اگر بازی هنوز شروع نشده، پولینگ برای وضعیت بازی
+                        startGameStatusPolling(gameCode);
+                        openGameModal();
+                    }
                 }
             }
         } else {
@@ -414,6 +449,29 @@ async function joinExistingGame(gameCode) {
         console.error('❌ خطا در پیوستن به بازی:', error);
         showNotification('خطا در پیوستن به بازی', 'error');
     }
+}
+
+// تابع پولینگ برای وضعیت بازی (برای بازیکنان)
+function startGameStatusPolling(gameId) {
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+    }
+    
+    gameStateInterval = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/games/${gameId}`);
+            const result = await response.json();
+            
+            if (result.success && result.game.is_started) {
+                clearInterval(gameStateInterval);
+                currentGame.is_started = true;
+                initializeGame(); // به‌روزرسانی رابط کاربری
+                showNotification('بازی شروع شد! حالا می‌توانید حدس بزنید.', 'success');
+            }
+        } catch (error) {
+            console.error('❌ خطا در بررسی وضعیت بازی:', error);
+        }
+    }, 3000);
 }
 
 // تابع باز کردن مودال بازی
@@ -431,6 +489,12 @@ function openGameModal() {
 function closeGameModal() {
     document.getElementById('gameModal').style.display = 'none';
     stopGameTimer();
+    
+    if (gameStateInterval) {
+        clearInterval(gameStateInterval);
+        gameStateInterval = null;
+    }
+    
     currentGame = null;
     hintsUsed = 0;
     isCreator = false;
@@ -528,7 +592,6 @@ function displayWordProgress(wordProgress) {
     const wordDisplay = document.getElementById('wordDisplay');
     wordDisplay.innerHTML = '';
     
-    const currentLetters = wordDisplay.querySelectorAll('.letter-minimal');
     const newLetters = wordProgress.split('');
     
     newLetters.forEach((char, index) => {
@@ -541,13 +604,8 @@ function displayWordProgress(wordProgress) {
         } else {
             letterElement.textContent = char;
             
-            // اگر حرف از حالت _ به حرف واقعی تغییر کرده، انیمیشن نشان بده
-            const currentChar = currentLetters[index] ? currentLetters[index].textContent : '_';
-            if (currentChar === '_' && char !== '_') {
+            if (char !== '_') {
                 letterElement.classList.add('revealed');
-            } else if (char !== '_') {
-                letterElement.classList.add('revealed');
-                letterElement.style.animation = 'none';
             }
         }
         
@@ -634,20 +692,22 @@ async function guessLetter(letter) {
 // تابع به‌روزرسانی وضعیت بازی
 function updateGameState(result) {
     // به‌روزرسانی نمایش کلمه با انیمیشن
-    displayWordProgress(result.word_progress);
+    if (result.word_progress) {
+        displayWordProgress(result.word_progress);
+    }
     
     // به‌روزرسانی حروف حدس زده شده
     updateGuessedLetters(result.correct_letters, result.incorrect_letters);
     
     // به‌روزرسانی امتیاز
-    currentGame.score += result.score;
-    document.getElementById('currentScore').textContent = toPersianNumber(currentGame.score);
+    if (result.score) {
+        currentGame.score += result.score;
+        document.getElementById('currentScore').textContent = toPersianNumber(currentGame.score);
+    }
     
     // به‌روزرسانی تعداد حدس‌ها
-    if (!result.is_correct) {
-        currentGame.attempts = result.remaining_attempts ? 
-            currentGame.max_attempts - result.remaining_attempts : 
-            currentGame.attempts + 1;
+    if (result.remaining_attempts !== undefined) {
+        currentGame.attempts = currentGame.max_attempts - result.remaining_attempts;
         updateAttemptsDisplay();
     }
 
@@ -692,7 +752,6 @@ function updateTimerDisplay() {
 // تابع به‌روزرسانی نمایش تعداد حدس‌ها
 function updateAttemptsDisplay() {
     if (!currentGame) return;
-    const remaining = currentGame.max_attempts - currentGame.attempts;
     document.getElementById('attempts').textContent = 
         `${toPersianNumber(currentGame.attempts)}/${toPersianNumber(currentGame.max_attempts)}`;
 }
@@ -703,7 +762,7 @@ function useHint() {
     
     // کسر امتیاز برای استفاده از راهنمایی
     currentGame.score -= 30;
-    document.getElementById('currentScore').textContent = toPersianNumber(currentGame.score);
+    document.getElementById('currentScore').textContent = toPersianNumber(Math.max(0, currentGame.score));
     
     hintsUsed++;
     document.getElementById('hintCount').textContent = toPersianNumber(2 - hintsUsed);
@@ -783,7 +842,7 @@ function showNotification(message, type = 'info') {
         padding: 12px 16px;
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1000;
+        z-index: 10000;
         font-family: Vazirmatn, sans-serif;
         max-width: 320px;
         animation: slideInRight 0.3s ease;
@@ -874,6 +933,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('guessInput')?.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
             submitGuess();
+        }
+    });
+    
+    document.getElementById('gameWord')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            createGame();
+        }
+    });
+    
+    document.getElementById('gameCode')?.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            joinGame();
         }
     });
 });
