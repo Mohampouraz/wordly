@@ -50,7 +50,7 @@ body {
     background: white;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     position: relative;
-    overflow-x: hidden; /* جلوگیری از اسکرول افقی */
+    overflow-x: hidden;
 }
 
 /* هدر مینیمال */
@@ -113,7 +113,7 @@ body {
     justify-content: center;
     color: white;
     font-size: 0.9rem;
-    flex-shrink: 0; /* تضمین می‌کند که در فضاهای کم جمع نشود */
+    flex-shrink: 0;
 }
 
 /* تب‌های مینیمال */
@@ -765,28 +765,28 @@ body {
 /* اصلاحات کلیدی مودال برای موبایل و کیبورد (FIX) */
 /* ---------------------------------------------------- */
 .modal {
-    display: none;
+    display: none; /* [FIX] مهم: اطمینان از مخفی بودن در حالت عادی */
     position: fixed;
     z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    /* ارتفاع 100vh تضمین می‌کند که حتی در موبایل نیز تمام صفحه را پوشش دهد */
     height: 100vh; 
     background-color: rgba(0,0,0,0.5);
     animation: fadeIn 0.3s ease;
     backdrop-filter: blur(5px);
-    /* [FIX]: حذف Padding از خود مودال و اعمال روی محتوا */
     padding: 0; 
     box-sizing: border-box; 
-    /* [FIX]: حذف اسکرول از خود مودال، محتوای داخلی اسکرول خواهد کرد */
     overflow-y: hidden;
-    /* افزودن فلکس برای قرارگیری محتوا در مرکز */
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* [FIX] خطوط display: flex; و align-items: center; و justify-content: center; حذف شدند. */
 }
+
+/* کلاس جدید برای نمایش مودال که باید توسط جاوااسکریپت اعمال شود */
+/* فرض بر این است که جاوااسکریپت هنگام باز کردن مودال، خاصیت display: flex; را اعمال می‌کند. */
+/* اگر جاوااسکریپت شما از متد classList.add('open') استفاده می‌کند، باید کلاس .modal.open را ایجاد کنید. */
+/* فعلاً، با توجه به حذف flex از .modal، این مشکل رفع می‌شود. */
+
 
 .modal-content {
     background-color: #fefefe;
@@ -794,14 +794,12 @@ body {
     border-radius: var(--radius-lg);
     animation: slideIn 0.3s ease;
     position: relative;
-    /* [FIX]: تنظیم حداکثر ارتفاع و استفاده از فلکس برای ثابت کردن هدر و فوتر */
-    max-height: 98vh; /* افزایش جزئی برای موبایل */
+    max-height: 98vh; 
     display: flex;
     flex-direction: column;
-    width: 95%; /* پهنای کمی کمتر در موبایل برای زیبایی */
+    width: 95%; 
     max-width: 440px;
-    margin: 10px auto; /* Margin برای فاصله‌گذاری از لبه‌ها */
-    /* تضمین می‌کند که به اندازه کافی بزرگ باشد تا فضای کیبورد را در نظر بگیرد */
+    margin: 10px auto; 
     min-height: 50vh; 
 }
 
@@ -823,7 +821,6 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    /* [FIX]: تضمین ارتفاع ثابت برای هدر */
     flex-shrink: 0; 
 }
 
@@ -834,14 +831,12 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    /* [FIX]: تضمین ارتفاع ثابت برای فوتر (دکمه حدس بزن) */
     flex-shrink: 0; 
 }
 
 /* محتوای بازی (Game Container) - تنها بخش قابل اسکرول */
 .game-container {
     padding: 24px;
-    /* [FIX]: این بخش تمام فضای باقی‌مانده را پر کرده و اسکرول می‌کند */
     overflow-y: auto; 
     flex: 1; 
     display: flex;
@@ -1391,14 +1386,14 @@ body {
     /* بهینه‌سازی مودال برای موبایل */
     .modal {
         padding: 5px;
-        align-items: flex-end; /* اجازه می‌دهد در موبایل به پایین بچسبد */
+        align-items: flex-end;
     }
 
     .modal-content {
         max-height: 98vh;
         border-radius: var(--radius);
         margin: 5px auto;
-        min-height: 90vh; /* این ارتفاع به بهتر شدن تجربه کیبورد کمک می‌کند */
+        min-height: 90vh;
     }
 
     .modal-header-minimal {
