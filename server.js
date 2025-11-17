@@ -274,7 +274,7 @@ app.post('/api/games/:gameId/start', async (req, res) => {
             }
             
             game = {
-                .....dbGame.rows[0],
+                ...dbGame.rows[0],
                 players: await getGamePlayers(gameId),
                 guessedLetters: new Set(dbGame.rows[0].guessed_letters.split(',').filter(Boolean)),
                 incorrectGuesses: new Set(dbGame.rows[0].incorrect_letters.split(',').filter(Boolean)),
@@ -304,7 +304,6 @@ app.post('/api/games/:gameId/start', async (req, res) => {
         );
 
         // به‌روزرسانی در حافظه
-        game.players_count = game.players_count || (game.players ? game.players.length : 1);
         activeGames.set(gameId, game);
 
         res.json({ 
@@ -335,7 +334,7 @@ app.get('/api/games/active', async (req, res) => {
             creator_name: game.creator_name,
             creator_username: game.creator_username,
             category: game.category,
-            players_count: (game.players_count || (game.players ? game.players.length : 0)),
+            players_count: game.players_count,
             max_attempts: game.max_attempts,
             time_limit: game.time_limit,
             created_at: game.created_at,
@@ -375,7 +374,7 @@ app.post('/api/games/:gameId/join', async (req, res) => {
             }
             
             game = {
-                .....dbGame.rows[0],
+                ...dbGame.rows[0],
                 players: await getGamePlayers(gameId),
                 guessedLetters: new Set(dbGame.rows[0].guessed_letters.split(',').filter(Boolean)),
                 incorrectGuesses: new Set(dbGame.rows[0].incorrect_letters.split(',').filter(Boolean)),
@@ -383,8 +382,7 @@ app.post('/api/games/:gameId/join', async (req, res) => {
                 last_activity: new Date()
             };
             
-            game.players_count = game.players_count || (game.players ? game.players.length : 1);
-        activeGames.set(gameId, game);
+            activeGames.set(gameId, game);
         }
 
         if (game.is_started) {
@@ -409,7 +407,7 @@ app.post('/api/games/:gameId/join', async (req, res) => {
             
             res.json({ 
                 success: true, 
-                players_count: (game.players_count || (game.players ? game.players.length : 0)),
+                players_count: game.players_count,
                 creator_id: game.creator_id,
                 is_creator: game.creator_id === player_id,
                 reconnected: true
@@ -437,12 +435,11 @@ app.post('/api/games/:gameId/join', async (req, res) => {
         game.last_activity = new Date();
 
         // به‌روزرسانی در حافظه
-        game.players_count = game.players_count || (game.players ? game.players.length : 1);
         activeGames.set(gameId, game);
 
         res.json({ 
             success: true, 
-            players_count: (game.players_count || (game.players ? game.players.length : 0)),
+            players_count: game.players_count,
             creator_id: game.creator_id,
             is_creator: game.creator_id === player_id
         });
@@ -477,7 +474,7 @@ app.post('/api/games/:gameId/guess-letter', async (req, res) => {
             }
             
             game = {
-                .....dbGame.rows[0],
+                ...dbGame.rows[0],
                 players: await getGamePlayers(gameId),
                 guessedLetters: new Set(dbGame.rows[0].guessed_letters.split(',').filter(Boolean)),
                 incorrectGuesses: new Set(dbGame.rows[0].incorrect_letters.split(',').filter(Boolean)),
@@ -486,8 +483,7 @@ app.post('/api/games/:gameId/guess-letter', async (req, res) => {
                 last_activity: new Date()
             };
             
-            game.players_count = game.players_count || (game.players ? game.players.length : 1);
-        activeGames.set(gameId, game);
+            activeGames.set(gameId, game);
         }
 
         if (!game.is_started) {
@@ -611,7 +607,7 @@ app.get('/api/games/:gameId', async (req, res) => {
             }
             
             game = {
-                .....dbGame.rows[0],
+                ...dbGame.rows[0],
                 players: await getGamePlayers(gameId),
                 guessedLetters: new Set(dbGame.rows[0].guessed_letters.split(',').filter(Boolean)),
                 incorrectGuesses: new Set(dbGame.rows[0].incorrect_letters.split(',').filter(Boolean)),
@@ -641,7 +637,7 @@ app.get('/api/games/:gameId', async (req, res) => {
                 max_attempts: game.max_attempts,
                 time_limit: game.time_limit,
                 is_started: game.is_started,
-                players_count: (game.players_count || (game.players ? game.players.length : 0)),
+                players_count: game.players_count,
                 guessed_letters: Array.from(game.guessedLetters || []),
                 incorrect_letters: Array.from(game.incorrectGuesses || []),
                 attempts: game.attempts || 0,
