@@ -136,7 +136,7 @@ body {
     padding: 0 16px;
     overflow-x: auto;
     position: sticky;
-    /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر قرار گیرد (64px = 16px پدینگ بالا + 32px آواتار + 16px پدینگ پایین) */
+    /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر قرار گیرد */
     top: 64px; 
     z-index: 99;
     scrollbar-width: none;
@@ -795,13 +795,15 @@ body {
     backdrop-filter: blur(5px);
     padding: 10px;
     box-sizing: border-box;
-    /* FIX: اضافه شد برای رفع مشکل فلش لحظه‌ای و اطمینان از قرارگیری در مرکز */
-    display: flex; 
-    align-items: center;
-    justify-content: center;
-    /* FIX: از overflow-y: auto به hidden تغییر داده شد تا اسکرول فقط در داخل محتوا انجام شود */
+    /* FIX: حذف display: flex و center کردن برای رفع فلش. JS باید display: flex را هنگام باز شدن تنظیم کند. */
     overflow-y: hidden; 
 }
+/* ADDED: کلاس کمکی برای باز شدن صحیح مودال (JS باید آن را هنگام نمایش اضافه کند) */
+.modal[style*="display: flex"] {
+    align-items: center;
+    justify-content: center;
+}
+/* END FIX */
 
 .modal-content {
     background-color: #fefefe;
@@ -810,7 +812,7 @@ body {
     border-radius: var(--radius-lg);
     animation: slideIn 0.3s ease;
     position: relative;
-    /* FIX: max-height: 95vh; به max-height: 95%; تغییر داده شد تا ارتفاع بر اساس فضای در دسترس تنظیم شود */
+    /* FIX: max-height: 95vh; به max-height: 95%; تغییر داده شد */
     max-height: 95%; 
     display: flex;
     flex-direction: column;
@@ -870,7 +872,7 @@ body {
     transform: rotate(90deg);
 }
 
-/* [اضافه شده برای ریسپانسیو]: فوتر مودال */
+/* فوتر مودال */
 .modal-footer-minimal {
     background: var(--gray-100);
     padding: 16px 20px;
@@ -878,8 +880,7 @@ body {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع فوتر و جلوگیری از فشرده شدن محتوای بالا */
-    /* FIX: اضافه شد برای جلوگیری از بهم ریختگی دکمه‌ها در موبایل */
+    flex-shrink: 0; 
     flex-direction: column; 
     gap: 10px; 
 }
@@ -889,7 +890,7 @@ body {
     width: 100%;
 }
 
-/* FIX: ADDED - کانتینر محتوای بازی (محتوای اصلی اسکرول شونده) */
+/* کانتینر محتوای بازی (محتوای اصلی اسکرول شونده) */
 .game-container {
     padding: 24px;
     overflow-y: auto; 
@@ -1073,29 +1074,45 @@ body {
     padding: 10px;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px; /* FIX: افزایش فاصله بین حروف */
     align-items: center;
     justify-content: flex-start;
 }
 
+/* FIX: بازنویسی کامل برای استایل گرافیکی حروف حدس زده شده */
 .letter-used {
+    /* تنظیمات مربع */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px; 
+    height: 34px; 
+    padding: 0; 
+    
     background: var(--gray-300);
     color: var(--gray-700);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.8rem;
-    font-weight: 600;
+    border-radius: 6px; /* کمی گردتر */
+    font-size: 1rem; 
+    font-weight: 700; 
+    box-shadow: var(--shadow); 
+    transition: all 0.3s ease;
+    flex-shrink: 0; /* جلوگیری از فشرده شدن در موبایل */
 }
 
 .letter-used.correct {
     background: var(--success);
     color: white;
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3), 0 2px 4px -2px rgba(16, 185, 129, 0.2); /* سایه سبز */
+    transform: scale(1.05);
 }
 
 .letter-used.incorrect {
     background: var(--danger);
     color: white;
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3), 0 2px 4px -2px rgba(239, 68, 68, 0.2); /* سایه قرمز */
+    transform: scale(1.05);
 }
+/* END FIX */
 
 
 /* انیمیشن‌ها */
