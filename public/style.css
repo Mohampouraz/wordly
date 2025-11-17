@@ -1,3 +1,11 @@
+/* FIX: ADDED - برای سازگاری کامل موبایل (حل مشکل کیبورد مجازی) */
+html, body {
+    height: 100%; 
+    width: 100%;
+    overflow-x: hidden; 
+}
+/* END FIX */
+
 * {
     margin: 0;
     padding: 0;
@@ -33,39 +41,31 @@
     --radius-xl: 20px;
 }
 
-/* FIX: تنظیم ارتفاع 100% برای جلوگیری از Overflow کیبورد مجازی در موبایل‌های قدیمی */
-html, body {
-    height: 100%;
-    width: 100%;
-    overflow-x: hidden;
-    /* این خط از انباشتگی ارتفاع غیرمجاز جلوگیری می‌کند */
-}
-
 body {
     font-family: 'Vazirmatn', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--gray-800);
     line-height: 1.6;
+    /* FIX: min-height: 100vh; به height: 100% تغییر و position: relative اضافه شد */
+    height: 100%;
+    position: relative; 
     padding: 0;
     direction: rtl;
-    position: relative; /* برای اطمینان از محاسبه صحیح ارتفاع فرزندان */
 }
 
 .container {
     max-width: 480px;
     margin: 0 auto;
-    /* FIX: استفاده از height: 100% به جای min-height: 100vh */
+    /* FIX: min-height: 100vh; به height: 100% تغییر داده شد */
     min-height: 100%; 
-    height: 100%;
+    height: 100%; 
     background: white;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     position: relative;
-    overflow-x: hidden;
+    overflow-x: hidden; /* جلوگیری از اسکرول افقی */
 }
 
-/* ---------------------------------------------------- */
-/* هدر و تب‌ها (Minimal Header and Tabs) */
-/* ---------------------------------------------------- */
+/* هدر مینیمال */
 .header-minimal {
     background: white;
     padding: 16px 20px;
@@ -125,9 +125,10 @@ body {
     justify-content: center;
     color: white;
     font-size: 0.9rem;
-    flex-shrink: 0;
+    flex-shrink: 0; /* تضمین می‌کند که در فضاهای کم جمع نشود */
 }
 
+/* تب‌های مینیمال */
 .tabs-minimal {
     display: flex;
     background: white;
@@ -135,6 +136,7 @@ body {
     padding: 0 16px;
     overflow-x: auto;
     position: sticky;
+    /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر قرار گیرد (64px = 16px پدینگ بالا + 32px آواتار + 16px پدینگ پایین) */
     top: 64px; 
     z-index: 99;
     scrollbar-width: none;
@@ -190,13 +192,14 @@ body {
     text-align: center;
 }
 
+/* محتوای تب‌ها */
 .tab-content-minimal {
     display: none;
     padding: 20px;
     animation: fadeIn 0.3s ease;
-    /* FIX: ارتفاع محتوا باید از ارتفاع ثابت هدر و تب‌ها کسر شود. */
+    /* FIX: calc(100vh - 125px) به calc(100% - 125px) تغییر داده شد */
     min-height: calc(100% - 125px); 
-    padding-bottom: 80px; /* فضای خالی برای جلوگیری از پنهان شدن محتوای آخر زیر نوار ناوبری موبایل */
+    padding-bottom: 80px; /* FIX: اضافه شد برای جلوگیری از پنهان شدن محتوای آخر زیر نوار ناوبری موبایل */
 }
 
 .tab-content-minimal.active {
@@ -214,9 +217,7 @@ body {
     }
 }
 
-/* ---------------------------------------------------- */
-/* کارت‌ها و دکمه‌ها (Cards and Buttons) */
-/* ---------------------------------------------------- */
+/* کارت خوش‌آمدگویی */
 .welcome-card {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
@@ -251,6 +252,11 @@ body {
     font-weight: 700;
 }
 
+.welcome-content p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
 .welcome-icon {
     font-size: 3rem;
     margin-bottom: 16px;
@@ -263,6 +269,7 @@ body {
     50% { transform: translateY(-10px); }
 }
 
+/* گرید آمار مینیمال */
 .stats-grid-minimal {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -282,6 +289,27 @@ body {
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
+}
+
+.stat-card-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.1));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.stat-card-minimal:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card-minimal:hover::before {
+    opacity: 1;
 }
 
 .stat-icon-minimal {
@@ -309,6 +337,10 @@ body {
     background: linear-gradient(135deg, var(--warning), #eab308); 
 }
 
+.stat-info-minimal {
+    flex: 1;
+}
+
 .stat-value {
     display: block;
     font-size: 1.4rem;
@@ -324,6 +356,7 @@ body {
     margin-top: 4px;
 }
 
+/* کارت‌های مینیمال */
 .card-minimal {
     background: white;
     border-radius: var(--radius);
@@ -332,6 +365,10 @@ body {
     overflow: hidden;
     box-shadow: var(--shadow);
     transition: all 0.3s ease;
+}
+
+.card-minimal:hover {
+    box-shadow: var(--shadow-lg);
 }
 
 .card-header-minimal {
@@ -351,11 +388,35 @@ body {
     flex: 1;
 }
 
+.card-header-minimal i {
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
 .card-content-minimal {
     padding: 24px;
 }
 
-.input-minimal, .select-minimal {
+/* فرم‌های مینیمال */
+.form-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.input-group-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group-minimal label {
+    font-weight: 600;
+    color: var(--gray-700);
+    font-size: 0.9rem;
+}
+
+.input-minimal {
     padding: 12px 16px;
     border: 2px solid var(--gray-300);
     border-radius: var(--radius);
@@ -363,12 +424,47 @@ body {
     font-size: 1rem;
     transition: all 0.3s ease;
     background: white;
-    /* FIX: اطمینان از عدم خروج متون طولانی */
-    min-width: 0;
-    width: 100%; 
+    /* FIX: اضافه شد برای سازگاری کامل فلکس باکس و عرض ۱۰۰٪ */
+    width: 100%;
+    min-width: 0; 
 }
 
-.btn-primary-minimal, .btn-success-minimal, .btn-hint-minimal {
+.input-minimal:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+}
+
+.select-minimal {
+    padding: 12px 16px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    /* FIX: اضافه شد برای عرض ۱۰۰٪ */
+    width: 100%;
+}
+
+.select-minimal:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.input-hint {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+/* دکمه‌های مینیمال */
+.btn-primary-minimal {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
     border: none;
     padding: 14px 24px;
     border-radius: var(--radius);
@@ -386,81 +482,414 @@ body {
     overflow: hidden;
 }
 
-.btn-primary-minimal {
-    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-    color: white;
+.btn-primary-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-primary-minimal:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-primary-minimal:hover::before {
+    opacity: 1;
+}
+
+.btn-primary-minimal:active {
+    transform: translateY(0);
 }
 
 .btn-success-minimal {
     background: linear-gradient(135deg, var(--success), var(--success-dark));
     color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
 }
 
-.btn-hint-minimal {
-    background: var(--info);
+.btn-success-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.2));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.btn-success-minimal:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-success-minimal:hover::before {
+    opacity: 1;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+.btn-large {
+    padding: 16px 24px;
+    font-size: 1.1rem;
+}
+
+.btn-small {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+}
+
+.btn-refresh {
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-refresh:hover {
+    background: var(--gray-100);
+    color: var(--primary);
+    transform: rotate(180deg);
+}
+
+/* کارت اطلاعات کاربری */
+.info-card-minimal {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.info-row-minimal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.info-row-minimal:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+}
+
+.info-value {
+    color: var(--gray-800);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* کارت زمان */
+.time-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.time-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.time-item:first-child {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.time-item i {
+    color: var(--primary);
+    font-size: 1.2rem;
+    width: 24px;
+}
+
+.time-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.time-value {
+    color: var(--gray-800);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* لیست بازی‌های مینیمال */
+.games-list-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.game-item-minimal {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.game-item-minimal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.game-item-minimal:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+.game-item-minimal:hover::before {
+    opacity: 1;
+}
+
+.game-header-minimal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.game-code-minimal {
+    background: var(--primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.game-category-minimal {
+    background: var(--gray-100);
+    color: var(--gray-700);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-badge.started {
+    background: var(--success);
     color: white;
 }
 
-/* ---------------------------------------------------- */
-/* اصلاحات کلیدی مودال برای FIX موبایل و کیبورد (Final) */
-/* ---------------------------------------------------- */
+.status-badge.waiting {
+    background: var(--warning);
+    color: white;
+}
+
+.game-info-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.info-row-compact {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--gray-600);
+    font-size: 0.8rem;
+}
+
+.info-row-compact i {
+    color: var(--primary);
+    width: 14px;
+}
+
+.game-actions-minimal {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.loading-minimal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px 20px;
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+.empty-state-minimal {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
+}
+
+.empty-state-minimal i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* مودال‌ها - کاملاً ریسپانسیو */
 .modal {
-    display: none;
+    display: none; 
     position: fixed;
     z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
-    /* FIX: استفاده از 100% به جای 100vh برای حل مشکل کیبورد */
     height: 100%; 
     background-color: rgba(0,0,0,0.5);
     animation: fadeIn 0.3s ease;
     backdrop-filter: blur(5px);
-    padding: 0; 
-    box-sizing: border-box; 
-    overflow-y: hidden;
-    /* تنظیمات Flexbox برای قرارگیری محتوا در مرکز (این فقط برای باز شدن اولیه است) */
+    padding: 10px;
+    box-sizing: border-box;
+    /* FIX: اضافه شد برای رفع مشکل فلش لحظه‌ای و اطمینان از قرارگیری در مرکز */
     display: flex; 
     align-items: center;
     justify-content: center;
+    /* FIX: از overflow-y: auto به hidden تغییر داده شد تا اسکرول فقط در داخل محتوا انجام شود */
+    overflow-y: hidden; 
 }
 
 .modal-content {
     background-color: #fefefe;
+    margin: 0 auto;
     border: 1px solid #888;
     border-radius: var(--radius-lg);
     animation: slideIn 0.3s ease;
     position: relative;
-    /* FIX: تنظیم max-height بر اساس درصد و نه vh */
+    /* FIX: max-height: 95vh; به max-height: 95%; تغییر داده شد تا ارتفاع بر اساس فضای در دسترس تنظیم شود */
     max-height: 95%; 
     display: flex;
     flex-direction: column;
-    width: 95%; 
+    width: 100%;
     max-width: 440px;
-    margin: 10px auto; 
-    min-height: 50vh; 
-    /* FIX: اطمینان از محاسبه صحیح ابعاد در Flexbox */
+    /* FIX: اضافه شد برای اطمینان از کارکرد صحیح فلکس باکس در موبایل و جلوگیری از سرریز */
+    min-height: 0; 
     min-width: 0; 
 }
 
-.modal-header-minimal, .modal-footer-minimal {
+@keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.game-modal .modal-content {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-xl);
+}
+
+.modal-header-minimal {
+    background: white;
     padding: 20px 24px;
     border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* FIX: مطمئن شوید این بخش‌ها هرگز کوچک نشوند */
+    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع هدر */
 }
 
+.modal-header-minimal h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+    flex: 1;
+}
+
+.close-minimal {
+    font-size: 1.5rem;
+    color: var(--gray-500);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.close-minimal:hover {
+    color: var(--danger);
+    background: var(--gray-100);
+    transform: rotate(90deg);
+}
+
+/* [اضافه شده برای ریسپانسیو]: فوتر مودال */
 .modal-footer-minimal {
-    background: var(--gray-50);
+    background: var(--gray-100);
+    padding: 16px 20px;
     border-top: 1px solid var(--gray-200);
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 12px; /* تنظیم مجدد پدینگ برای ظاهر بهتر */
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع فوتر و جلوگیری از فشرده شدن محتوای بالا */
+    /* FIX: اضافه شد برای جلوگیری از بهم ریختگی دکمه‌ها در موبایل */
+    flex-direction: column; 
+    gap: 10px; 
 }
 
-/* کانتینر اصلی اسکرول‌شونده */
+.modal-footer-minimal .btn-full {
+    flex: 1;
+    width: 100%;
+}
+
+/* FIX: ADDED - کانتینر محتوای بازی (محتوای اصلی اسکرول شونده) */
 .game-container {
     padding: 24px;
     overflow-y: auto; 
@@ -472,10 +901,9 @@ body {
     min-height: 0; 
     min-width: 0;
 }
-/* ---------------------------------------------------- */
-/* پایان اصلاحات کلیدی مودال */
-/* ---------------------------------------------------- */
+/* END FIX */
 
+/* باقی استایل‌های بازی */
 .game-stats-minimal {
     display: flex;
     justify-content: space-around;
@@ -485,8 +913,7 @@ body {
     border: 1px solid var(--gray-200);
     flex-shrink: 0;
     gap: 10px;
-    /* FIX: اطمینان از اینکه آیتم‌های فرزند از کادر خارج نشوند */
-    min-width: 0; 
+    min-width: 0; /* FIX: برای جلوگیری از سرریز فلکس آیتم‌ها */
 }
 
 .game-stat {
@@ -498,8 +925,7 @@ body {
     font-weight: 600;
     text-align: center;
     flex: 1;
-    /* FIX: مهم برای مدیریت متون طولانی در Flex item */
-    min-width: 0; 
+    min-width: 0; /* FIX: برای جلوگیری از سرریز متن‌ها */
 }
 
 .word-display-minimal {
@@ -533,184 +959,6 @@ body {
     flex-shrink: 0;
 }
 
-.player-guesses-container {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 12px;
-    flex: 1;
-    overflow-y: auto;
-    min-height: 120px;
-    /* FIX: اطمینان از عدم سرریز عرضی */
-    min-width: 0; 
-}
-
-.player-guess-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid var(--gray-200);
-    font-size: 0.8rem;
-    animation: fadeInUp 0.3s ease;
-    gap: 8px;
-    /* FIX: اطمینان از عدم سرریز کل آیتم */
-    min-width: 0; 
-}
-
-.player-name, .player-guess, .guess-time {
-    /* FIX: مهم برای جلوگیری از سرریز متون طولانی */
-    min-width: 0; 
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.guess-input-row {
-    display: flex; 
-    gap: 8px;
-    /* FIX: مهم برای مدیریت Flexbox در فوتر */
-    width: 100%; 
-}
-
-.guess-input-field {
-    flex-grow: 1;
-    /* FIX: اطمینان از اینکه در فضای کوچک به درستی کوچک شود */
-    min-width: 0; 
-}
-
-/* ---------------------------------------------------- */
-/* رسپانسیو نهایی (Mobile Optimization) - برای دیوایس‌های کوچک */
-/* ---------------------------------------------------- */
-@media (max-width: 480px) {
-    /* FIX: تنظیمات عمومی‌تر برای دیوایس‌های کوچک */
-    .container {
-        max-width: 100%;
-        width: 100%;
-    }
-    
-    .tab-content-minimal {
-        padding: 16px 10px;
-    }
-    
-    .modal {
-        /* FIX: مطمئن شوید که Modal فضای کامل را در Mobile اشغال کند */
-        width: 100%;
-        height: 100%;
-        padding: 0;
-        align-items: flex-end; /* برای ظاهر کشویی از پایین */
-    }
-
-    .modal-content {
-        max-width: 100%;
-        width: 100%;
-        max-height: 95%;
-        border-radius: var(--radius) var(--radius) 0 0; /* گوشه‌های گرد فقط بالا */
-        margin: 0;
-        min-height: 90vh; 
-        /* در نهایت، اگر مشکل کیبورد باز هم باقی ماند، باید از JavaScript برای تنظیم ارتفاع در هنگام باز شدن کیبورد استفاده شود. اما این CSS بهترین حالت ممکن را فراهم می‌کند. */
-    }
-
-    .modal-header-minimal, .modal-footer-minimal {
-        padding: 16px 20px;
-    }
-
-    .modal-header-minimal h2 {
-        font-size: 1.2rem;
-    }
-
-    .game-container {
-        padding: 16px;
-        gap: 12px;
-    }
-
-    .stats-grid-minimal {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-card-minimal {
-        padding: 12px;
-    }
-
-    .player-guess-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .player-name, .player-guess, .guess-time {
-        width: 100%;
-        text-align: right;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-    }
-
-    .guess-result {
-        align-self: flex-start;
-    }
-    
-    .guessed-letters-minimal {
-        grid-template-columns: 1fr;
-    }
-
-    .letters-container-minimal {
-        min-height: 35px;
-        padding: 8px;
-    }
-    
-    .guess-input-field {
-        padding: 10px 14px;
-    }
-    
-    .btn-primary-minimal, .btn-hint-minimal {
-        padding: 12px 18px;
-        font-size: 0.95rem;
-    }
-}
-/* ---------------------------------------------------- */
-/* سایر استایل‌ها (بدون تغییر) */
-/* ---------------------------------------------------- */
-.stat-card-minimal:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.stat-card-minimal:hover::before {
-    opacity: 1;
-}
-
-.card-minimal:hover {
-    box-shadow: var(--shadow-lg);
-}
-
-.input-minimal:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    transform: translateY(-1px);
-}
-
-.btn-primary-minimal:hover, .btn-success-minimal:hover, .btn-hint-minimal:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
-.btn-primary-minimal:disabled, .btn-success-minimal:disabled, .btn-hint-minimal:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-}
-
-.input-minimal:disabled, .select-minimal:disabled {
-    background-color: var(--gray-100);
-    color: var(--gray-500);
-    cursor: not-allowed;
-}
-
-.player-guess-item:last-child {
-    border-bottom: none;
-}
-
 .player-guesses-section {
     display: flex;
     flex-direction: column;
@@ -730,6 +978,126 @@ body {
     flex-shrink: 0;
 }
 
+.player-guesses-container {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 120px;
+    min-width: 0; /* FIX: برای جلوگیری از سرریز عرضی */
+}
+
+.player-guess-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--gray-200);
+    font-size: 0.8rem;
+    animation: fadeInUp 0.3s ease;
+    gap: 8px;
+    min-width: 0;
+}
+
+.player-guess-item:last-child {
+    border-bottom: none;
+}
+
+.player-name, .player-guess, .guess-time {
+    min-width: 0; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.guess-input-row {
+    display: flex; 
+    gap: 8px;
+    width: 100%; 
+}
+
+.guess-input-field {
+    flex-grow: 1;
+    min-width: 0; 
+}
+
+.btn-hint-minimal {
+    background: var(--info);
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-hint-minimal:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-hint-minimal:active {
+    transform: translateY(0);
+}
+
+.guessed-letters-minimal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.letters-section h4 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--gray-700);
+    margin-bottom: 8px;
+}
+
+.letters-container-minimal {
+    min-height: 40px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.letter-used {
+    background: var(--gray-300);
+    color: var(--gray-700);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.letter-used.correct {
+    background: var(--success);
+    color: white;
+}
+
+.letter-used.incorrect {
+    background: var(--danger);
+    color: white;
+}
+
+
 /* انیمیشن‌ها */
 @keyframes letterReveal {
     0% { transform: scale(0.8); opacity: 0; }
@@ -742,7 +1110,165 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes slideIn {
-    from { transform: translateY(-20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+
+/* ریسپانسیو موبایل */
+@media (max-width: 480px) {
+    .container {
+        max-width: 100%;
+    }
+    
+    .header-minimal, .tabs-minimal {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .tab-content-minimal {
+        padding: 16px 10px;
+    }
+    
+    .welcome-card {
+        padding: 20px 16px;
+    }
+
+    .stats-grid-minimal {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .stat-card-minimal {
+        padding: 14px;
+    }
+
+    .game-stats-minimal {
+        flex-direction: row; /* FIX: اطمینان از قرارگیری در یک ردیف */
+        padding: 10px;
+        gap: 6px;
+    }
+    
+    .game-stat {
+        gap: 3px;
+    }
+    
+    .game-stat .stat-value {
+        font-size: 1.2rem;
+    }
+    
+    .game-stat .stat-label {
+        font-size: 0.7rem;
+    }
+
+    /* FIX: بهبود نمایش مودال در موبایل */
+    .modal {
+        align-items: flex-end; /* برای ظاهر کشویی از پایین */
+        padding: 0;
+    }
+    
+    .modal-content {
+        max-width: 100%;
+        width: 100%;
+        max-height: 95%; /* FIX: از 95vh به 95% تغییر داده شد */
+        border-radius: var(--radius) var(--radius) 0 0; /* گوشه‌های گرد فقط بالا */
+        margin: 0;
+        min-height: 90vh; /* FIX: برای اشغال بیشتر صفحه در موبایل */
+    }
+    /* END FIX */
+    
+    .game-container {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .guessed-letters-minimal {
+        grid-template-columns: 1fr;
+    }
+    
+    .player-guess-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .player-name, .player-guess, .guess-time {
+        width: 100%;
+        text-align: right;
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+    }
+
+    .guess-result {
+        align-self: flex-start;
+    }
+    
+    .modal-footer-minimal {
+        flex-direction: column;
+    }
+
+    .guess-input-row {
+        flex-direction: column;
+    }
+    
+    .guess-input-field {
+        width: 100%;
+    }
+
+    .btn-hint-minimal, .btn-primary-minimal {
+        width: 100%;
+    }
+}
+
+/* استایل‌های اضافه شده توسط توسعه دهنده */
+.btn-primary-minimal:disabled,
+.btn-success-minimal:disabled,
+.btn-hint-minimal:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.input-minimal:disabled,
+.select-minimal:disabled {
+    background-color: var(--gray-100);
+    color: var(--gray-500);
+    cursor: not-allowed;
+}
+
+/* بهبود ظاهر اسکرول‌بار در موبایل */
+@media (max-width: 480px) {
+    ::-webkit-scrollbar {
+        width: 4px;
+    }
+}
+
+/* استایل برای پیام‌های خالی */
+.empty-state-minimal h3 {
+    margin-bottom: 8px;
+    color: var(--gray-700);
+}
+
+.empty-state-minimal p {
+    font-size: 0.9rem;
+}
+
+/* استایل برای نتایج حدس */
+.guess-result {
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.guess-result.correct {
+    color: var(--success);
+}
+
+.guess-result.incorrect {
+    color: var(--danger);
+}
+
+/* انیمیشن‌های ظریف برای تعاملات */
+.tab-minimal, .btn-refresh, .close-minimal {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* بهبود خوانایی برای متن‌ها */
+h1, h2, h3, h4 {
+    line-height: 1.3;
 }
