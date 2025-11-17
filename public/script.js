@@ -18,28 +18,23 @@ function toPersianNumber(number) {
 
 // تابع مدیریت تب‌ها
 function openTab(tabName) {
-    // مخفی کردن همه تب‌ها
     const tabContents = document.getElementsByClassName('tab-content-minimal');
     for (let tab of tabContents) {
         tab.classList.remove('active');
     }
 
-    // غیرفعال کردن همه دکمه‌های تب
     const tabButtons = document.getElementsByClassName('tab-minimal');
     for (let button of tabButtons) {
         button.classList.remove('active');
     }
 
-    // نمایش تب انتخاب شده
     document.getElementById(tabName).classList.add('active');
     event.currentTarget.classList.add('active');
 
-    // اگر تب بازی‌های فعال است، لیست را بارگذاری کن
     if (tabName === 'active-games') {
         loadActiveGames();
     }
     
-    // اگر تب تاریخچه بازی است، تاریخچه را بارگذاری کن
     if (tabName === 'game-history') {
         loadGameHistory();
     }
@@ -162,7 +157,6 @@ async function loadStats() {
         const response = await fetch('/api/stats');
         if (response.ok) {
             const stats = await response.json();
-            // آمار کلی در داشبورد نمایش داده می‌شود
         }
     } catch (error) {
         console.error('Error loading stats:', error);
@@ -289,7 +283,6 @@ async function createGame() {
             showNotification(`بازی با موفقیت ایجاد شد! کد بازی: ${result.game_id}`, 'success');
             document.getElementById('gameWord').value = '';
             
-            // بارگذاری مجدد لیست بازی‌ها
             loadActiveGames();
             
         } else {
@@ -315,7 +308,6 @@ function startGameStatePolling(gameId) {
             if (result.success) {
                 const gameData = result.game;
                 
-                // به‌روزرسانی وضعیت بازی
                 if (currentGame) {
                     currentGame.guessed_letters = gameData.guessed_letters;
                     currentGame.incorrect_letters = gameData.incorrect_letters;
@@ -328,16 +320,13 @@ function startGameStatePolling(gameId) {
                     currentGame.is_started = gameData.is_started;
                     currentGame.remaining_time = gameData.remaining_time;
                     
-                    // به‌روزرسانی رابط
                     updateGameInterface();
                     
-                    // بررسی انقضای زمان
                     if (gameData.remaining_time <= 0 && !gameExpired && gameData.is_started) {
                         gameExpired = true;
                         endGameByTimeout();
                     }
                     
-                    // اگر بازی تمام شده، پولینگ را متوقف کن
                     if (gameData.completed) {
                         clearInterval(gameStateInterval);
                         endGame(currentGame.winner_id === currentUser.telegram_id);
@@ -376,10 +365,8 @@ function startConnectionReporting() {
         clearInterval(connectionInterval);
     }
     
-    // گزارش اتصال اولیه
     reportConnection(true);
     
-    // گزارش اتصال هر 20 ثانیه
     connectionInterval = setInterval(() => {
         reportConnection(true);
     }, 20000);
@@ -427,7 +414,6 @@ async function joinExistingGame(gameCode) {
         const result = await response.json();
 
         if (result.success) {
-            // دریافت اطلاعات کامل بازی
             const gameResponse = await fetch(`/api/games/${gameCode}`);
             const gameResult = await gameResponse.json();
 
@@ -462,10 +448,8 @@ async function joinExistingGame(gameCode) {
                 }
                 document.getElementById('gameCode').value = '';
                 
-                // باز کردن بازی
                 openGameModal();
                 
-                // شروع پولینگ برای وضعیت بازی
                 startGameStatePolling(gameCode);
                 
             }
@@ -488,7 +472,6 @@ function openGameModal() {
     initializeGame();
     document.getElementById('gameModal').style.display = 'block';
     
-    // شروع گزارش‌دهی اتصال
     startConnectionReporting();
 }
 
@@ -503,7 +486,6 @@ function closeGameModal() {
         gameStateInterval = null;
     }
     
-    // بازی فقط از رابط کاربری بسته می‌شود، از سرور حذف نمی‌شود
     currentGame = null;
     hintsUsed = 0;
     isCreator = false;
@@ -517,19 +499,37 @@ function initializeGame() {
     updateGameInterface();
 }
 
+// تابع دریافت اطلاعات بازیکنان
+async function getPlayersInfo(gameId) {
+    try {
+        const response = await fetch(`/api/games/${gameId}/players-info`);
+        const result = await response.json();
+        
+        if (result.success) {
+            return result.players;
+        }
+        return [];
+    } catch (error) {
+        console.error('❌ خطا در دریافت اطلاعات بازیکنان:', error);
+        return [];
+    }
+}
+
 // تابع به‌روزرسانی رابط بازی
-function updateGameInterface() {
+async function updateGameInterface() {
     if (!currentGame) return;
 
     const gameStatus = document.getElementById('gameStatus');
     
     if (currentGame.completed) {
-        // بازی تمام شده
         showGameResult();
         return;
     }
 
-    // نمایش وضعیت بر اساس نقش کاربر
+    const players = await getPlayersInfo(currentGame.game_id);
+    const creator = players.find(p => p.is_creator);
+    const otherPlayers = players.filter(p => !p.is_creator);
+
     if (isCreator) {
         if (!currentGame.is_started) {
             gameStatus.innerHTML = `
@@ -540,11 +540,38 @@ function updateGameInterface() {
                 </div>
             `;
         } else {
+            let playersInfoHtml = '';
+            
+            if (otherPlayers.length > 0) {
+                playersInfoHtml = otherPlayers.map(player => `
+                    <div class="player-info-item">
+                        <div class="player-avatar-small">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="player-details">
+                            <div class="player-name">${player.full_name}</div>
+                            <div class="player-meta">
+                                <span class="player-username">@${player.username}</span>
+                                <span class="player-status ${player.is_online ? 'online' : 'offline'}">
+                                    <i class="fas fa-circle"></i>
+                                    ${player.is_online ? 'آنلاین' : 'آفلاین'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                playersInfoHtml = '<div class="no-players">هنوز بازیکنی به بازی نپیوسته است</div>';
+            }
+
             gameStatus.innerHTML = `
                 <div class="creator-notice-minimal">
                     <i class="fas fa-crown"></i>
-                    <span>شما سازنده این بازی هستید. می‌توانید پیشرفت بازیکنان را مشاهده کنید.</span>
+                    <span>شما سازنده این بازی هستید. بازیکنان حاضر:</span>
                     ${currentGame.creator_online ? '<div class="online-badge">آنلاین</div>' : '<div class="offline-badge">آفلاین</div>'}
+                </div>
+                <div class="players-list-minimal">
+                    ${playersInfoHtml}
                 </div>
             `;
         }
@@ -558,23 +585,32 @@ function updateGameInterface() {
                 </div>
             `;
         } else {
+            let creatorInfo = '';
+            if (creator) {
+                creatorInfo = `
+                    <div class="creator-info">
+                        <i class="fas fa-crown"></i>
+                        <span>سازنده: ${creator.full_name}</span>
+                        ${currentGame.creator_online ? 
+                            '<div class="online-badge">آنلاین</div>' : 
+                            '<div class="offline-badge">آفلاین</div>'
+                        }
+                    </div>
+                `;
+            }
+
             gameStatus.innerHTML = `
                 <div class="player-notice-minimal">
                     <i class="fas fa-gamepad"></i>
                     <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
-                    ${currentGame.creator_online ? 
-                        '<div class="online-badge">سازنده آنلاین است</div>' : 
-                        '<div class="offline-badge">سازنده آفلاین است</div>'
-                    }
                 </div>
+                ${creatorInfo}
             `;
         }
     }
 
-    // نمایش دسته‌بندی بزرگ
     document.getElementById('gameCategoryDisplay').textContent = `دسته‌بندی: ${currentGame.category}`;
 
-    // نمایش پیشرفت کلمه
     if (currentGame.word_progress) {
         displayWordProgress(currentGame.word_progress);
     } else if (currentGame.word) {
@@ -583,30 +619,27 @@ function updateGameInterface() {
         displayWordProgress('_______');
     }
     
-    // نمایش حروف حدس زده شده
     updateGuessedLetters(
         currentGame.guessed_letters || [],
         currentGame.incorrect_letters || []
     );
 
-    // تنظیم تایمر
     timeLeft = currentGame.remaining_time || 0;
     updateTimerDisplay();
     
-    // تنظیم تعداد حدس‌ها
     updateAttemptsDisplay();
     
-    // مدیریت نمایش اینپوت و دکمه‌ها بر اساس نقش کاربر
     const guessInputSection = document.getElementById('guessInputSection');
     const playerGuessesSection = document.getElementById('playerGuessesSection');
     
     if (isCreator) {
-        // سازنده: مخفی کردن اینپوت و نمایش حدس‌های بازیکنان
         guessInputSection.style.display = 'none';
         playerGuessesSection.style.display = 'block';
         updatePlayerGuessesDisplay();
+        
+        // نمایش حروف حدس زده شده توسط بازیکنان برای سازنده
+        updateCreatorGuessedLettersDisplay();
     } else {
-        // بازیکن: نمایش اینپوت و مخفی کردن بخش حدس‌ها
         guessInputSection.style.display = 'block';
         playerGuessesSection.style.display = 'none';
         
@@ -621,23 +654,38 @@ function updateGameInterface() {
             document.getElementById('guessInput').placeholder = "حرف مورد نظر را وارد کنید...";
         }
         
-        // بازنشانی راهنمایی‌ها
         hintsUsed = 0;
         document.getElementById('hintCount').textContent = toPersianNumber(2);
         
-        // ذخیره زمان شروع برای بازیکنان
         if (isGameActive) {
             gameStartTime = new Date();
             startGameTimer();
         }
         
-        // فوکوس روی اینپوت برای بازیکنان
         if (isGameActive) {
             setTimeout(() => {
                 document.getElementById('guessInput').focus();
             }, 500);
         }
     }
+}
+
+// تابع نمایش حروف حدس زده شده توسط بازیکنان برای سازنده
+function updateCreatorGuessedLettersDisplay() {
+    if (!isCreator || !currentGame) return;
+    
+    const correctContainer = document.getElementById('correctLetters');
+    const incorrectContainer = document.getElementById('incorrectLetters');
+    
+    correctContainer.innerHTML = currentGame.guessed_letters && currentGame.guessed_letters.length > 0 ? 
+        currentGame.guessed_letters.map(letter => `
+            <div class="letter-badge correct">${letter}</div>
+        `).join('') : '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+    
+    incorrectContainer.innerHTML = currentGame.incorrect_letters && currentGame.incorrect_letters.length > 0 ? 
+        currentGame.incorrect_letters.map(letter => `
+            <div class="letter-badge incorrect">${letter}</div>
+        `).join('') : '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
 }
 
 // تابع نمایش پیشرفت کلمه با انیمیشن
@@ -671,16 +719,17 @@ function updateGuessedLetters(correctLetters, incorrectLetters) {
     const correctContainer = document.getElementById('correctLetters');
     const incorrectContainer = document.getElementById('incorrectLetters');
     
-    correctContainer.innerHTML = correctLetters.map(letter => `
-        <div class="letter-badge correct">${letter}</div>
-    `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+    correctContainer.innerHTML = correctLetters && correctLetters.length > 0 ? 
+        correctLetters.map(letter => `
+            <div class="letter-badge correct">${letter}</div>
+        `).join('') : '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
     
-    incorrectContainer.innerHTML = incorrectLetters.map(letter => `
-        <div class="letter-badge incorrect">${letter}</div>
-    `).join('') || '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
+    incorrectContainer.innerHTML = incorrectLetters && incorrectLetters.length > 0 ? 
+        incorrectLetters.map(letter => `
+            <div class="letter-badge incorrect">${letter}</div>
+        `).join('') : '<div style="color: var(--gray-400); font-size: 0.9rem;">-</div>';
 }
 
-// تابع به‌روزرسانی نمایش حدس‌های بازیکنان (برای سازنده)
 // تابع به‌روزرسانی نمایش حدس‌های بازیکنان (برای سازنده)
 async function updatePlayerGuessesDisplay() {
     if (!currentGame || !isCreator) return;
@@ -718,7 +767,6 @@ async function submitGuess() {
         return;
     }
 
-    // بررسی حروف فارسی
     const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی';
     if (!persianLetters.includes(letter)) {
         showNotification('لطفاً فقط حروف فارسی وارد کنید', 'warning');
@@ -728,9 +776,8 @@ async function submitGuess() {
 
     await guessLetter(letter);
     
-    // پاک کردن اینپوت و بستن کیبورد
     guessInput.value = '';
-    guessInput.blur(); // بستن کیبورد در موبایل
+    guessInput.blur();
 }
 
 // تابع حدس زدن حرف
@@ -752,7 +799,6 @@ async function guessLetter(letter) {
         const result = await response.json();
 
         if (result.success) {
-            // به‌روزرسانی وضعیت بازی
             updateGameState(result);
             
             if (result.game_completed) {
@@ -769,33 +815,27 @@ async function guessLetter(letter) {
 
 // تابع به‌روزرسانی وضعیت بازی
 function updateGameState(result) {
-    // به‌روزرسانی نمایش کلمه با انیمیشن
     if (result.word_progress) {
         displayWordProgress(result.word_progress);
     }
     
-    // به‌روزرسانی حروف حدس زده شده
     updateGuessedLetters(result.correct_letters, result.incorrect_letters);
     
-    // به‌روزرسانی امتیاز
     if (result.score) {
         currentGame.score += result.score;
         document.getElementById('currentScore').textContent = toPersianNumber(currentGame.score);
     }
     
-    // به‌روزرسانی تعداد حدس‌ها
     if (result.remaining_attempts !== undefined) {
         currentGame.attempts = currentGame.max_attempts - result.remaining_attempts;
         updateAttemptsDisplay();
     }
 
-    // به‌روزرسانی زمان باقی‌مانده
     if (result.remaining_time !== undefined) {
         timeLeft = result.remaining_time;
         updateTimerDisplay();
     }
 
-    // نمایش نتیجه حدس
     if (result.is_correct) {
         showNotification(`حرف "${result.letter}" صحیح است! +${toPersianNumber(result.score)} امتیاز`, 'success');
     } else {
@@ -831,7 +871,6 @@ function updateTimerDisplay() {
     const timerText = formatTime(timeLeft);
     document.getElementById('timer').textContent = timerText;
     
-    // تغییر رنگ تایمر وقتی زمان کم است
     const timerElement = document.getElementById('timer');
     if (timeLeft < 60) {
         timerElement.style.color = '#ef4444';
@@ -850,7 +889,7 @@ function updateAttemptsDisplay() {
         `${toPersianNumber(currentGame.attempts)}/${toPersianNumber(currentGame.max_attempts)}`;
 }
 
-// تابع استفاده از راهنمایی
+// تابع استفاده از راهنمایی - بهبود یافته
 function useHint() {
     if (!currentGame || hintsUsed >= 2 || isCreator || !currentGame.is_started || currentGame.completed || timeLeft <= 0) return;
     
@@ -865,18 +904,48 @@ function useHint() {
         document.getElementById('hintBtn').disabled = true;
     }
     
-    // پیدا کردن حروف حدس زده نشده
     const persianLetters = 'آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی'.split('');
-    const availableLetters = persianLetters.filter(letter => 
-        !currentGame.guessed_letters?.includes(letter) && 
-        !currentGame.incorrect_letters?.includes(letter)
-    );
+    
+    // اولویت‌بندی: حروف صحیح که هنوز حدس زده نشده‌اند
+    let availableLetters = [];
+    
+    if (currentGame.word) {
+        // پیدا کردن حروف موجود در کلمه که هنوز حدس زده نشده‌اند
+        const wordLetters = currentGame.word.split('').filter(letter => letter !== ' ');
+        const unguessedCorrectLetters = wordLetters.filter(letter => 
+            !currentGame.guessed_letters?.includes(letter) && 
+            !currentGame.incorrect_letters?.includes(letter)
+        );
+        
+        if (unguessedCorrectLetters.length > 0) {
+            // اگر حروف صحیح حدس زده نشده وجود دارد، از بین آنها انتخاب کن
+            availableLetters = unguessedCorrectLetters;
+        } else {
+            // در غیر این صورت از بین حروف تصادفی که حدس زده نشده‌اند انتخاب کن
+            availableLetters = persianLetters.filter(letter => 
+                !currentGame.guessed_letters?.includes(letter) && 
+                !currentGame.incorrect_letters?.includes(letter)
+            );
+        }
+    } else {
+        availableLetters = persianLetters.filter(letter => 
+            !currentGame.guessed_letters?.includes(letter) && 
+            !currentGame.incorrect_letters?.includes(letter)
+        );
+    }
     
     if (availableLetters.length > 0) {
         const randomLetter = availableLetters[Math.floor(Math.random() * availableLetters.length)];
-        showNotification(`راهنمایی: حرف "${randomLetter}" را امتحان کنید! (۳۰- امتیاز)`, 'warning');
         
-        // قرار دادن حرف در اینپوت
+        // بررسی اینکه آیا حرف پیشنهادی جزو حروف غلط است
+        const isIncorrectSuggestion = currentGame.word && !currentGame.word.includes(randomLetter);
+        
+        if (isIncorrectSuggestion) {
+            showNotification(`راهنمایی: حرف "${randomLetter}" را امتحان نکنید! (۳۰- امتیاز)`, 'warning');
+        } else {
+            showNotification(`راهنمایی: حرف "${randomLetter}" را امتحان کنید! (۳۰- امتیاز)`, 'warning');
+        }
+        
         document.getElementById('guessInput').value = randomLetter;
         document.getElementById('guessInput').focus();
     } else {
@@ -889,7 +958,6 @@ function endGameByTimeout() {
     stopGameTimer();
     stopConnectionReporting();
     
-    // غیرفعال کردن دکمه‌ها و اینپوت
     document.getElementById('hintBtn').disabled = true;
     document.getElementById('guessBtn').disabled = true;
     document.getElementById('guessInput').disabled = true;
@@ -904,7 +972,6 @@ function endGameByTimeout() {
         </div>
     `;
 
-    // نمایش کلمه کامل
     if (currentGame.word) {
         displayWordProgress(currentGame.word);
     }
@@ -915,7 +982,6 @@ function endGame(isWin) {
     stopGameTimer();
     stopConnectionReporting();
     
-    // غیرفعال کردن دکمه‌ها و اینپوت
     document.getElementById('hintBtn').disabled = true;
     document.getElementById('guessBtn').disabled = true;
     document.getElementById('guessInput').disabled = true;
@@ -923,13 +989,16 @@ function endGame(isWin) {
     if (isWin) {
         showNotification(`تبریک! شما برنده شدید! 🎉 امتیاز نهایی: ${toPersianNumber(currentGame.score)}`, 'success');
         
-        // نمایش انیمیشن پیروزی
         const wordDisplay = document.getElementById('wordDisplay');
         wordDisplay.classList.add('win-animation');
     } else {
-        showNotification(`متاسفانه بازی را باختید. امتیاز ناشی: ${toPersianNumber(currentGame.score)}`, 'error');
+        // محاسبه جریمه
+        const maxPossibleScore = currentGame.word ? currentGame.word.length * 50 + currentGame.word.length * 10 * 2 + currentGame.word.length * 5 : 0;
+        const penalty = Math.floor(maxPossibleScore * 0.3);
+        const finalScore = Math.max(0, currentGame.score - penalty);
         
-        // نمایش کلمه کامل
+        showNotification(`متاسفانه بازی را باختید. امتیاز نهایی: ${toPersianNumber(finalScore)} (جریمه: ${toPersianNumber(penalty)} امتیاز)`, 'error');
+        
         if (currentGame.word) {
             displayWordProgress(currentGame.word);
         }
@@ -937,7 +1006,6 @@ function endGame(isWin) {
 
     currentGame.completed = true;
 
-    // به‌روزرسانی آمار کاربر
     setTimeout(() => {
         loadUserData();
     }, 2000);
@@ -948,19 +1016,16 @@ function showGameResult() {
     stopGameTimer();
     stopConnectionReporting();
     
-    // غیرفعال کردن دکمه‌ها و اینپوت
     document.getElementById('hintBtn').disabled = true;
     document.getElementById('guessBtn').disabled = true;
     document.getElementById('guessInput').disabled = true;
 
-    // نمایش کلمه کامل
     if (currentGame.word) {
         displayWordProgress(currentGame.word);
     }
     
     const gameStatus = document.getElementById('gameStatus');
     
-    // نمایش وضعیت برنده
     const isWinner = currentGame.winner_id === currentUser.telegram_id;
     if (isWinner) {
         gameStatus.innerHTML = `
@@ -991,7 +1056,6 @@ function showGameResult() {
 
 // تابع نمایش نوتیفیکیشن
 function showNotification(message, type = 'info') {
-    // حذف نوتیفیکیشن‌های قبلی
     const existingNotifications = document.querySelectorAll('.custom-notification');
     existingNotifications.forEach(notification => {
         notification.remove();
@@ -1064,7 +1128,7 @@ async function loadGameHistory() {
     }
 }
 
-// تابع نمایش تاریخچه بازی‌ها
+// تابع نمایش تاریخچه بازی‌ها - بهبود یافته
 function displayGameHistory(games) {
     const gameHistoryList = document.getElementById('gameHistoryList');
 
@@ -1105,6 +1169,26 @@ function displayGameHistory(games) {
                 <div class="info-row-compact">
                     <i class="fas fa-calendar"></i>
                     <span>تاریخ: ${new Date(game.created_at).toLocaleDateString('fa-IR')}</span>
+                </div>
+            </div>
+            <div class="game-history-letters">
+                <div class="history-letters-section">
+                    <h4>حروف صحیح:</h4>
+                    <div class="history-letters-container">
+                        ${game.guessed_letters && game.guessed_letters.length > 0 ? 
+                            game.guessed_letters.map(letter => `<span class="history-letter-badge correct">${letter}</span>`).join('') : 
+                            '<span class="no-letters">-</span>'
+                        }
+                    </div>
+                </div>
+                <div class="history-letters-section">
+                    <h4>حروف غلط:</h4>
+                    <div class="history-letters-container">
+                        ${game.incorrect_letters && game.incorrect_letters.length > 0 ? 
+                            game.incorrect_letters.map(letter => `<span class="history-letter-badge incorrect">${letter}</span>`).join('') : 
+                            '<span class="no-letters">-</span>'
+                        }
+                    </div>
                 </div>
             </div>
             <div class="game-actions-minimal">
@@ -1159,7 +1243,6 @@ function updateLiveClock() {
     const timeString = now.toLocaleTimeString('fa-IR');
     document.getElementById('currentTime').textContent = timeString;
     
-    // به‌روزرسانی تاریخ
     const dateString = now.toLocaleDateString('fa-IR');
     document.getElementById('persianDate').textContent = dateString;
 }
@@ -1204,13 +1287,11 @@ window.addEventListener('beforeunload', function() {
     stopConnectionReporting();
 });
 
-// مدیریت visibility change (وقتی کاربر به تب دیگر می‌رود)
+// مدیریت visibility change
 document.addEventListener('visibilitychange', function() {
     if (document.hidden) {
-        // کاربر صفحه را ترک کرده
         stopConnectionReporting();
     } else if (currentGame && !currentGame.completed) {
-        // کاربر برگشته - اتصال مجدد
         startConnectionReporting();
     }
 });
@@ -1221,7 +1302,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateLiveClock, 1000);
     loadUserData();
     
-    // رفرش خودکار بازی‌های فعال هر 30 ثانیه
     setInterval(() => {
         if (document.getElementById('active-games').classList.contains('active')) {
             loadActiveGames();
