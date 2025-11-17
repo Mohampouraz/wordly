@@ -6,134 +6,169 @@
 
 :root {
     --primary: #667eea;
+    --primary-dark: #5a6fd8;
     --secondary: #764ba2;
-    --success: #28a745;
-    --danger: #dc3545;
-    --warning: #ffc107;
-    --info: #17a2b8;
-    --dark: #343a40;
-    --light: #f8f9fa;
-    --border: #e9ecef;
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    --success: #10b981;
+    --success-dark: #0da271;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #06b6d4;
+    --dark: #1f2937;
+    --light: #f8fafc;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --radius: 12px;
+    --radius-lg: 16px;
 }
 
 body {
     font-family: 'Vazirmatn', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: #333;
+    color: var(--gray-800);
     line-height: 1.6;
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
     direction: rtl;
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 480px;
     margin: 0 auto;
+    min-height: 100vh;
+    background: white;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
-/* هدر */
-.header {
-    background: rgba(255, 255, 255, 0.95);
+/* هدر مینیمال */
+.header-minimal {
+    background: white;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    position: sticky;
+    top: 0;
+    z-index: 100;
     backdrop-filter: blur(10px);
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 20px;
+}
+
+.header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: var(--shadow);
 }
 
-.logo {
+.logo-minimal {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
 }
 
-.logo i {
-    font-size: 2.5rem;
+.logo-minimal i {
+    font-size: 1.8rem;
     color: var(--primary);
-}
-
-.logo h1 {
-    color: #333;
-    font-size: 1.5rem;
-    margin-bottom: 5px;
-}
-
-.subtitle {
-    color: #666;
-    font-size: 0.9rem;
-}
-
-.user-badge {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    padding: 12px 20px;
-    border-radius: 50px;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-minimal h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
+}
+
+.user-minimal {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-weight: bold;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-/* تب‌ها */
-.tabs-container {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
-
-.tabs {
-    display: flex;
-    background: #f8f9fa;
-    border-radius: 15px 15px 0 0;
-}
-
-.tab-btn {
-    flex: 1;
-    padding: 15px 20px;
-    border: none;
-    background: transparent;
-    color: #666;
-    font-family: 'Vazirmatn', sans-serif;
+    padding: 8px 12px;
+    background: var(--gray-100);
+    border-radius: 20px;
     font-size: 0.9rem;
-    cursor: pointer;
+    font-weight: 500;
+    color: var(--gray-700);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    border-bottom: 3px solid transparent;
+    color: white;
+    font-size: 0.9rem;
 }
 
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.5);
+/* تب‌های مینیمال */
+.tabs-minimal {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+    padding: 0 16px;
+    overflow-x: auto;
+}
+
+.tab-minimal {
+    flex: 1;
+    padding: 16px 12px;
+    border: none;
+    background: transparent;
+    color: var(--gray-500);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    min-width: 80px;
+    border-bottom: 2px solid transparent;
+}
+
+.tab-minimal:hover {
     color: var(--primary);
 }
 
-.tab-btn.active {
-    background: white;
+.tab-minimal.active {
     color: var(--primary);
     border-bottom-color: var(--primary);
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.tab-content {
+.tab-minimal i {
+    font-size: 1.2rem;
+}
+
+.badge-mini {
+    background: var(--danger);
+    color: white;
+    border-radius: 10px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: center;
+}
+
+/* محتوای تب‌ها */
+.tab-content-minimal {
     display: none;
-    background: white;
-    padding: 30px;
-    border-radius: 0 0 15px 15px;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
 }
 
-.tab-content.active {
+.tab-content-minimal.active {
     display: block;
-    animation: fadeIn 0.3s ease;
 }
 
 @keyframes fadeIn {
@@ -141,869 +176,815 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* کارت اصلی */
-.main-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
-
-.card-header {
+/* کارت خوش‌آمدگویی */
+.welcome-card {
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     color: white;
-    padding: 20px;
+    padding: 30px 24px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-lg);
+}
+
+.welcome-content h2 {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.welcome-content p {
+    opacity: 0.9;
+    font-size: 0.9rem;
+}
+
+.welcome-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.9;
+}
+
+/* گرید آمار مینیمال */
+.stats-grid-minimal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.stat-card-minimal {
+    background: white;
+    padding: 20px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 16px;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
 }
 
-.card-header i {
-    font-size: 1.5rem;
+.stat-card-minimal:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
 }
 
-.card-content {
-    padding: 30px;
+.stat-icon-minimal {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
 }
 
-/* فرم‌ها */
-.game-form, .join-game-form {
+.stat-icon-minimal.primary { background: var(--primary); }
+.stat-icon-minimal.success { background: var(--success); }
+.stat-icon-minimal.info { background: var(--info); }
+.stat-icon-minimal.warning { background: var(--warning); }
+
+.stat-info-minimal {
+    flex: 1;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    line-height: 1.2;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--gray-500);
+    margin-top: 4px;
+}
+
+/* کارت‌های مینیمال */
+.card-minimal {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+.card-header-minimal {
+    background: var(--gray-50);
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--gray-200);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.card-header-minimal h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin: 0;
+    flex: 1;
+}
+
+.card-header-minimal i {
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.card-content-minimal {
+    padding: 24px;
+}
+
+/* فرم‌های مینیمال */
+.form-minimal {
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
-.form-group {
+.input-group-minimal {
     display: flex;
     flex-direction: column;
     gap: 8px;
 }
 
-.form-group label {
-    font-weight: bold;
-    color: #333;
+.input-group-minimal label {
+    font-weight: 600;
+    color: var(--gray-700);
     font-size: 0.9rem;
 }
 
-.form-group input, .form-group select {
-    padding: 12px 15px;
-    border: 2px solid var(--border);
-    border-radius: 10px;
+.input-minimal {
+    padding: 12px 16px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius);
     font-family: 'Vazirmatn', sans-serif;
     font-size: 1rem;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     background: white;
 }
 
-.form-group input:focus, .form-group select:focus {
+.input-minimal:focus {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.form-group small {
-    color: #666;
-    font-size: 0.8rem;
+.select-minimal {
+    padding: 12px 16px;
+    border: 2px solid var(--gray-300);
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
 }
 
-/* دکمه‌ها */
-.btn {
-    padding: 12px 25px;
+.select-minimal:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.input-hint {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+    margin-top: 4px;
+}
+
+/* دکمه‌های مینیمال */
+.btn-primary-minimal {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
     border: none;
-    border-radius: 12px;
+    padding: 14px 24px;
+    border-radius: var(--radius);
     font-family: 'Vazirmatn', sans-serif;
-    font-size: 0.9rem;
-    font-weight: bold;
+    font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    transition: all 0.3s ease;
-    text-decoration: none;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+}
+
+.btn-primary-minimal:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-success-minimal {
+    background: linear-gradient(135deg, var(--success), var(--success-dark));
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+}
+
+.btn-success-minimal:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-full {
+    width: 100%;
 }
 
 .btn-large {
-    padding: 15px 30px;
-    font-size: 1rem;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-}
-
-.btn-success {
-    background: linear-gradient(135deg, var(--success), #20c997);
-    color: white;
-}
-
-.btn-hint {
-    background: linear-gradient(135deg, var(--warning), #fd7e14);
-    color: white;
-}
-
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-/* گرید اطلاعات */
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.info-item {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px;
-    background: var(--light);
-    border-radius: 15px;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border);
-}
-
-.info-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.info-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: white;
-    flex-shrink: 0;
-}
-
-.user-id { background: var(--primary); }
-.user-name { background: var(--success); }
-.user-username { background: var(--info); }
-.user-score { background: var(--warning); }
-
-.info-content label {
-    display: block;
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.info-value {
-    font-weight: bold;
-    color: #333;
+    padding: 16px 24px;
     font-size: 1.1rem;
 }
 
-/* کارت‌های اطلاعات */
-.cards-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+.btn-refresh {
+    background: none;
+    border: none;
+    color: var(--gray-500);
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+    background: var(--gray-100);
+    color: var(--primary);
+}
+
+/* کارت اطلاعات کاربری */
+.info-card-minimal {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
     margin-bottom: 20px;
-}
-
-.info-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 25px;
-    border-radius: 20px;
-    box-shadow: var(--shadow);
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    transition: all 0.3s ease;
-}
-
-.info-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-}
-
-.card-icon {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: white;
-    flex-shrink: 0;
-}
-
-.persian-date { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
-.current-time { background: linear-gradient(135deg, #4834d4, #686de0); }
-.first-seen { background: linear-gradient(135deg, #00d2d3, #54a0ff); }
-.last-seen { background: linear-gradient(135deg, #f368e0, #ff9ff3); }
-
-.card-info h3 {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.card-value {
-    font-weight: bold;
-    color: #333;
-    font-size: 1.1rem;
-}
-
-/* آمار */
-.stats-card {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
     overflow: hidden;
+    box-shadow: var(--shadow);
 }
 
-.stats-header {
-    background: linear-gradient(135deg, var(--info), #2ecc71);
-    color: white;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 0;
-}
-
-.stat-item {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 25px;
-    transition: all 0.3s ease;
-    border-bottom: 1px solid var(--border);
-}
-
-.stat-item:hover {
-    background: #f8f9fa;
-}
-
-.stat-item:nth-child(odd) {
-    border-left: 1px solid var(--border);
-}
-
-.stat-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: white;
-    flex-shrink: 0;
-}
-
-.total-users { background: var(--primary); }
-.active-users { background: var(--success); }
-.total-games { background: var(--info); }
-.wins { background: var(--warning); }
-.score { background: #9b59b6; }
-.rate { background: #e74c3c; }
-
-.stat-info label {
-    display: block;
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-}
-
-.stat-value {
-    font-weight: bold;
-    color: #333;
-    font-size: 1.3rem;
-}
-
-/* مودال بازی */
-.game-modal .modal-content {
-    max-width: 600px;
-    width: 95%;
-    border-radius: 20px;
-    overflow: hidden;
-}
-
-.game-info {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.game-stats {
-    display: flex;
-    justify-content: space-around;
-    background: var(--light);
-    padding: 15px;
-    border-radius: 15px;
-    border: 1px solid var(--border);
-}
-
-
-
-/* استایل‌های جدید برای بخش بازی‌های فعال و مودال‌ها */
-
-/* نشانگر تعداد */
-.badge {
-    background: var(--danger);
-    color: white;
-    border-radius: 50%;
-    padding: 2px 6px;
-    font-size: 0.7rem;
-    margin-right: 5px;
-}
-
-/* لیست بازی‌های فعال */
-.games-list {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.game-item {
-    background: var(--light);
-    border-radius: 15px;
-    padding: 20px;
-    border: 1px solid var(--border);
-    transition: all 0.3s ease;
-}
-
-.game-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-}
-
-.game-header {
+.info-row-minimal {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--gray-100);
 }
 
-.game-code {
-    background: var(--primary);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 8px;
-    font-weight: bold;
+.info-row-minimal:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--gray-600);
     font-size: 0.9rem;
 }
 
-.game-category {
-    background: var(--info);
+.info-value {
+    color: var(--gray-800);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+/* کارت زمان */
+.time-card {
+    background: white;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.time-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.time-item:first-child {
+    border-bottom: 1px solid var(--gray-100);
+}
+
+.time-item i {
+    color: var(--primary);
+    font-size: 1.2rem;
+    width: 24px;
+}
+
+.time-label {
+    color: var(--gray-600);
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+}
+
+.time-value {
+    color: var(--gray-800);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+/* لیست بازی‌های مینیمال */
+.games-list-minimal {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.game-item-minimal {
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+
+.game-item-minimal:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+}
+
+.game-header-minimal {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.game-code-minimal {
+    background: var(--primary);
     color: white;
-    padding: 5px 10px;
-    border-radius: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.game-category-minimal {
+    background: var(--gray-100);
+    color: var(--gray-700);
+    padding: 4px 8px;
+    border-radius: 6px;
     font-size: 0.8rem;
 }
 
-.game-info {
+.game-info-minimal {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
-.info-row {
+.info-row-compact {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: #666;
-    font-size: 0.9rem;
+    gap: 8px;
+    color: var(--gray-600);
+    font-size: 0.8rem;
 }
 
-.info-row i {
+.info-row-compact i {
     color: var(--primary);
-    width: 16px;
+    width: 14px;
 }
 
-.game-actions {
+.game-actions-minimal {
     display: flex;
     justify-content: flex-end;
 }
 
 .btn-small {
-    padding: 8px 15px;
+    padding: 8px 16px;
     font-size: 0.8rem;
 }
 
-/* حالت‌های خالی و خطا */
-.empty-state, .loading, .error {
-    text-align: center;
+.loading-minimal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
     padding: 40px 20px;
-    color: #666;
-}
-
-.empty-state i, .loading i {
-    font-size: 3rem;
-    color: #ddd;
-    margin-bottom: 15px;
-}
-
-.error {
-    color: var(--danger);
-}
-
-/* شبکه حروف */
-.letters-grid {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-    margin: 20px 0;
-}
-
-.letter-btn {
-    padding: 12px 5px;
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    background: white;
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-align: center;
-}
-
-.letter-btn:hover:not(.disabled) {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-.letter-btn.correct {
-    background: var(--success);
-    color: white;
-    border-color: var(--success);
-}
-
-.letter-btn.incorrect {
-    background: var(--danger);
-    color: white;
-    border-color: var(--danger);
-}
-
-.letter-btn.disabled {
-    background: #f8f9fa;
-    color: #ccc;
-    cursor: not-allowed;
-    border-color: #e9ecef;
-}
-
-/* وضعیت بازی */
-.game-status {
-    margin: 15px 0;
-}
-
-.creator-notice, .player-notice {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 15px;
-    border-radius: 10px;
-    font-weight: bold;
-}
-
-.creator-notice {
-    background: linear-gradient(135deg, #ffd700, #ffed4e);
-    color: #856404;
-}
-
-.player-notice {
-    background: linear-gradient(135deg, #28a745, #20c997);
-    color: white;
-}
-
-.creator-notice i, .player-notice i {
-    font-size: 1.2rem;
-}
-
-/* حروف حدس زده شده */
-.guessed-letters {
-    margin-top: 20px;
-    padding: 15px;
-    background: var(--light);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
-
-.guessed-letters h4 {
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.letters-container {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.correct-letters, .incorrect-letters {
-    flex: 1;
-    min-width: 150px;
-}
-
-.correct-letters strong {
-    color: var(--success);
-}
-
-.incorrect-letters strong {
-    color: var(--danger);
-}
-
-/* مودال شروع بازی */
-.start-game-info {
-    text-align: center;
-    padding: 20px;
-}
-
-.success-icon {
-    font-size: 4rem;
-    color: var(--success);
-    margin-bottom: 20px;
-}
-
-.start-game-info h3 {
-    color: var(--success);
-    margin-bottom: 15px;
-}
-
-.start-game-info p {
-    margin-bottom: 10px;
-    color: #666;
-}
-
-.start-game-info small {
-    display: block;
-    margin-top: 20px;
-    color: #999;
-    font-size: 0.8rem;
-}
-
-/* رسپانسیو برای شبکه حروف */
-@media (max-width: 768px) {
-    .letters-grid {
-        grid-template-columns: repeat(6, 1fr);
-    }
-    
-    .game-header {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-    
-    .letters-container {
-        flex-direction: column;
-        gap: 10px;
-    }
-}
-
-@media (max-width: 480px) {
-    .letters-grid {
-        grid-template-columns: repeat(5, 1fr);
-    }
-    
-    .letter-btn {
-        padding: 10px 3px;
-        font-size: 1rem;
-    }
-}
-
-.stat {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: bold;
-    color: #333;
-}
-
-.stat i {
-    color: var(--primary);
-    font-size: 1.2rem;
-}
-
-.word-display {
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    padding: 20px;
-    background: var(--light);
-    border-radius: 15px;
-    border: 2px solid var(--border);
-    min-height: 80px;
-    align-items: center;
-}
-
-.letter {
-    width: 40px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-    background: white;
-    border: 2px solid var(--border);
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.letter.space {
-    width: 20px;
-    background: transparent;
-    border: none;
-}
-
-.letter.revealed {
-    background: var(--success);
-    color: white;
-    border-color: var(--success);
-}
-
-.category {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 10px;
-    background: linear-gradient(135deg, var(--info), #3498db);
-    color: white;
-    border-radius: 10px;
-    font-weight: bold;
-}
-
-.guess-input {
-    display: flex;
-    gap: 10px;
-}
-
-.guess-input input {
-    flex: 1;
-    padding: 12px 15px;
-    border: 2px solid var(--border);
-    border-radius: 10px;
-    font-family: 'Vazirmatn', sans-serif;
-    font-size: 1rem;
-    text-align: center;
-    text-transform: uppercase;
-}
-
-.guess-input input:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-.hint-section {
-    display: flex;
-    justify-content: center;
-}
-
-.guess-history {
-    max-height: 200px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 15px;
-    background: var(--light);
-    border-radius: 10px;
-    border: 1px solid var(--border);
-}
-
-.guess-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-}
-
-.guess-letters {
-    display: flex;
-    gap: 5px;
-    flex: 1;
-    justify-content: center;
-}
-
-.guess-letter {
-    width: 30px;
-    height: 35px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    border-radius: 5px;
+    color: var(--gray-500);
     font-size: 0.9rem;
 }
 
-.guess-letter.correct {
-    background: var(--success);
-    color: white;
+.empty-state-minimal {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray-500);
 }
 
-.guess-letter.wrong-position {
-    background: var(--warning);
-    color: white;
+.empty-state-minimal i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
 }
 
-.guess-letter.wrong {
-    background: var(--danger);
-    color: white;
+/* مودال بازی */
+.game-modal .modal-content {
+    max-width: 440px;
+    width: 95%;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
 }
 
-/* مودال */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(5px);
-}
-
-.modal-content {
+.modal-header-minimal {
     background: white;
-    margin: 5% auto;
-    padding: 0;
-    border-radius: 20px;
-    width: 90%;
-    max-width: 500px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: modalSlideIn 0.3s ease;
-}
-
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.modal-header {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
-    color: white;
-    padding: 20px;
-    border-radius: 20px 20px 0 0;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--gray-200);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.modal-header h2 {
-    margin: 0;
+.modal-header-minimal h2 {
     font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--gray-800);
+    margin: 0;
 }
 
-.close {
-    font-size: 2rem;
+.close-minimal {
+    font-size: 1.5rem;
+    color: var(--gray-500);
     cursor: pointer;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
 }
 
-.close:hover {
-    color: #ff6b6b;
+.close-minimal:hover {
+    color: var(--danger);
+    background: var(--gray-100);
 }
 
-.modal-body {
-    padding: 30px;
+/* کانتینر بازی */
+.game-container {
+    padding: 24px;
+}
+
+.game-stats-minimal {
+    display: flex;
+    justify-content: space-around;
+    background: var(--gray-50);
+    padding: 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--gray-200);
+    margin-bottom: 20px;
+}
+
+.game-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: var(--gray-700);
+    font-weight: 600;
+}
+
+.game-stat i {
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+/* نمایش کلمه */
+.word-display-minimal {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 24px 16px;
+    background: var(--gray-50);
+    border-radius: var(--radius);
+    border: 2px solid var(--gray-200);
+    margin-bottom: 16px;
+    min-height: 70px;
+    align-items: center;
+}
+
+.letter-minimal {
+    width: 36px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: white;
+    border: 2px solid var(--gray-300);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.letter-minimal.space {
+    width: 16px;
+    background: transparent;
+    border: none;
+}
+
+.letter-minimal.revealed {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+    animation: letterReveal 0.5s ease;
+}
+
+@keyframes letterReveal {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* اینپوت حدس */
+.guess-input-minimal {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.guess-input-field {
+    flex: 1;
+    text-align: center;
+    font-size: 1.2rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.guess-input-field:focus {
+    border-color: var(--primary);
+}
+
+/* وضعیت بازی */
+.game-status-minimal {
+    margin: 16px 0;
+}
+
+.creator-notice-minimal, .player-notice-minimal {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.creator-notice-minimal {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.player-notice-minimal {
+    background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+.player-notice-minimal.waiting {
+    background: linear-gradient(135deg, #e2e3e5, #d6d8db);
+    color: #383d41;
+    border: 1px solid #d6d8db;
+}
+
+/* حروف حدس زده شده */
+.guessed-letters-minimal {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.letters-section h4 {
+    font-size: 0.9rem;
+    color: var(--gray-600);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.letters-container-minimal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 32px;
+    align-items: center;
+}
+
+.letter-badge {
+    background: var(--gray-200);
+    color: var(--gray-700);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    min-width: 32px;
+    text-align: center;
+}
+
+.letter-badge.correct {
+    background: var(--success);
+    color: white;
+}
+
+.letter-badge.incorrect {
+    background: var(--danger);
+    color: white;
+}
+
+/* دکمه راهنمایی */
+.btn-hint-minimal {
+    background: linear-gradient(135deg, var(--warning), #eab308);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    font-family: 'Vazirmatn', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+    width: 100%;
+}
+
+.btn-hint-minimal:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-hint-minimal:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* مودال شروع بازی */
+.modal-minimal {
+    max-width: 400px;
+}
+
+.start-game-content {
+    text-align: center;
+    padding: 20px;
+}
+
+.success-icon-large {
+    font-size: 4rem;
+    color: var(--success);
+    margin-bottom: 20px;
+}
+
+.game-code-display {
+    background: var(--gray-100);
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    margin: 16px 0;
+    font-size: 1.1rem;
+}
+
+.players-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 16px 0;
+    color: var(--gray-600);
+}
+
+.players-info i {
+    color: var(--primary);
+}
+
+.note-minimal {
+    color: var(--gray-500);
+    font-size: 0.8rem;
+    margin-top: 16px;
+    line-height: 1.5;
+}
+
+/* انیمیشن‌ها */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes winPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    }
+}
+
+.win-animation {
+    animation: winPulse 2s ease-in-out;
 }
 
 /* رسپانسیو */
-@media (max-width: 768px) {
+@media (max-width: 480px) {
     .container {
-        padding: 10px;
+        box-shadow: none;
     }
     
-    .header {
-        flex-direction: column;
-        gap: 15px;
-        text-align: center;
+    .header-minimal {
+        padding: 12px 16px;
     }
     
-    .tabs {
-        flex-direction: column;
+    .tab-content-minimal {
+        padding: 16px;
     }
     
-    .tab-content {
-        padding: 20px;
-    }
-    
-    .cards-container {
+    .stats-grid-minimal {
         grid-template-columns: 1fr;
     }
     
-    .stats-grid {
+    .game-stats-minimal {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .guessed-letters-minimal {
         grid-template-columns: 1fr;
     }
     
-    .stat-item:nth-child(odd) {
-        border-left: none;
-    }
-    
-    .info-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .guess-input {
-        flex-direction: column;
-    }
-    
-    .game-stats {
-        flex-direction: column;
-        gap: 10px;
-        align-items: center;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 10% auto;
+    .letter-minimal {
+        width: 32px;
+        height: 40px;
+        font-size: 1.1rem;
     }
 }
 
-@media (max-width: 480px) {
-    .info-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 15px;
-    }
-    
-    .btn {
-        font-size: 0.8rem;
-        padding: 12px 15px;
-    }
-    
-    .letter {
-        width: 30px;
-        height: 40px;
-        font-size: 1rem;
-    }
+/* اسکرول بار سفارشی */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--gray-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gray-400);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-500);
 }
