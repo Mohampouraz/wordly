@@ -46,6 +46,10 @@
                 <span>بازی‌های فعال</span>
                 <span class="badge-mini" id="activeGamesCount">۰</span>
             </button>
+            <button class="tab-minimal" onclick="openTab('game-history')">
+                <i class="fas fa-history"></i>
+                <span>تاریخچه بازی</span>
+            </button>
         </nav>
 
         <!-- محتوای داشبورد -->
@@ -216,6 +220,27 @@
                         <div class="loading-minimal">
                             <i class="fas fa-spinner fa-spin"></i>
                             <span>در حال بارگذاری بازی‌های فعال...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- محتوای تاریخچه بازی -->
+        <div id="game-history" class="tab-content-minimal">
+            <div class="card-minimal">
+                <div class="card-header-minimal">
+                    <i class="fas fa-history"></i>
+                    <h3>تاریخچه بازی‌های من</h3>
+                    <button class="btn-refresh" onclick="loadGameHistory()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="card-content-minimal">
+                    <div class="games-list-minimal" id="gameHistoryList">
+                        <div class="loading-minimal">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>در حال بارگذاری تاریخچه بازی‌ها...</span>
                         </div>
                     </div>
                 </div>
