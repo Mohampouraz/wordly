@@ -25,6 +25,7 @@ app.use(express.static('public'));
 // ذخیره بازی‌های فعال و وضعیت بازی‌ها
 const activeGames = new Map();
 const playerConnections = new Map();
+const playerGuesses = new Map(); // ذخیره حدس‌های بازیکنان
 
 // اتصال به دیتابیس
 dbClient.connect()
@@ -92,6 +93,19 @@ async function createTables() {
                 player_id BIGINT NOT NULL,
                 joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(game_id, player_id)
+            )
+        `);
+
+        // جدول جدید برای ذخیره حدس‌های بازیکنان
+        await dbClient.query(`
+            CREATE TABLE IF NOT EXISTS player_guesses (
+                id SERIAL PRIMARY KEY,
+                game_id VARCHAR(50) NOT NULL,
+                player_id BIGINT NOT NULL,
+                letter VARCHAR(10) NOT NULL,
+                is_correct BOOLEAN NOT NULL,
+                score INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
 
@@ -435,6 +449,54 @@ app.post('/api/games/:gameId/join', async (req, res) => {
     }
 });
 
+// API جدید: دریافت حدس‌های بازیکنان (برای سازنده)
+app.get('/api/games/:gameId/player-guesses', async (req, res) => {
+    try {
+        const { gameId } = req.params;
+        
+        const result = await dbClient.query(`
+            SELECT pg.*, u.full_name 
+            FROM player_guesses pg
+            LEFT JOIN users u ON pg.player_id = u.telegram_id
+            WHERE pg.game_id = $1
+            ORDER BY pg.created_at DESC
+            LIMIT 20
+        `, [gameId]);
+
+        const guesses = result.rows.map(row => ({
+            player_id: row.player_id,
+            player_name: row.full_name || 'ناشناس',
+            letter: row.letter,
+            is_correct: row.is_correct,
+            score: row.score,
+            created_at: row.created_at,
+            time_ago: getTimeAgo(row.created_at)
+        }));
+
+        res.json({
+            success: true,
+            guesses: guesses
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching player guesses:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// تابع کمکی برای نمایش زمان گذشته
+function getTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - new Date(date);
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 1) return 'همین الان';
+    if (diffMins < 60) return `${diffMins} دقیقه پیش`;
+    if (diffHours < 24) return `${diffHours} ساعت پیش`;
+    return `${Math.floor(diffHours / 24)} روز پیش`;
+}
+
 // تابع پایان بازی به دلیل اتمام زمان
 async function endGameByTimeout(gameId) {
     try {
@@ -509,6 +571,7 @@ async function endGameByTimeout(gameId) {
         // پاک کردن از حافظه
         activeGames.delete(gameId);
         clearGameConnections(gameId);
+        playerGuesses.delete(gameId);
 
         console.log(`🎯 Game ${gameId} ended. Winner: ${winnerId}`);
 
@@ -643,6 +706,30 @@ app.post('/api/games/:gameId/guess-letter', async (req, res) => {
         // محاسبه امتیاز
         const timeSpent = Math.floor((new Date() - game.startTime) / 1000);
         const score = calculateLetterScore(isCorrect, timeSpent, word.length, game.incorrectGuesses.size);
+
+        // ذخیره حدس بازیکن در دیتابیس
+        await dbClient.query(
+            'INSERT INTO player_guesses (game_id, player_id, letter, is_correct, score) VALUES ($1, $2, $3, $4, $5)',
+            [gameId, player_id, letterUpper, isCorrect, score]
+        );
+
+        // ذخیره حدس در حافظه برای نمایش سریع
+        if (!playerGuesses.has(gameId)) {
+            playerGuesses.set(gameId, []);
+        }
+        const playerGuessesList = playerGuesses.get(gameId);
+        playerGuessesList.unshift({
+            player_id,
+            letter: letterUpper,
+            is_correct: isCorrect,
+            score: score,
+            timestamp: new Date()
+        });
+        
+        // محدود کردن تعداد حدس‌های ذخیره شده
+        if (playerGuessesList.length > 20) {
+            playerGuessesList.pop();
+        }
 
         // بررسی پایان بازی (برنده شدن)
         const isGameCompleted = checkGameCompletion(word, game.guessedLetters);
@@ -781,6 +868,7 @@ async function endGameWithWinner(gameId, winnerId, score) {
         // پاک کردن از حافظه
         activeGames.delete(gameId);
         clearGameConnections(gameId);
+        playerGuesses.delete(gameId);
 
         console.log(`🎉 Game ${gameId} completed. Winner: ${winnerId}`);
 
@@ -1188,6 +1276,7 @@ setInterval(() => {
         // اگر بازی بیش از 2 ساعت است که فعال است و تمام شده، از حافظه پاک کن
         if (game.completed || (game.last_activity && (now - game.last_activity) > 2 * 60 * 60 * 1000)) {
             activeGames.delete(gameId);
+            playerGuesses.delete(gameId);
         }
     }
 }, 5 * 60 * 1000);
