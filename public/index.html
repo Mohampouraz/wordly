@@ -256,7 +256,7 @@
                 <span class="close-minimal" onclick="closeGameModal()">&times;</span>
             </div>
             <div class="modal-body">
-                <div class="game-container">
+                <div class="game-container custom-scrollbar">
                     <div class="game-stats-minimal">
                         <div class="game-stat">
                             <i class="fas fa-clock"></i>
@@ -284,6 +284,14 @@
                     <div class="game-status-minimal" id="gameStatus">
                         <!-- وضعیت بازی اینجا نمایش داده می‌شود -->
                     </div>
+
+                    <!-- بخش نمایش حروف بازیکنان مقابل برای سازنده -->
+                    <div class="opponent-guesses-section" id="opponentGuessesSection" style="display: none;">
+                        <h3 class="section-title">حدس‌های بازیکنان مقابل</h3>
+                        <div class="opponent-guesses-container" id="opponentGuessesContainer">
+                            <!-- حدس‌های بازیکنان مقابل اینجا نمایش داده می‌شود -->
+                        </div>
+                    </div>
                     
                     <!-- اینپوت باکس برای حدس حرف (فقط برای بازیکنان) -->
                     <div class="guess-input-section" id="guessInputSection">
@@ -306,9 +314,16 @@
                     <!-- بخش حروف حدس زده شده توسط بازیکنان -->
                     <div class="player-guesses-section" id="playerGuessesSection">
                         <h3 class="section-title">حدس‌های بازیکنان</h3>
-                        <div class="player-guesses-container" id="playerGuessesContainer">
+                        <div class="player-guesses-container custom-scrollbar" id="playerGuessesContainer">
                             <!-- حدس‌های بازیکنان اینجا نمایش داده می‌شود -->
                         </div>
+                    </div>
+
+                    <!-- نمایش امتیاز و جریمه -->
+                    <div class="score-display" id="scoreDisplay" style="display: none;">
+                        <span class="score-label">امتیاز فعلی:</span>
+                        <span class="score-value positive" id="currentScoreDisplay">۰</span>
+                        <span class="score-penalty" id="penaltyDisplay" style="display: none;">جریمه: ۰</span>
                     </div>
                     
                     <div class="guessed-letters-minimal">
@@ -325,6 +340,62 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- نمایش حروف ویژه -->
+                    <div class="special-letters" id="specialLetters" style="display: none;">
+                        <!-- حروف ویژه اینجا نمایش داده می‌شود -->
+                    </div>
+
+                    <!-- راهنمای بازی -->
+                    <div class="game-guide" id="gameGuide">
+                        <div class="guide-header">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="guide-title">راهنمای بازی</span>
+                        </div>
+                        <div class="guide-content">
+                            حروف فارسی را حدس بزنید و امتیاز کسب کنید. از راهنمایی‌ها هوشمندانه استفاده کنید!
+                        </div>
+                        <div class="guide-tips">
+                            <div class="guide-tip">
+                                <i class="fas fa-lightbulb"></i>
+                                <span>راهنمایی فقط حروف صحیح را پیشنهاد می‌دهد</span>
+                            </div>
+                            <div class="guide-tip">
+                                <i class="fas fa-clock"></i>
+                                <span>سرعت حدس زدن امتیاز بیشتری دارد</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال جزئیات بازی -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header-minimal">
+                <h2>جزئیات بازی</h2>
+                <span class="close-minimal" onclick="closeDetailsModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="game-details-minimal" id="gameDetailsContent">
+                    <!-- جزئیات بازی اینجا نمایش داده می‌شود -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال امتیازات -->
+    <div id="scoreModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header-minimal">
+                <h2>کارت امتیازات</h2>
+                <span class="close-minimal" onclick="closeScoreModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="score-card" id="scoreCardContent">
+                    <!-- کارت امتیازات اینجا نمایش داده می‌شود -->
                 </div>
             </div>
         </div>
