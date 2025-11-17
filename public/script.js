@@ -681,23 +681,31 @@ function updateGuessedLetters(correctLetters, incorrectLetters) {
 }
 
 // تابع به‌روزرسانی نمایش حدس‌های بازیکنان (برای سازنده)
-function updatePlayerGuessesDisplay() {
-    const container = document.getElementById('playerGuessesContainer');
+// تابع به‌روزرسانی نمایش حدس‌های بازیکنان (برای سازنده)
+async function updatePlayerGuessesDisplay() {
+    if (!currentGame || !isCreator) return;
     
-    // اینجا می‌توانید اطلاعات حدس‌های بازیکنان را از سرور دریافت کنید
-    // برای نمونه، یک پیام نمایش می‌دهیم
-    container.innerHTML = `
-        <div class="player-guess-item">
-            <div class="player-name">بازیکن ۱</div>
-            <div class="player-guess">حرف "ب" - <span class="guess-result correct">صحیح</span></div>
-            <div class="guess-time">۲ دقیقه پیش</div>
-        </div>
-        <div class="player-guess-item">
-            <div class="player-name">بازیکن ۲</div>
-            <div class="player-guess">حرف "پ" - <span class="guess-result incorrect">غلط</span></div>
-            <div class="guess-time">۱ دقیقه پیش</div>
-        </div>
-    `;
+    try {
+        const response = await fetch(`/api/games/${currentGame.game_id}/player-guesses`);
+        const result = await response.json();
+        
+        const container = document.getElementById('playerGuessesContainer');
+        
+        if (result.success && result.guesses.length > 0) {
+            container.innerHTML = result.guesses.map(guess => `
+                <div class="player-guess-item">
+                    <div class="player-name">${guess.player_name}</div>
+                    <div class="player-guess">حرف "${guess.letter}" - <span class="guess-result ${guess.is_correct ? 'correct' : 'incorrect'}">${guess.is_correct ? 'صحیح' : 'غلط'}</span></div>
+                    <div class="guess-time">${guess.time_ago}</div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = '<div class="empty-state-minimal">هنوز حدسی ثبت نشده است</div>';
+        }
+    } catch (error) {
+        console.error('❌ خطا در دریافت حدس‌های بازیکنان:', error);
+        document.getElementById('playerGuessesContainer').innerHTML = '<div class="error">خطا در بارگذاری حدس‌ها</div>';
+    }
 }
 
 // تابع ارسال حدس
