@@ -27,7 +27,7 @@ const activeGames = new Map();
 const playerConnections = new Map();
 const playerGuesses = new Map();
 
-// NEW: Competitive Mode Storage
+// Competitive Mode Storage
 const competitiveMatches = new Map();
 const waitingCompetitiveMatches = new Map();
 const onlinePlayers = new Map();
@@ -116,7 +116,7 @@ async function createTables() {
             )
         `);
 
-        // NEW: Competitive matches table
+        // Competitive matches table
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS competitive_matches (
                 id SERIAL PRIMARY KEY,
@@ -137,7 +137,7 @@ async function createTables() {
             )
         `);
 
-        // NEW: Competitive match words table
+        // Competitive match words table
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS competitive_match_words (
                 id SERIAL PRIMARY KEY,
@@ -155,7 +155,7 @@ async function createTables() {
             )
         `);
 
-        // NEW: Competitive player stats table
+        // Competitive player stats table
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS competitive_player_stats (
                 id SERIAL PRIMARY KEY,
@@ -190,7 +190,7 @@ async function createTables() {
 
 createTables();
 
-// NEW: Competitive Mode APIs
+// Competitive Mode APIs
 
 // API for quick match
 app.post('/api/competitive/quick-match', async (req, res) => {
@@ -228,16 +228,16 @@ app.post('/api/competitive/quick-match', async (req, res) => {
             // Join existing match
             foundMatch.player2_id = player_id;
             foundMatch.player2_name = player_name;
-            foundMatch.status = 'matched';
+            foundMatch.status = 'active'; // Change status to active immediately
             
+            // Generate words for the match
+            const words = await generateCompetitiveWords(foundMatch.category, 5);
+            foundMatch.words = words;
+            foundMatch.started_at = new Date();
+
             // Move to active matches
             competitiveMatches.set(foundMatchId, foundMatch);
             waitingCompetitiveMatches.delete(foundMatchId);
-
-            // Generate words for the match
-            const words = await generateCompetitiveWords(foundMatch.category, 10);
-            foundMatch.words = words;
-            foundMatch.started_at = new Date();
 
             // Save to database
             await dbClient.query(
@@ -326,6 +326,14 @@ app.get('/api/competitive/match/:matchId', async (req, res) => {
             }
             
             match = dbMatch.rows[0];
+            // Parse words if they exist
+            if (match.words && typeof match.words === 'string') {
+                try {
+                    match.words = JSON.parse(match.words);
+                } catch (e) {
+                    match.words = [];
+                }
+            }
         }
 
         res.json({
@@ -336,8 +344,8 @@ app.get('/api/competitive/match/:matchId', async (req, res) => {
                 player1_name: match.player1_name,
                 player2_id: match.player2_id,
                 player2_name: match.player2_name,
-                player1_score: match.player1_score,
-                player2_score: match.player2_score,
+                player1_score: match.player1_score || 0,
+                player2_score: match.player2_score || 0,
                 category: match.category,
                 status: match.status,
                 words: match.words || [],
@@ -543,8 +551,8 @@ app.post('/api/competitive/match/:matchId/complete', async (req, res) => {
                 player2_score: match.player2_score,
                 player1_name: match.player1_name,
                 player2_name: match.player2_name,
-                correct_words: stats.correct || 0,
-                average_time: Math.round(stats.time / 10), // Assuming 10 words
+                correct_words: stats?.correct || 0,
+                average_time: Math.round(stats?.time / 5) || 0, // Assuming 5 words
                 earned_points: earnedPoints
             }
         });
@@ -2008,7 +2016,7 @@ setInterval(() => {
     }
 }, 5 * 60 * 1000);
 
-// NEW: Cleanup competitive matches
+// Cleanup competitive matches
 setInterval(() => {
     const now = new Date();
     
