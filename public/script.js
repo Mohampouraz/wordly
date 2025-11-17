@@ -1,6 +1,303 @@
 // متغیرهای global
 let currentUser = null;
 let telegramApp = null;
+let isTelegramEnvironment = false;
+
+// تابع بررسی محیط تلگرام
+function checkTelegramEnvironment() {
+    console.log('🔍 Checking Telegram environment...');
+    
+    // روش ۱: بررسی وجود Telegram.WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+        console.log('✅ Telegram.WebApp found');
+        telegramApp = window.Telegram.WebApp;
+        return true;
+    }
+    
+    // روش ۲: بررسی وجود window.TelegramWebApp (نسخه قدیمی)
+    if (window.TelegramWebApp) {
+        console.log('✅ TelegramWebApp found (legacy)');
+        telegramApp = window.TelegramWebApp;
+        return true;
+    }
+    
+    // روش ۳: بررسی پارامترهای URL که تلگرام اضافه می‌کند
+    const urlParams = new URLSearchParams(window.location.search);
+    const tgWebAppData = urlParams.get('tgWebAppData');
+    const tgWebAppVersion = urlParams.get('tgWebAppVersion');
+    
+    if (tgWebAppData || tgWebAppVersion) {
+        console.log('✅ Telegram URL parameters found');
+        return true;
+    }
+    
+    console.log('❌ Not in Telegram environment');
+    return false;
+}
+
+// تابع مقداردهی اولیه تلگرام
+function initializeTelegramApp() {
+    if (!telegramApp) {
+        console.log('❌ Telegram app not available');
+        return false;
+    }
+    
+    try {
+        // راه‌اندازی تلگرام وب اپ
+        telegramApp.ready();
+        telegramApp.expand();
+        
+        // تنظیمات ظاهری
+        telegramApp.setHeaderColor('#667eea');
+        telegramApp.setBackgroundColor('#667eea');
+        telegramApp.enableClosingConfirmation();
+        
+        // تنظیم دکمه اصلی
+        telegramApp.MainButton.setText('بازگشت به تلگرام');
+        telegramApp.MainButton.show();
+        telegramApp.MainButton.onClick(() => {
+            telegramApp.close();
+        });
+        
+        console.log('✅ Telegram Web App initialized successfully');
+        console.log('Platform:', telegramApp.platform);
+        console.log('Version:', telegramApp.version);
+        console.log('Init Data:', telegramApp.initData);
+        console.log('User Data:', telegramApp.initDataUnsafe?.user);
+        
+        return true;
+    } catch (error) {
+        console.error('❌ Error initializing Telegram app:', error);
+        return false;
+    }
+}
+
+// تابع دریافت اطلاعات کاربر از تلگرام
+function getTelegramUserData() {
+    if (!telegramApp) {
+        console.log('❌ Telegram app not available for user data');
+        return null;
+    }
+    
+    try {
+        // روش اصلی: از initDataUnsafe
+        if (telegramApp.initDataUnsafe && telegramApp.initDataUnsafe.user) {
+            const user = telegramApp.initDataUnsafe.user;
+            console.log('📱 User data from Telegram initDataUnsafe:', user);
+            
+            return {
+                telegram_id: user.id,
+                full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+                username: user.username || 'ندارد',
+                language_code: user.language_code || 'fa',
+                is_bot: user.is_bot || false
+            };
+        }
+        
+        // روش جایگزین: از initData (اگر initDataUnsafe کار نکرد)
+        if (telegramApp.initData) {
+            console.log('ℹ️ Trying to parse initData directly');
+            // اینجا می‌توانید initData را پارس کنید
+            // اما معمولاً initDataUnsafe کافی است
+        }
+        
+        console.log('❌ No user data found in Telegram');
+        return null;
+        
+    } catch (error) {
+        console.error('💥 Error getting Telegram user data:', error);
+        return null;
+    }
+}
+
+// تابع همگام‌سازی با سرور
+async function syncUserWithServer(userData) {
+    try {
+        console.log('🔄 Syncing user with server:', userData);
+        
+        const response = await fetch('/api/user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('✅ User synced with server:', result);
+            return result;
+        } else {
+            console.error('❌ Server returned error:', response.status);
+            return null;
+        }
+    } catch (error) {
+        console.error('💥 Error syncing with server:', error);
+        return null;
+    }
+}
+
+// تابع دریافت اطلاعات از سرور
+async function fetchUserFromServer(telegramId) {
+    try {
+        console.log(`🔍 Fetching user ${telegramId} from server...`);
+        
+        const response = await fetch(`/api/user/${telegramId}`);
+        
+        if (response.ok) {
+            const userData = await response.json();
+            console.log('✅ User data from server:', userData);
+            return userData;
+        } else if (response.status === 404) {
+            console.log('ℹ️ User not found on server');
+            return null;
+        } else {
+            throw new Error(`Server error: ${response.status}`);
+        }
+    } catch (error) {
+        console.error('💥 Error fetching from server:', error);
+        return null;
+    }
+}
+
+// تابع اصلی دریافت اطلاعات کاربر
+async function getUserData() {
+    console.log('👤 Starting user data retrieval...');
+    
+    // اول بررسی کن آیا در محیط تلگرام هستیم
+    isTelegramEnvironment = checkTelegramEnvironment();
+    
+    if (isTelegramEnvironment) {
+        console.log('🌐 In Telegram environment, getting Telegram user data');
+        
+        // مقداردهی اولیه تلگرام
+        initializeTelegramApp();
+        
+        // اطلاعات کاربر از تلگرام بگیر
+        const telegramUser = getTelegramUserData();
+        
+        if (telegramUser) {
+            console.log('✅ Successfully got user data from Telegram');
+            
+            // نمایش وضعیت موفق
+            showStatus('اتصال به تلگرام برقرار شد ✅', 'success');
+            
+            // همگام‌سازی با سرور
+            const serverUser = await syncUserWithServer(telegramUser);
+            
+            // اگر سرور جواب داد از آن استفاده کن، در غیر این صورت از داده‌های تلگرام
+            if (serverUser) {
+                return serverUser;
+            } else {
+                console.log('⚠️ Using Telegram data (server sync failed)');
+                return {
+                    ...telegramUser,
+                    first_seen: new Date().toISOString(),
+                    last_seen: new Date().toISOString(),
+                    game_score: 0,
+                    is_active: true
+                };
+            }
+        } else {
+            console.log('❌ Failed to get user data from Telegram');
+            showStatus('خطا در دریافت اطلاعات از تلگرام', 'error');
+        }
+    } else {
+        console.log('🌐 Not in Telegram environment');
+        showStatus('در حال اجرا در مرورگر معمولی', 'info');
+    }
+    
+    // اگر به اینجا رسیدیم، یا در تلگرام نیستیم یا خطا داشتیم
+    // سعی کن از سرور اطلاعات بگیر
+    console.log('🔄 Trying to get data from server...');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const telegramId = urlParams.get('tgid') || urlParams.get('id');
+    
+    if (telegramId) {
+        const serverUser = await fetchUserFromServer(telegramId);
+        if (serverUser) {
+            return serverUser;
+        }
+    }
+    
+    // اگر هیچ کدام کار نکرد، داده‌های تست نشان بده
+    console.log('⚠️ Using test data');
+    showStatus('در حال استفاده از داده‌های تست', 'warning');
+    
+    return {
+        telegram_id: 123456789,
+        full_name: 'کاربر تست (Not in Telegram)',
+        username: 'test_user',
+        first_seen: new Date().toISOString(),
+        last_seen: new Date().toISOString(),
+        game_score: Math.floor(Math.random() * 1000),
+        is_active: true
+    };
+}
+
+// تابع نمایش وضعیت
+function showStatus(message, type = 'info') {
+    const statusCard = document.getElementById('telegramStatus');
+    const statusText = document.getElementById('statusText');
+    
+    if (!statusCard || !statusText) return;
+    
+    // تنظیم رنگ بر اساس نوع
+    const colors = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    statusCard.style.borderLeftColor = colors[type] || colors.info;
+    statusText.textContent = message;
+    statusCard.classList.remove('hidden');
+}
+
+// تابع مخفی کردن وضعیت
+function hideStatus() {
+    const statusCard = document.getElementById('telegramStatus');
+    if (statusCard) {
+        statusCard.classList.add('hidden');
+    }
+}
+
+// تابع نمایش نوتیفیکیشن
+function showNotification(message, type = 'info', duration = 5000) {
+    const notification = document.getElementById('notification');
+    const notificationText = document.getElementById('notificationText');
+    
+    if (!notification || !notificationText) return;
+    
+    const colors = {
+        success: 'linear-gradient(135deg, #28a745, #20c997)',
+        error: 'linear-gradient(135deg, #dc3545, #e83e8c)',
+        warning: 'linear-gradient(135deg, #ffc107, #fd7e14)',
+        info: 'linear-gradient(135deg, #17a2b8, #6f42c1)'
+    };
+    
+    notification.style.background = colors[type] || colors.info;
+    notificationText.textContent = message;
+    
+    notification.classList.remove('hidden');
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+        hideNotification();
+    }, duration);
+}
+
+function hideNotification() {
+    const notification = document.getElementById('notification');
+    if (notification) {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 300);
+    }
+}
 
 // تابع تبدیل تاریخ میلادی به شمسی
 function toPersianDate(gregorianDate) {
@@ -26,7 +323,6 @@ function toPersianDate(gregorianDate) {
     };
 }
 
-// تابع تبدیل تاریخ شمسی
 function gregorian_to_jalali(gy, gm, gd) {
     var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
     var jy = (gy <= 1600) ? 0 : 979;
@@ -45,6 +341,73 @@ function gregorian_to_jalali(gy, gm, gd) {
     return [jy, jm, jd];
 }
 
+// تابع به‌روزرسانی ساعت زنده
+function updateLiveClock() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('fa-IR');
+    document.getElementById('currentTime').textContent = timeString;
+    
+    const persianDate = toPersianDate(now);
+    document.getElementById('persianDate').textContent = persianDate.formatted;
+}
+
+// تابع بارگذاری اطلاعات کاربر
+async function loadUserData() {
+    console.log('👤 Loading user data...');
+    
+    try {
+        const userData = await getUserData();
+        
+        if (userData) {
+            currentUser = userData;
+            console.log('✅ User data loaded successfully:', userData);
+            
+            // نمایش اطلاعات در صفحه
+            updateUserInterface(userData);
+            
+            // نمایش پیام خوش‌آمدگویی
+            if (userData.telegram_id !== 123456789) {
+                showNotification(`خوش آمدید ${userData.full_name}! 🎉`, 'success', 3000);
+            } else {
+                showNotification('در حال تست - در تلگرام اطلاعات واقعی نمایش داده می‌شود', 'info', 4000);
+            }
+            
+        } else {
+            throw new Error('No user data received');
+        }
+    } catch (error) {
+        console.error('💥 Failed to load user data:', error);
+        showNotification('خطا در دریافت اطلاعات کاربر', 'error');
+    }
+}
+
+// تابع به‌روزرسانی رابط کاربری
+function updateUserInterface(userData) {
+    // اطلاعات اصلی
+    document.getElementById('userId').textContent = userData.telegram_id;
+    document.getElementById('fullName').textContent = userData.full_name;
+    document.getElementById('username').textContent = userData.username;
+    document.getElementById('gameScore').textContent = userData.game_score || 0;
+    document.getElementById('userName').textContent = userData.full_name;
+    
+    // اطلاعات مودال
+    document.getElementById('modalUserId').textContent = userData.telegram_id;
+    document.getElementById('modalFullName').textContent = userData.full_name;
+    document.getElementById('modalUsername').textContent = userData.username;
+    document.getElementById('modalGameScore').textContent = userData.game_score || 0;
+    
+    // اطلاعات زمانی
+    if (userData.first_seen) {
+        const firstSeenDate = toPersianDate(userData.first_seen);
+        const lastSeenDate = toPersianDate(userData.last_seen);
+        
+        document.getElementById('firstSeen').textContent = firstSeenDate.formatted;
+        document.getElementById('lastSeen').textContent = lastSeenDate.formatted;
+        document.getElementById('modalFirstSeen').textContent = formatDateTime(userData.first_seen);
+        document.getElementById('modalLastSeen').textContent = formatDateTime(userData.last_seen);
+    }
+}
+
 // تابع فرمت‌بندی تاریخ و ساعت
 function formatDateTime(date) {
     const options = {
@@ -59,268 +422,41 @@ function formatDateTime(date) {
     return new Date(date).toLocaleString('fa-IR', options);
 }
 
-// تابع به‌روزرسانی ساعت زنده
-function updateLiveClock() {
-    const now = new Date();
-    const timeString = now.toLocaleTimeString('fa-IR');
-    document.getElementById('currentTime').textContent = timeString;
+// تابع دیباگ تلگرام
+function checkTelegramData() {
+    console.log('=== TELEGRAM DEBUG INFO ===');
+    console.log('Window.Telegram:', window.Telegram);
+    console.log('Window.TelegramWebApp:', window.TelegramWebApp);
     
-    const persianDate = toPersianDate(now);
-    document.getElementById('persianDate').textContent = persianDate.formatted;
-}
-
-// تابع نمایش نوتیفیکیشن
-function showNotification(message, type = 'info', duration = 5000) {
-    const notification = document.getElementById('notification');
-    const notificationText = document.getElementById('notificationText');
-    
-    // تنظیم رنگ بر اساس نوع
-    const colors = {
-        success: 'linear-gradient(135deg, #28a745, #20c997)',
-        error: 'linear-gradient(135deg, #dc3545, #e83e8c)',
-        warning: 'linear-gradient(135deg, #ffc107, #fd7e14)',
-        info: 'linear-gradient(135deg, #17a2b8, #6f42c1)'
-    };
-    
-    notification.style.background = colors[type] || colors.info;
-    notificationText.textContent = message;
-    
-    notification.classList.remove('hidden');
-    notification.classList.add('show');
-    
-    // پنهان کردن خودکار
-    setTimeout(() => {
-        hideNotification();
-    }, duration);
-}
-
-function hideNotification() {
-    const notification = document.getElementById('notification');
-    notification.classList.remove('show');
-    setTimeout(() => {
-        notification.classList.add('hidden');
-    }, 300);
-}
-
-// تابع initialize تلگرام
-function initializeTelegramApp() {
     if (window.Telegram && window.Telegram.WebApp) {
-        telegramApp = window.Telegram.WebApp;
-        
-        // تنظیمات اولیه تلگرام وب اپ
-        telegramApp.expand();
-        telegramApp.enableClosingConfirmation();
-        telegramApp.setHeaderColor('#667eea');
-        telegramApp.setBackgroundColor('#667eea');
-        
-        console.log('✅ Telegram Web App initialized');
-        console.log('Platform:', telegramApp.platform);
-        console.log('Init Data:', telegramApp.initData);
-        console.log('Init Data Unsafe:', telegramApp.initDataUnsafe);
-        
-        // نمایش دکمه اصلی
-        telegramApp.MainButton.setText('بازگشت به تلگرام');
-        telegramApp.MainButton.show();
-        telegramApp.MainButton.onClick(() => {
-            telegramApp.close();
-        });
-        
-        return true;
+        const tg = window.Telegram.WebApp;
+        console.log('Platform:', tg.platform);
+        console.log('Version:', tg.version);
+        console.log('Init Data:', tg.initData);
+        console.log('Init Data Unsafe:', tg.initDataUnsafe);
+        console.log('User:', tg.initDataUnsafe?.user);
     }
-    return false;
-}
-
-// تابع دریافت اطلاعات کاربر از تلگرام
-function getTelegramUserData() {
-    if (telegramApp && telegramApp.initDataUnsafe && telegramApp.initDataUnsafe.user) {
-        const user = telegramApp.initDataUnsafe.user;
-        console.log('📱 User data from Telegram:', user);
-        
-        return {
-            telegram_id: user.id,
-            full_name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
-            username: user.username || 'ندارد',
-            language_code: user.language_code || 'fa'
-        };
-    }
-    return null;
-}
-
-// تابع همگام‌سازی کاربر با سرور
-async function syncUserWithServer(userData) {
-    try {
-        console.log('🔄 Syncing user with server:', userData);
-        const response = await fetch('/api/user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(userData)
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to sync user with server');
-        }
-        
-        const result = await response.json();
-        console.log('✅ User synced with server:', result);
-        return result;
-    } catch (error) {
-        console.error('❌ Error syncing user:', error);
-        return null;
-    }
-}
-
-// تابع دریافت اطلاعات کاربر از سرور
-async function fetchUserFromServer(telegramId) {
-    try {
-        console.log(`🔍 Fetching user ${telegramId} from server...`);
-        const response = await fetch(`/api/user/${telegramId}`);
-        
-        if (response.ok) {
-            const userData = await response.json();
-            console.log('✅ User data from server:', userData);
-            return userData;
-        } else if (response.status === 404) {
-            console.log('ℹ️ User not found on server, will create new one');
-            return null;
-        } else {
-            throw new Error(`Server returned ${response.status}`);
-        }
-    } catch (error) {
-        console.error('❌ Error fetching from server:', error);
-        return null;
-    }
-}
-
-// تابع اصلی دریافت اطلاعات کاربر
-async function getUserData() {
-    try {
-        console.log('👤 Getting user data...');
-        
-        // اول از تلگرام اطلاعات بگیر
-        const telegramUser = getTelegramUserData();
-        
-        if (telegramUser) {
-            console.log('✅ Got user data from Telegram');
-            
-            // همگام‌سازی با سرور
-            const serverUser = await syncUserWithServer(telegramUser);
-            
-            // اگر سرور کاربر را برگرداند از آن استفاده کن، در غیر این صورت از داده‌های تلگرام
-            if (serverUser) {
-                return serverUser;
-            } else {
-                // اگر سرور خطا داد، از داده‌های تلگرام استفاده کن
-                return {
-                    ...telegramUser,
-                    first_seen: new Date().toISOString(),
-                    last_seen: new Date().toISOString(),
-                    game_score: 0,
-                    is_active: true
-                };
-            }
-        } else {
-            console.log('❌ No Telegram user data, trying to get from URL parameters...');
-            
-            // اگر در تلگرام نیستیم، از URL پارامتر بگیر
-            const urlParams = new URLSearchParams(window.location.search);
-            const telegramId = urlParams.get('tgid');
-            
-            if (telegramId) {
-                const serverUser = await fetchUserFromServer(telegramId);
-                if (serverUser) {
-                    return serverUser;
-                }
-            }
-            
-            // اگر هیچ کدام کار نکرد، داده‌های تست نشان بده
-            console.log('⚠️ Using test data');
-            return {
-                telegram_id: 123456789,
-                full_name: 'کاربر تست (Not in Telegram)',
-                username: 'test_user',
-                first_seen: new Date().toISOString(),
-                last_seen: new Date().toISOString(),
-                game_score: 0,
-                is_active: true
-            };
-        }
-    } catch (error) {
-        console.error('💥 Error in getUserData:', error);
-        // در صورت خطا، داده‌های تست برگردان
-        return {
-            telegram_id: 999999999,
-            full_name: 'خطا در دریافت اطلاعات',
-            username: 'error_user',
-            first_seen: new Date().toISOString(),
-            last_seen: new Date().toISOString(),
-            game_score: 0,
-            is_active: false
-        };
-    }
-}
-
-// تابع بارگذاری اطلاعات کاربر
-async function loadUserData() {
-    console.log('👤 Loading user data...');
     
-    try {
-        const userData = await getUserData();
-        
-        if (userData) {
-            currentUser = userData;
-            console.log('✅ User data loaded:', userData);
-            
-            // نمایش اطلاعات در کارت اصلی
-            document.getElementById('userId').textContent = userData.telegram_id;
-            document.getElementById('fullName').textContent = userData.full_name;
-            document.getElementById('username').textContent = userData.username;
-            document.getElementById('gameScore').textContent = userData.game_score || 0;
-            document.getElementById('userName').textContent = userData.full_name;
-            
-            // نمایش اطلاعات در مودال‌ها
-            document.getElementById('modalUserId').textContent = userData.telegram_id;
-            document.getElementById('modalFullName').textContent = userData.full_name;
-            document.getElementById('modalUsername').textContent = userData.username;
-            document.getElementById('modalGameScore').textContent = userData.game_score || 0;
-            
-            // نمایش اطلاعات زمانی
-            if (userData.first_seen) {
-                const firstSeenDate = toPersianDate(userData.first_seen);
-                const lastSeenDate = toPersianDate(userData.last_seen);
-                
-                document.getElementById('firstSeen').textContent = firstSeenDate.formatted;
-                document.getElementById('lastSeen').textContent = lastSeenDate.formatted;
-                document.getElementById('modalFirstSeen').textContent = formatDateTime(userData.first_seen);
-                document.getElementById('modalLastSeen').textContent = formatDateTime(userData.last_seen);
-            } else {
-                // اگر اطلاعات زمانی نداریم
-                const now = new Date();
-                const persianNow = toPersianDate(now);
-                document.getElementById('firstSeen').textContent = persianNow.formatted;
-                document.getElementById('lastSeen').textContent = persianNow.formatted;
-                document.getElementById('modalFirstSeen').textContent = formatDateTime(now);
-                document.getElementById('modalLastSeen').textContent = formatDateTime(now);
-            }
-            
-            // نمایش نوتیفیکیشن خوش‌آمدگویی
-            if (userData.telegram_id !== 123456789 && userData.telegram_id !== 999999999) {
-                showNotification(`خوش آمدید ${userData.full_name}! 🎉`, 'success', 3000);
-            } else {
-                showNotification('در حال تست - اطلاعات واقعی در تلگرام نمایش داده می‌شود', 'info', 3000);
-            }
-            
-        } else {
-            throw new Error('No user data received');
-        }
-    } catch (error) {
-        console.error('❌ Failed to load user data:', error);
-        showNotification('خطا در دریافت اطلاعات کاربر', 'error');
+    // نمایش در نوتیفیکیشن
+    if (telegramApp && telegramApp.initDataUnsafe?.user) {
+        const user = telegramApp.initDataUnsafe.user;
+        showNotification(
+            `دیباگ: کاربر تلگرام پیدا شد! ID: ${user.id}, نام: ${user.first_name}`,
+            'success',
+            5000
+        );
+    } else {
+        showNotification(
+            'دیباگ: اطلاعات کاربر تلگرام یافت نشد',
+            'error',
+            5000
+        );
     }
 }
 
-// تابع بارگذاری آمار ربات
+// بقیه توابع (loadStats, simulateGame, مودال‌ها و...) مثل قبل
+
+// تابع بارگذاری آمار
 async function loadStats() {
     try {
         const response = await fetch('/api/stats');
@@ -341,7 +477,6 @@ async function simulateGame() {
         return;
     }
     
-    // تولید امتیاز تصادفی
     const newScore = Math.floor(Math.random() * 1000) + 100;
     
     try {
@@ -357,7 +492,6 @@ async function simulateGame() {
             const result = await response.json();
             currentUser.game_score = result.new_score;
             
-            // به‌روزرسانی نمایش
             document.getElementById('gameScore').textContent = result.new_score;
             document.getElementById('modalGameScore').textContent = result.new_score;
             
@@ -405,44 +539,12 @@ window.onclick = function(event) {
 
 // تابع بروزرسانی دوره‌ای آمار
 function startStatsUpdater() {
-    setInterval(loadStats, 30000); // هر 30 ثانیه
+    setInterval(loadStats, 30000);
 }
 
-// تابع دیباگ - نمایش اطلاعات تلگرام در کنسول
-function debugTelegramInfo() {
-    if (window.Telegram && window.Telegram.WebApp) {
-        const tg = window.Telegram.WebApp;
-        console.log('=== TELEGRAM DEBUG INFO ===');
-        console.log('Platform:', tg.platform);
-        console.log('Version:', tg.version);
-        console.log('Color Scheme:', tg.colorScheme);
-        console.log('Init Data:', tg.initData);
-        console.log('Init Data Unsafe:', tg.initDataUnsafe);
-        console.log('User:', tg.initDataUnsafe.user);
-        console.log('========================');
-        
-        // نمایش در صفحه برای دیباگ
-        const debugInfo = document.createElement('div');
-        debugInfo.style.cssText = 'position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.8); color:white; padding:10px; border-radius:5px; font-size:12px; z-index:9999; max-width:300px;';
-        debugInfo.innerHTML = `
-            <strong>Telegram Debug:</strong><br>
-            Platform: ${tg.platform}<br>
-            User ID: ${tg.initDataUnsafe.user?.id || 'NO USER'}<br>
-            Name: ${tg.initDataUnsafe.user?.first_name || 'NO NAME'}
-        `;
-        document.body.appendChild(debugInfo);
-    }
-}
-
-// مقداردهی اولیه هنگام لود صفحه
+// مقداردهی اولیه
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Page loaded, initializing...');
-    
-    // راه‌اندازی تلگرام وب اپ
-    initializeTelegramApp();
-    
-    // نمایش اطلاعات دیباگ
-    debugTelegramInfo();
     
     // شروع ساعت زنده
     updateLiveClock();
