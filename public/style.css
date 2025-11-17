@@ -50,7 +50,7 @@ body {
     background: white;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
     position: relative;
-    overflow-x: hidden;
+    overflow-x: hidden; /* جلوگیری از اسکرول افقی */
 }
 
 /* هدر مینیمال */
@@ -113,6 +113,7 @@ body {
     justify-content: center;
     color: white;
     font-size: 0.9rem;
+    flex-shrink: 0; /* تضمین می‌کند که در فضاهای کم جمع نشود */
 }
 
 /* تب‌های مینیمال */
@@ -123,7 +124,8 @@ body {
     padding: 0 16px;
     overflow-x: auto;
     position: sticky;
-    top: 73px;
+    /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر قرار گیرد (64px = 16px پدینگ بالا + 32px آواتار + 16px پدینگ پایین) */
+    top: 64px; 
     z-index: 99;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -183,7 +185,8 @@ body {
     display: none;
     padding: 20px;
     animation: fadeIn 0.3s ease;
-    min-height: calc(100vh - 140px);
+    /* [اصلاح ریسپانسیو]: min-height تنظیم شد تا محتوا دقیقاً ارتفاع باقی‌مانده زیر هدر و تب‌ها را پر کند. (64px + 56px = 120px + 5px بافر) */
+    min-height: calc(100vh - 125px); 
 }
 
 .tab-content-minimal.active {
@@ -774,6 +777,8 @@ body {
     backdrop-filter: blur(5px);
     padding: 10px;
     box-sizing: border-box;
+    /* [اصلاح ریسپانسیو]: برای تداخل نداشتن با نوتیفیکیشن‌های تلگرام وب‌اَپ (TWA) */
+    overflow-y: auto; 
 }
 
 .modal-content {
@@ -814,7 +819,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0;
+    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع هدر */
 }
 
 .modal-header-minimal h2 {
@@ -845,15 +850,28 @@ body {
     transform: rotate(90deg);
 }
 
+/* [اضافه شده برای ریسپانسیو]: فوتر مودال */
+.modal-footer-minimal {
+    background: var(--gray-100);
+    padding: 16px 20px;
+    border-top: 1px solid var(--gray-200);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-shrink: 0; /* ثابت نگه داشتن ارتفاع فوتر و جلوگیری از تداخل */
+}
+
+
 /* کانتینر بازی - کاملاً ریسپانسیو */
 .game-container {
     padding: 20px;
-    overflow-y: auto;
-    flex: 1;
+    /* [کلید ریسپانسیو]: اسکرول داخلی برای محتوای طولانی و پر کردن فضای عمودی */
+    overflow-y: auto; 
+    flex: 1; /* این عنصر تمام فضای عمودی باقی‌مانده را پر می‌کند */
     display: flex;
     flex-direction: column;
     gap: 16px;
-    min-height: 0;
+    min-height: 0; /* لازم برای Flexbox */
 }
 
 .game-stats-minimal {
@@ -1381,7 +1399,8 @@ body {
     }
     
     .tabs-minimal {
-        top: 65px;
+        /* [اصلاح ریسپانسیو]: top تنظیم شد تا دقیقاً زیر هدر موبایل قرار گیرد (56px) */
+        top: 56px; 
         padding: 0 12px;
     }
     
@@ -1397,7 +1416,8 @@ body {
     
     .tab-content-minimal {
         padding: 16px;
-        min-height: calc(100vh - 125px);
+        /* [اصلاح ریسپانسیو]: min-height تنظیم شد تا محتوا دقیقاً ارتفاع باقی‌مانده زیر هدر و تب‌های موبایل را پر کند. (56px + 49px ≈ 105px + 5px بافر) */
+        min-height: calc(100vh - 110px); 
     }
     
     .stats-grid-minimal {
