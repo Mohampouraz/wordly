@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Wordly - بازی حدس کلمه</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
@@ -11,7 +11,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- هدر مینیمال -->
         <header class="header-minimal">
             <div class="header-content">
                 <div class="logo-minimal">
@@ -27,7 +26,6 @@
             </div>
         </header>
 
-        <!-- تب‌های مینیمال -->
         <nav class="tabs-minimal">
             <button class="tab-minimal active" onclick="openTab('dashboard')">
                 <i class="fas fa-home"></i>
@@ -52,9 +50,7 @@
             </button>
         </nav>
 
-        <!-- محتوای داشبورد -->
         <div id="dashboard" class="tab-content-minimal active">
-            <!-- کارت خوش‌آمدگویی -->
             <div class="welcome-card">
                 <div class="welcome-content">
                     <i class="fas fa-gamepad welcome-icon"></i>
@@ -63,7 +59,6 @@
                 </div>
             </div>
 
-            <!-- کارت‌های آمار سریع -->
             <div class="stats-grid-minimal">
                 <div class="stat-card-minimal">
                     <div class="stat-icon-minimal primary">
@@ -103,7 +98,6 @@
                 </div>
             </div>
 
-            <!-- کارت اطلاعات کاربری -->
             <div class="info-card-minimal">
                 <div class="card-header-minimal">
                     <i class="fas fa-user-circle"></i>
@@ -125,7 +119,6 @@
                 </div>
             </div>
 
-            <!-- کارت زمان -->
             <div class="time-card">
                 <div class="time-item">
                     <i class="fas fa-calendar-alt"></i>
@@ -144,7 +137,6 @@
             </div>
         </div>
 
-        <!-- محتوای ایجاد بازی -->
         <div id="create-game" class="tab-content-minimal">
             <div class="card-minimal">
                 <div class="card-header-minimal">
@@ -154,13 +146,17 @@
                 <div class="card-content-minimal">
                     <div class="form-minimal">
                         <div class="input-group-minimal">
-                            <label for="gameWord">کلمه مورد نظر</label>
+                            <label for="gameWord">
+                                <i class="fas fa-keyboard"></i> کلمه مورد نظر
+                            </label>
                             <input type="text" id="gameWord" placeholder="کلمه را وارد کنید..." maxlength="20" class="input-minimal">
                             <small class="input-hint">کلمه باید بین ۳ تا ۲۰ حرف باشد (می‌توانید از فاصله استفاده کنید)</small>
                         </div>
                         
                         <div class="input-group-minimal">
-                            <label for="gameCategory">دسته‌بندی</label>
+                            <label for="gameCategory">
+                                <i class="fas fa-tags"></i> دسته‌بندی
+                            </label>
                             <select id="gameCategory" class="select-minimal">
                                 <option value="عمومی">عمومی</option>
                                 <option value="جانوران">جانوران</option>
@@ -173,16 +169,15 @@
                             </select>
                         </div>
                         
-                        <button class="btn-primary-minimal btn-full" onclick="createGame()">
+                        <button class="btn-primary-minimal btn-full btn-large" onclick="createGame()">
                             <i class="fas fa-play"></i>
-                            ایجاد بازی
+                            شروع بازی و ارسال کلمه
                         </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- محتوای پیوستن به بازی -->
         <div id="join-game" class="tab-content-minimal">
             <div class="card-minimal">
                 <div class="card-header-minimal">
@@ -192,11 +187,13 @@
                 <div class="card-content-minimal">
                     <div class="form-minimal">
                         <div class="input-group-minimal">
-                            <label for="gameCode">کد بازی</label>
+                            <label for="gameCode">
+                                <i class="fas fa-hashtag"></i> کد بازی
+                            </label>
                             <input type="text" id="gameCode" placeholder="کد ۶ رقمی بازی" maxlength="6" class="input-minimal" style="text-transform: uppercase">
                         </div>
                         
-                        <button class="btn-success-minimal btn-full" onclick="joinGame()">
+                        <button class="btn-success-minimal btn-full btn-large" onclick="joinGame()">
                             <i class="fas fa-sign-in-alt"></i>
                             پیوستن به بازی
                         </button>
@@ -205,7 +202,6 @@
             </div>
         </div>
 
-        <!-- محتوای بازی‌های فعال -->
         <div id="active-games" class="tab-content-minimal">
             <div class="card-minimal">
                 <div class="card-header-minimal">
@@ -226,7 +222,6 @@
             </div>
         </div>
 
-        <!-- محتوای تاریخچه بازی -->
         <div id="game-history" class="tab-content-minimal">
             <div class="card-minimal">
                 <div class="card-header-minimal">
@@ -248,85 +243,74 @@
         </div>
     </div>
 
-    <!-- مودال بازی -->
     <div id="gameModal" class="modal game-modal">
         <div class="modal-content game-modal-content">
             <div class="modal-header-minimal">
                 <h2 id="gameModalTitle">بازی حدس کلمه</h2>
                 <span class="close-minimal" onclick="closeGameModal()">&times;</span>
             </div>
-            <div class="modal-body">
-                <div class="game-container">
-                    <div class="game-stats-minimal">
-                        <div class="game-stat">
-                            <i class="fas fa-clock"></i>
-                            <span id="timer">۰۰:۰۰</span>
-                        </div>
-                        <div class="game-stat">
-                            <i class="fas fa-redo"></i>
-                            <span id="attempts">۰/۰</span>
-                        </div>
-                        <div class="game-stat">
-                            <i class="fas fa-star"></i>
-                            <span id="currentScore">۰</span>
-                        </div>
+
+            <div class="game-container">
+                <div class="game-stats-minimal">
+                    <div class="game-stat">
+                        <i class="fas fa-clock"></i>
+                        <span id="timer">۰۰:۰۰</span>
                     </div>
-                    
-                    <!-- دسته‌بندی بزرگ -->
-                    <div class="game-category-large" id="gameCategoryDisplay">
-                        دسته‌بندی: عمومی
+                    <div class="game-stat">
+                        <i class="fas fa-redo"></i>
+                        <span id="attempts">۰/۰</span>
                     </div>
-                    
-                    <div class="word-display-minimal" id="wordDisplay">
-                        <!-- کلمه اینجا نمایش داده می‌شود -->
+                    <div class="game-stat">
+                        <i class="fas fa-star"></i>
+                        <span id="currentScore">۰</span>
+                    </div>
+                </div>
+                
+                <div class="game-category-large" id="gameCategoryDisplay">
+                    دسته‌بندی: عمومی
+                </div>
+                
+                <div class="word-display-minimal" id="wordDisplay">
                     </div>
 
-                    <div class="game-status-minimal" id="gameStatus">
-                        <!-- وضعیت بازی اینجا نمایش داده می‌شود -->
+                <div class="game-status-minimal" id="gameStatus">
                     </div>
-                    
-                    <!-- اینپوت باکس برای حدس حرف (فقط برای بازیکنان) -->
-                    <div class="guess-input-section" id="guessInputSection">
-                        <div class="guess-input-minimal">
-                            <input type="text" id="guessInput" placeholder="حرف مورد نظر را وارد کنید..." maxlength="1" class="input-minimal guess-input-field">
-                            <button class="btn-primary-minimal" onclick="submitGuess()" id="guessBtn">
-                                <i class="fas fa-paper-plane"></i>
-                                حدس بزن
-                            </button>
+                
+                <div class="player-guesses-section" id="playerGuessesSection">
+                    <h3 class="section-title">حدس‌های بازیکنان</h3>
+                    <div class="player-guesses-container" id="playerGuessesContainer">
                         </div>
-                        
-                        <div class="game-actions-minimal">
-                            <button class="btn-hint-minimal" onclick="useHint()" id="hintBtn">
-                                <i class="fas fa-lightbulb"></i>
-                                راهنمایی (<span id="hintCount">۲</span>)
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <!-- بخش حروف حدس زده شده توسط بازیکنان -->
-                    <div class="player-guesses-section" id="playerGuessesSection">
-                        <h3 class="section-title">حدس‌های بازیکنان</h3>
-                        <div class="player-guesses-container" id="playerGuessesContainer">
-                            <!-- حدس‌های بازیکنان اینجا نمایش داده می‌شود -->
-                        </div>
-                    </div>
-                    
-                    <div class="guessed-letters-minimal">
-                        <div class="letters-section">
-                            <h4>حروف صحیح:</h4>
-                            <div class="letters-container-minimal" id="correctLetters">
-                                <!-- حروف صحیح اینجا نمایش داده می‌شود -->
+                </div>
+                
+                <div class="guessed-letters-minimal">
+                    <div class="letters-section">
+                        <h4>حروف صحیح:</h4>
+                        <div class="letters-container-minimal" id="correctLetters">
                             </div>
-                        </div>
-                        <div class="letters-section">
-                            <h4>حروف غلط:</h4>
-                            <div class="letters-container-minimal" id="incorrectLetters">
-                                <!-- حروف غلط اینجا نمایش داده می‌شود -->
+                    </div>
+                    <div class="letters-section">
+                        <h4>حروف غلط:</h4>
+                        <div class="letters-container-minimal" id="incorrectLetters">
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>
+
+            <div class="modal-footer-minimal" id="gameModalFooter">
+                <div class="guess-input-row" style="display: flex; gap: 8px;">
+                    <input type="text" id="guessInput" placeholder="کلمه یا حرف مورد نظر را وارد کنید..." maxlength="20" class="input-minimal guess-input-field" style="flex-grow: 1;">
+                    <button class="btn-primary-minimal" onclick="submitGuess()" id="guessBtn">
+                        <i class="fas fa-paper-plane"></i>
+                        حدس بزن
+                    </button>
+                </div>
+                
+                <button class="btn-hint-minimal btn-full" onclick="useHint()" id="hintBtn">
+                    <i class="fas fa-lightbulb"></i>
+                    راهنمایی (<span id="hintCount">۲</span>)
+                </button>
+            </div>
+            
         </div>
     </div>
 
