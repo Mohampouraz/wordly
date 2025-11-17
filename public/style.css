@@ -1,4 +1,9 @@
-/* متغیرهای CSS */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 :root {
     --primary: #667eea;
     --primary-dark: #5a6fd8;
@@ -26,13 +31,6 @@
     --radius: 12px;
     --radius-lg: 16px;
     --radius-xl: 20px;
-}
-
-/* ریست استایل‌ها */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
 }
 
 body {
@@ -533,6 +531,11 @@ body {
     width: 100%;
 }
 
+.btn-large {
+    padding: 16px 24px;
+    font-size: 1.1rem;
+}
+
 .btn-small {
     padding: 8px 16px;
     font-size: 0.8rem;
@@ -757,7 +760,7 @@ body {
     opacity: 0.5;
 }
 
-/* مودال‌ها */
+/* مودال‌ها - کاملاً ریسپانسیو */
 .modal {
     display: none;
     position: fixed;
@@ -842,7 +845,7 @@ body {
     transform: rotate(90deg);
 }
 
-/* کانتینر بازی */
+/* کانتینر بازی - کاملاً ریسپانسیو */
 .game-container {
     padding: 20px;
     overflow-y: auto;
@@ -1666,200 +1669,4 @@ select:focus-visible {
 
 .pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* استایل‌های جدید برای عناصر اضافه شده */
-.game-details-minimal, .score-card {
-    padding: 16px;
-}
-
-.score-display {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--gray-50);
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    margin: 8px 0;
-}
-
-.score-value {
-    font-weight: 700;
-    font-size: 1.2rem;
-}
-
-.score-value.positive {
-    color: var(--success);
-}
-
-.score-penalty {
-    color: var(--danger);
-    font-size: 0.9rem;
-}
-
-.opponent-guesses-section, .special-letters, .game-guide {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin: 8px 0;
-}
-
-.opponent-guesses-container {
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-.guide-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.guide-tips {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.guide-tip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.85rem;
-}
-
-.game-history-letters {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin: 12px 0;
-}
-
-.history-letters-section h4 {
-    font-size: 0.85rem;
-    margin-bottom: 6px;
-    color: var(--gray-600);
-}
-
-.history-letters-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-
-.history-letter-badge {
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.history-letter-badge.correct {
-    background: var(--success);
-    color: white;
-}
-
-.history-letter-badge.incorrect {
-    background: var(--danger);
-    color: white;
-}
-
-.no-letters {
-    color: var(--gray-400);
-    font-size: 0.9rem;
-}
-
-.players-list-minimal {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 12px;
-}
-
-.player-info-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 12px;
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-}
-
-.player-avatar-small {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--gray-100);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--gray-600);
-    font-size: 0.9rem;
-}
-
-.player-details {
-    flex: 1;
-}
-
-.player-name {
-    font-weight: 600;
-    color: var(--gray-800);
-    font-size: 0.9rem;
-}
-
-.player-meta {
-    display: flex;
-    gap: 12px;
-    margin-top: 4px;
-}
-
-.player-username {
-    color: var(--gray-500);
-    font-size: 0.8rem;
-}
-
-.player-status {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.8rem;
-}
-
-.player-status.online {
-    color: var(--success);
-}
-
-.player-status.offline {
-    color: var(--gray-500);
-}
-
-.player-status i {
-    font-size: 0.6rem;
-}
-
-.creator-info {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: white;
-    border-radius: var(--radius);
-    border: 1px solid var(--gray-200);
-    margin-top: 12px;
-}
-
-.creator-info i {
-    color: var(--warning);
-}
-
-.no-players {
-    text-align: center;
-    padding: 20px;
-    color: var(--gray-500);
-    font-size: 0.9rem;
 }
