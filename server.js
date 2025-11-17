@@ -87,7 +87,7 @@ async function broadcastToAllUsers(message, options = {}) {
                 console.error(`Failed to send to user ${user.telegram_id}:`, error.message);
                 
                 // اگر کاربر بلاک کرده، غیرفعالش کن
-                if (error.description.includes('blocked')) {
+                if (error.description && error.description.includes('blocked')) {
                     await dbClient.query(
                         'UPDATE users SET is_active = false WHERE telegram_id = $1',
                         [user.telegram_id]
@@ -148,7 +148,8 @@ bot.command('start', async (ctx) => {
 
     // اگر کاربر جدید است، نوتیفیکیشن بفرست
     if (isNewUser) {
-        const welcomeMessage = `🎉 کاربر جدید به ربات پیوست!\n👤 نام: ${fullName}\n🆔 آی‌دی: ${userId}\n📊 تعداد کل کاربران: ${await getUserCount()}`;
+        const userCount = await getUserCount();
+        const welcomeMessage = `🎉 کاربر جدید به ربات پیوست!\n👤 نام: ${fullName}\n🆔 آی‌دی: ${userId}\n📊 تعداد کل کاربران: ${userCount}`;
         
         // ارسال به همه کاربران آنلاین
         broadcastToOnlineUsers(welcomeMessage, {
@@ -156,9 +157,10 @@ bot.command('start', async (ctx) => {
         });
         
         // همچنین به ادمین اطلاع بده
+        const adminMessage = `👤 کاربر جدید:\n${fullName} (${username ? '@' + username : 'بدون یوزرنیم'})`;
         await bot.telegram.sendMessage(
             userId, // در واقعیت باید آی‌دی ادمین را قرار دهید
-            `👤 کاربر جدید:\n${fullName} (@${username || 'بدون یوزرنیم})`,
+            adminMessage,
             { parse_mode: 'HTML' }
         );
     }
@@ -305,6 +307,27 @@ app.get('/api/online-users', (req, res) => {
     res.json({ online_users: onlineList });
 });
 
+// API برای ایجاد کاربر جدید
+app.post('/api/user', async (req, res) => {
+    try {
+        const { telegram_id, full_name, username } = req.body;
+        
+        const result = await dbClient.query(
+            `INSERT INTO users (telegram_id, full_name, username) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (telegram_id) 
+             DO UPDATE SET full_name = $2, username = $3, last_seen = CURRENT_TIMESTAMP
+             RETURNING *`,
+            [telegram_id, full_name, username]
+        );
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating/updating user:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // هندلر برای سرو فایل‌های استاتیک
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -333,11 +356,13 @@ bot.launch()
 
 // مدیریت graceful shutdown
 process.once('SIGINT', () => {
+    console.log('🛑 Shutting down gracefully...');
     bot.stop('SIGINT');
     process.exit(0);
 });
 
 process.once('SIGTERM', () => {
+    console.log('🛑 Shutting down gracefully...');
     bot.stop('SIGTERM');
     process.exit(0);
 });
