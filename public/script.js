@@ -214,7 +214,7 @@ function displayActiveGames(games) {
             <div class="game-info-minimal">
                 <div class="info-row-compact">
                     <i class="fas fa-user"></i>
-                    <span>سازنده: ${game.creator_name || 'ناشناس'} ${game.creator_username ? `(@${game.creator_username})` : ''}</span>
+                    <span>سازنده: ${game.creator_name || 'ناشناس'}</span>
                 </div>
                 <div class="info-row-compact">
                     <i class="fas fa-users"></i>
@@ -279,17 +279,21 @@ async function createGame() {
                 attempts: 0,
                 score: 0,
                 creator_id: currentUser.telegram_id,
-                is_started: false,
-                creator_online: true
+                is_started: true, // بازی بلافاصله شروع می‌شود
+                creator_online: true,
+                completed: false
             };
 
             isCreator = true;
-            showNotification('بازی با موفقیت ایجاد شد! 🎮', 'success');
+            showNotification('بازی با موفقیت ایجاد و شروع شد! 🎮', 'success');
             document.getElementById('gameWord').value = '';
-            openStartGameModal(result.game_id);
+            
+            // مستقیماً به بازی هدایت شو
+            openGameModal();
             
             // شروع پولینگ برای به‌روزرسانی وضعیت بازی
             startGameStatePolling(result.game_id);
+            
         } else {
             showNotification('خطا در ایجاد بازی', 'error');
         }
@@ -311,25 +315,31 @@ function startGameStatePolling(gameId) {
             const result = await response.json();
             
             if (result.success) {
-                // به‌روزرسانی تعداد بازیکنان در مودال شروع بازی
-                if (document.getElementById('startGameModal').style.display === 'block') {
-                    document.getElementById('currentPlayersCount').textContent = 
-                        toPersianNumber(result.game.players_count);
-                }
+                const gameData = result.game;
                 
-                // اگر بازی شروع شده، پولینگ را متوقف کن و بازی را باز کن
-                if (result.game.is_started && !currentGame.is_started) {
-                    clearInterval(gameStateInterval);
-                    currentGame.is_started = true;
-                    if (isCreator) {
-                        showNotification('بازی شروع شد! بازیکنان در حال حدس زدن هستند.', 'success');
-                        openGameModal();
+                // به‌روزرسانی وضعیت بازی
+                if (currentGame) {
+                    currentGame.guessed_letters = gameData.guessed_letters;
+                    currentGame.incorrect_letters = gameData.incorrect_letters;
+                    currentGame.attempts = gameData.attempts;
+                    currentGame.word_progress = gameData.word_progress;
+                    currentGame.players_count = gameData.players_count;
+                    currentGame.creator_online = gameData.creator_online;
+                    currentGame.completed = gameData.completed;
+                    currentGame.winner_id = gameData.winner_id;
+                    
+                    // اگر بازی در حال اجراست، رابط را به‌روزرسانی کن
+                    if (document.getElementById('gameModal').style.display === 'block') {
+                        updateGameInterface();
                     }
                 }
                 
                 // اگر بازی تمام شده، پولینگ را متوقف کن
-                if (result.game.completed) {
+                if (gameData.completed) {
                     clearInterval(gameStateInterval);
+                    if (currentGame) {
+                        endGame(currentGame.winner_id === currentUser.telegram_id);
+                    }
                 }
             }
         } catch (error) {
@@ -380,53 +390,6 @@ function stopConnectionReporting() {
         connectionInterval = null;
     }
     reportConnection(false);
-}
-
-// تابع باز کردن مودال شروع بازی
-function openStartGameModal(gameCode) {
-    document.getElementById('createdGameCode').textContent = gameCode;
-    document.getElementById('currentPlayersCount').textContent = '۱';
-    document.getElementById('startGameModal').style.display = 'block';
-}
-
-// تابع بستن مودال شروع بازی
-function closeStartGameModal() {
-    document.getElementById('startGameModal').style.display = 'none';
-    if (gameStateInterval) {
-        clearInterval(gameStateInterval);
-        gameStateInterval = null;
-    }
-}
-
-// تابع شروع بازی (فقط توسط سازنده)
-async function startGame() {
-    if (!currentGame || !isCreator) return;
-
-    try {
-        const response = await fetch(`/api/games/${currentGame.game_id}/start`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                player_id: currentUser.telegram_id
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showNotification('بازی شروع شد! بازیکنان می‌توانند حدس بزنند.', 'success');
-            closeStartGameModal();
-            currentGame.is_started = true;
-            openGameModal();
-        } else {
-            showNotification(result.error || 'خطا در شروع بازی', 'error');
-        }
-    } catch (error) {
-        console.error('❌ خطا در شروع بازی:', error);
-        showNotification('خطا در شروع بازی', 'error');
-    }
 }
 
 // تابع پیوستن به بازی با کد
@@ -482,39 +445,26 @@ async function joinExistingGame(gameCode) {
                     word_progress: gameData.word_progress || '_'.repeat(gameData.word.length),
                     word: gameData.word,
                     completed: gameData.completed,
-                    creator_online: gameData.creator_online
+                    creator_online: gameData.creator_online,
+                    winner_id: gameData.winner_id,
+                    players_count: gameData.players_count
                 };
 
                 isCreator = (gameData.creator_id === currentUser.telegram_id);
                 
-                if (isCreator) {
-                    if (!currentGame.is_started) {
-                        openStartGameModal(gameCode);
-                        // شروع پولینگ برای سازنده
-                        startGameStatePolling(gameCode);
-                    } else {
-                        showNotification('شما سازنده این بازی هستید که قبلاً شروع شده است', 'info');
-                        openGameModal();
-                    }
+                if (result.reconnected) {
+                    showNotification(`اتصال مجدد به بازی انجام شد!`, 'success');
                 } else {
-                    if (result.reconnected) {
-                        showNotification(`اتصال مجدد به بازی انجام شد!`, 'success');
-                    } else {
-                        showNotification(`به بازی پیوستید!`, 'success');
-                    }
-                    document.getElementById('gameCode').value = '';
-                    
-                    if (currentGame.is_started && !currentGame.completed) {
-                        openGameModal();
-                    } else if (!currentGame.completed) {
-                        // اگر بازی هنوز شروع نشده، پولینگ برای وضعیت بازی
-                        startGameStatePolling(gameCode);
-                        openGameModal();
-                    } else {
-                        // اگر بازی تمام شده، فقط مشاهده
-                        openGameModal();
-                    }
+                    showNotification(`به بازی پیوستید!`, 'success');
                 }
+                document.getElementById('gameCode').value = '';
+                
+                // مستقیماً به بازی هدایت شو
+                openGameModal();
+                
+                // شروع پولینگ برای وضعیت بازی
+                startGameStatePolling(gameCode);
+                
             }
         } else {
             showNotification(result.error || 'خطا در پیوستن به بازی', 'error');
@@ -559,7 +509,13 @@ function closeGameModal() {
 function initializeGame() {
     if (!currentGame) return;
 
-    // نمایش وضعیت
+    updateGameInterface();
+}
+
+// تابع به‌روزرسانی رابط بازی
+function updateGameInterface() {
+    if (!currentGame) return;
+
     const gameStatus = document.getElementById('gameStatus');
     
     if (currentGame.completed) {
@@ -568,47 +524,26 @@ function initializeGame() {
         return;
     }
 
+    // نمایش وضعیت بر اساس نقش کاربر
     if (isCreator) {
-        if (currentGame.is_started) {
-            gameStatus.innerHTML = `
-                <div class="creator-notice-minimal">
-                    <i class="fas fa-crown"></i>
-                    <span>شما سازنده این بازی هستید. بازی شروع شده و بازیکنان در حال حدس زدن هستند.</span>
-                    ${currentGame.creator_online ? '<div class="online-badge">آنلاین</div>' : '<div class="offline-badge">آفلاین</div>'}
-                </div>
-            `;
-        } else {
-            gameStatus.innerHTML = `
-                <div class="creator-notice-minimal">
-                    <i class="fas fa-crown"></i>
-                    <span>شما سازنده این بازی هستید. برای شروع بازی روی دکمه "شروع بازی" کلیک کنید.</span>
-                </div>
-            `;
-        }
+        gameStatus.innerHTML = `
+            <div class="creator-notice-minimal">
+                <i class="fas fa-crown"></i>
+                <span>شما سازنده این بازی هستید. می‌توانید پیشرفت بازیکنان را مشاهده کنید.</span>
+                ${currentGame.creator_online ? '<div class="online-badge">آنلاین</div>' : '<div class="offline-badge">آفلاین</div>'}
+            </div>
+        `;
     } else {
-        if (currentGame.is_started) {
-            gameStatus.innerHTML = `
-                <div class="player-notice-minimal">
-                    <i class="fas fa-gamepad"></i>
-                    <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
-                    ${currentGame.creator_online ? 
-                        '<div class="online-badge">سازنده آنلاین است</div>' : 
-                        '<div class="offline-badge">سازنده آفلاین است - می‌توانید بازی را ادامه دهید</div>'
-                    }
-                </div>
-            `;
-        } else {
-            gameStatus.innerHTML = `
-                <div class="player-notice-minimal waiting">
-                    <i class="fas fa-clock"></i>
-                    <span>در انتظار شروع بازی توسط سازنده...</span>
-                    ${currentGame.creator_online ? 
-                        '<div class="online-badge">سازنده آنلاین است</div>' : 
-                        '<div class="offline-badge">سازنده آفلاین است</div>'
-                    }
-                </div>
-            `;
-        }
+        gameStatus.innerHTML = `
+            <div class="player-notice-minimal">
+                <i class="fas fa-gamepad"></i>
+                <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
+                ${currentGame.creator_online ? 
+                    '<div class="online-badge">سازنده آنلاین است</div>' : 
+                    '<div class="offline-badge">سازنده آفلاین است</div>'
+                }
+            </div>
+        `;
     }
 
     // نمایش پیشرفت کلمه
@@ -633,30 +568,33 @@ function initializeGame() {
     // تنظیم تعداد حدس‌ها
     updateAttemptsDisplay();
     
-    // تنظیم دکمه‌ها
-    const isGameActive = currentGame.is_started && !currentGame.completed;
+    // تنظیم دکمه‌ها بر اساس نقش
+    const isGameActive = !currentGame.completed;
     document.getElementById('hintBtn').disabled = isCreator || !isGameActive;
     document.getElementById('guessBtn').disabled = isCreator || !isGameActive;
     document.getElementById('guessInput').disabled = isCreator || !isGameActive;
     
-    // اگر سازنده هستید و بازی شروع شده، دکمه‌ها غیرفعال باشند
-    if (isCreator && currentGame.is_started) {
+    // اگر سازنده هستید، فقط مشاهده کننده باشید
+    if (isCreator) {
         document.getElementById('hintBtn').disabled = true;
         document.getElementById('guessBtn').disabled = true;
         document.getElementById('guessInput').disabled = true;
+        document.getElementById('guessInput').placeholder = "شما سازنده هستید - فقط مشاهده";
+    } else {
+        document.getElementById('guessInput').placeholder = "حرف مورد نظر را وارد کنید...";
     }
     
     // بازنشانی راهنمایی‌ها
     hintsUsed = 0;
     document.getElementById('hintCount').textContent = toPersianNumber(2);
     
-    // ذخیره زمان شروع
+    // ذخیره زمان شروع برای بازیکنان
     if (isGameActive && !isCreator) {
         gameStartTime = new Date();
         startGameTimer();
     }
     
-    // فوکوس روی اینپوت
+    // فوکوس روی اینپوت برای بازیکنان
     if (!isCreator && isGameActive) {
         setTimeout(() => {
             document.getElementById('guessInput').focus();
@@ -727,7 +665,7 @@ async function submitGuess() {
 
 // تابع حدس زدن حرف
 async function guessLetter(letter) {
-    if (!currentGame || !currentUser || isCreator || !currentGame.is_started || currentGame.completed) return;
+    if (!currentGame || !currentUser || isCreator || currentGame.completed) return;
 
     // محاسبه زمان سپری شده
     const timeSpent = Math.floor((new Date() - gameStartTime) / 1000);
@@ -835,7 +773,7 @@ function updateAttemptsDisplay() {
 
 // تابع استفاده از راهنمایی
 function useHint() {
-    if (!currentGame || hintsUsed >= 2 || isCreator || !currentGame.is_started || currentGame.completed) return;
+    if (!currentGame || hintsUsed >= 2 || isCreator || currentGame.completed) return;
     
     // کسر امتیاز برای استفاده از راهنمایی
     currentGame.score -= 30;
@@ -1045,7 +983,7 @@ function displayGameHistory(games) {
             <div class="game-info-minimal">
                 <div class="info-row-compact">
                     <i class="fas fa-user"></i>
-                    <span>سازنده: ${game.creator_name || 'ناشناس'} ${game.creator_username ? `(@${game.creator_username})` : ''}</span>
+                    <span>سازنده: ${game.creator_name || 'ناشناس'}</span>
                 </div>
                 <div class="info-row-compact">
                     <i class="fas fa-font"></i>
@@ -1186,17 +1124,14 @@ document.addEventListener('DOMContentLoaded', function() {
 // بستن مودال با کلیک خارج از آن
 window.onclick = function(event) {
     const gameModal = document.getElementById('gameModal');
-    const startGameModal = document.getElementById('startGameModal');
     
     if (event.target === gameModal) closeGameModal();
-    if (event.target === startGameModal) closeStartGameModal();
 }
 
 // مدیریت کلیدهای صفحه‌کلید
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeGameModal();
-        closeStartGameModal();
     }
 });
 
