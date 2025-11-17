@@ -206,12 +206,17 @@ function displayActiveGames(games) {
     activeGamesCount.textContent = toPersianNumber(games.length);
 
     gamesList.innerHTML = games.map(game => {
-        const timeRemaining = formatTime(game.remaining_time);
+        const timeRemaining = game.is_started && game.remaining_time ? formatTime(game.remaining_time) : 'در انتظار بازیکن';
+        const statusBadge = game.is_started ? 
+            '<span class="status-badge started">شروع شده</span>' : 
+            '<span class="status-badge waiting">در انتظار</span>';
+        
         return `
         <div class="game-item-minimal">
             <div class="game-header-minimal">
                 <div class="game-code-minimal">${game.game_id}</div>
                 <div class="game-category-minimal">${game.category}</div>
+                ${statusBadge}
                 ${game.creator_online ? '<div class="online-indicator" title="سازنده آنلاین"><i class="fas fa-circle"></i></div>' : ''}
             </div>
             <div class="game-info-minimal">
@@ -229,7 +234,7 @@ function displayActiveGames(games) {
                 </div>
                 <div class="info-row-compact">
                     <i class="fas fa-clock"></i>
-                    <span>زمان باقی‌مانده: ${timeRemaining}</span>
+                    <span>وضعیت: ${timeRemaining}</span>
                 </div>
             </div>
             <div class="game-actions-minimal">
@@ -281,7 +286,7 @@ async function createGame() {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('بازی با موفقیت ایجاد شد! 🎮', 'success');
+            showNotification(`بازی با موفقیت ایجاد شد! کد بازی: ${result.game_id}`, 'success');
             document.getElementById('gameWord').value = '';
             
             // بارگذاری مجدد لیست بازی‌ها
@@ -320,13 +325,14 @@ function startGameStatePolling(gameId) {
                     currentGame.creator_online = gameData.creator_online;
                     currentGame.completed = gameData.completed;
                     currentGame.winner_id = gameData.winner_id;
+                    currentGame.is_started = gameData.is_started;
                     currentGame.remaining_time = gameData.remaining_time;
                     
                     // به‌روزرسانی رابط
                     updateGameInterface();
                     
                     // بررسی انقضای زمان
-                    if (gameData.remaining_time <= 0 && !gameExpired) {
+                    if (gameData.remaining_time <= 0 && !gameExpired && gameData.is_started) {
                         gameExpired = true;
                         endGameByTimeout();
                     }
@@ -443,6 +449,7 @@ async function joinExistingGame(gameCode) {
                     creator_online: gameData.creator_online,
                     winner_id: gameData.winner_id,
                     players_count: gameData.players_count,
+                    is_started: gameData.is_started,
                     remaining_time: gameData.remaining_time
                 };
 
@@ -524,24 +531,44 @@ function updateGameInterface() {
 
     // نمایش وضعیت بر اساس نقش کاربر
     if (isCreator) {
-        gameStatus.innerHTML = `
-            <div class="creator-notice-minimal">
-                <i class="fas fa-crown"></i>
-                <span>شما سازنده این بازی هستید. می‌توانید پیشرفت بازیکنان را مشاهده کنید.</span>
-                ${currentGame.creator_online ? '<div class="online-badge">آنلاین</div>' : '<div class="offline-badge">آفلاین</div>'}
-            </div>
-        `;
+        if (!currentGame.is_started) {
+            gameStatus.innerHTML = `
+                <div class="creator-notice-minimal waiting">
+                    <i class="fas fa-clock"></i>
+                    <span>در انتظار بازیکن برای شروع بازی...</span>
+                    <div class="waiting-badge">منتظر بازیکن</div>
+                </div>
+            `;
+        } else {
+            gameStatus.innerHTML = `
+                <div class="creator-notice-minimal">
+                    <i class="fas fa-crown"></i>
+                    <span>شما سازنده این بازی هستید. می‌توانید پیشرفت بازیکنان را مشاهده کنید.</span>
+                    ${currentGame.creator_online ? '<div class="online-badge">آنلاین</div>' : '<div class="offline-badge">آفلاین</div>'}
+                </div>
+            `;
+        }
     } else {
-        gameStatus.innerHTML = `
-            <div class="player-notice-minimal">
-                <i class="fas fa-gamepad"></i>
-                <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
-                ${currentGame.creator_online ? 
-                    '<div class="online-badge">سازنده آنلاین است</div>' : 
-                    '<div class="offline-badge">سازنده آفلاین است</div>'
-                }
-            </div>
-        `;
+        if (!currentGame.is_started) {
+            gameStatus.innerHTML = `
+                <div class="player-notice-minimal waiting">
+                    <i class="fas fa-clock"></i>
+                    <span>در انتظار شروع بازی توسط بازیکن دوم...</span>
+                    <div class="waiting-badge">منتظر شروع</div>
+                </div>
+            `;
+        } else {
+            gameStatus.innerHTML = `
+                <div class="player-notice-minimal">
+                    <i class="fas fa-gamepad"></i>
+                    <span>شما بازیکن هستید. حروف را در باکس زیر وارد کنید!</span>
+                    ${currentGame.creator_online ? 
+                        '<div class="online-badge">سازنده آنلاین است</div>' : 
+                        '<div class="offline-badge">سازنده آفلاین است</div>'
+                    }
+                </div>
+            `;
+        }
     }
 
     // نمایش پیشرفت کلمه
@@ -560,14 +587,14 @@ function updateGameInterface() {
     );
 
     // تنظیم تایمر
-    timeLeft = currentGame.remaining_time || 180;
+    timeLeft = currentGame.remaining_time || 0;
     updateTimerDisplay();
     
     // تنظیم تعداد حدس‌ها
     updateAttemptsDisplay();
     
-    // تنظیم دکمه‌ها بر اساس نقش
-    const isGameActive = !currentGame.completed && timeLeft > 0;
+    // تنظیم دکمه‌ها بر اساس نقش و وضعیت بازی
+    const isGameActive = !currentGame.completed && currentGame.is_started && timeLeft > 0;
     document.getElementById('hintBtn').disabled = isCreator || !isGameActive;
     document.getElementById('guessBtn').disabled = isCreator || !isGameActive;
     document.getElementById('guessInput').disabled = isCreator || !isGameActive;
@@ -578,6 +605,8 @@ function updateGameInterface() {
         document.getElementById('guessBtn').disabled = true;
         document.getElementById('guessInput').disabled = true;
         document.getElementById('guessInput').placeholder = "شما سازنده هستید - فقط مشاهده";
+    } else if (!currentGame.is_started) {
+        document.getElementById('guessInput').placeholder = "در انتظار شروع بازی...";
     } else {
         document.getElementById('guessInput').placeholder = "حرف مورد نظر را وارد کنید...";
     }
@@ -663,7 +692,7 @@ async function submitGuess() {
 
 // تابع حدس زدن حرف
 async function guessLetter(letter) {
-    if (!currentGame || !currentUser || isCreator || currentGame.completed || timeLeft <= 0) return;
+    if (!currentGame || !currentUser || isCreator || !currentGame.is_started || currentGame.completed || timeLeft <= 0) return;
 
     try {
         const response = await fetch(`/api/games/${currentGame.game_id}/guess-letter`, {
@@ -783,7 +812,7 @@ function updateAttemptsDisplay() {
 
 // تابع استفاده از راهنمایی
 function useHint() {
-    if (!currentGame || hintsUsed >= 2 || isCreator || currentGame.completed || timeLeft <= 0) return;
+    if (!currentGame || hintsUsed >= 2 || isCreator || !currentGame.is_started || currentGame.completed || timeLeft <= 0) return;
     
     // کسر امتیاز برای استفاده از راهنمایی
     currentGame.score -= 30;
@@ -1069,7 +1098,8 @@ async function viewGameDetails(gameId) {
                 word: result.game.word,
                 completed: result.game.completed,
                 winner_id: result.game.winner_id,
-                creator_online: false
+                creator_online: false,
+                is_started: true
             };
 
             isCreator = (result.game.creator_id === currentUser.telegram_id);
