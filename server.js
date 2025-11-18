@@ -1,3 +1,4 @@
+// server.js
 const express = require('express');
 const { Telegraf } = require('telegraf');
 const { Client } = require('pg');
@@ -256,6 +257,11 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                 );
             }
 
+            // NEW: Send notifications to both players
+            const matchStartMessage = `🎮 مسابقه شروع شد!\nحریف: ${foundMatch.player1_name} vs ${foundMatch.player2_name}\nدسته‌بندی: ${foundMatch.category}\nموفق باشید!`;
+            await sendMessageToUser(foundMatch.player1_id, matchStartMessage);
+            await sendMessageToUser(foundMatch.player2_id, matchStartMessage);
+
             res.json({
                 success: true,
                 match_id: foundMatchId,
@@ -292,6 +298,10 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                  VALUES ($1, $2, $3, $4, 'waiting')`,
                 [matchId, player_id, player_name, category]
             );
+
+            // NEW: Send notification to waiting player
+            const waitingMessage = `⌛ در انتظار حریف...\nدسته‌بندی: ${category}\nلطفاً منتظر بمانید.`;
+            await sendMessageToUser(player_id, waitingMessage);
 
             res.json({
                 success: true,
@@ -532,6 +542,12 @@ app.post('/api/competitive/match/:matchId/complete', async (req, res) => {
             await updatePlayerCompetitiveStats(match.player2_id, match.player2_score, match.player2_id === winner_id);
         }
 
+        // NEW: Send final notifications
+        const winnerMessage = `🏆 شما برنده شدید!\nامتیاز: ${match.player1_id === winner_id ? match.player1_score : match.player2_score}`;
+        const loserMessage = `💔 شما باختید.\nامتیاز: ${match.player1_id === winner_id ? match.player2_score : match.player1_score}`;
+        await sendMessageToUser(winner_id, winnerMessage);
+        await sendMessageToUser(match.player1_id === winner_id ? match.player2_id : match.player1_id, loserMessage);
+
         // Remove from active matches
         competitiveMatches.delete(matchId);
 
@@ -748,25 +764,19 @@ async function updateCompetitivePlayerStats(matchId, playerId, isCorrect, wordCo
 
         if (statsResult.rows.length === 0) {
             await dbClient.query(
-                `INSERT INTO competitive_player_stats 
-                 (match_id, player_id, correct_letters, wrong_letters, total_time, words_completed)
+                `INSERT INTO competitive_player_stats (match_id, player_id, correct_letters, wrong_letters, total_time, words_completed)
                  VALUES ($1, $2, $3, $4, $5, $6)`,
                 [matchId, playerId, isCorrect ? 1 : 0, isCorrect ? 0 : 1, timeUsed, wordCompleted ? 1 : 0]
             );
         } else {
-            const stats = statsResult.rows[0];
             await dbClient.query(
                 `UPDATE competitive_player_stats 
-                 SET correct_letters = $1, wrong_letters = $2, total_time = $3, words_completed = $4
+                 SET correct_letters = correct_letters + $1,
+                     wrong_letters = wrong_letters + $2,
+                     total_time = total_time + $3,
+                     words_completed = words_completed + $4
                  WHERE match_id = $5 AND player_id = $6`,
-                [
-                    stats.correct_letters + (isCorrect ? 1 : 0),
-                    stats.wrong_letters + (isCorrect ? 0 : 1),
-                    stats.total_time + timeUsed,
-                    stats.words_completed + (wordCompleted ? 1 : 0),
-                    matchId,
-                    playerId
-                ]
+                [isCorrect ? 1 : 0, isCorrect ? 0 : 1, timeUsed, wordCompleted ? 1 : 0, matchId, playerId]
             );
         }
     } catch (error) {
@@ -777,30 +787,47 @@ async function updateCompetitivePlayerStats(matchId, playerId, isCorrect, wordCo
 async function getCompetitivePlayerStats(matchId, playerId) {
     try {
         const result = await dbClient.query(
-            `SELECT * FROM competitive_player_stats 
-             WHERE match_id = $1 AND player_id = $2`,
+            `SELECT * FROM competitive_player_stats WHERE match_id = $1 AND player_id = $2`,
             [matchId, playerId]
         );
-
+        
         if (result.rows.length === 0) {
-            return { correct_letters: 0, wrong_letters: 0, total_time: 0, words_completed: 0 };
+            return {
+                correct_letters: 0,
+                wrong_letters: 0,
+                total_time: 0,
+                words_completed: 0,
+                average_time: 0
+            };
         }
-
+        
         const stats = result.rows[0];
+        const averageTime = stats.words_completed > 0 ? stats.total_time / stats.words_completed : 0;
+        
         return {
-            correct_letters: stats.correct_letters,
-            wrong_letters: stats.wrong_letters,
-            total_time: stats.total_time,
-            words_completed: stats.words_completed,
-            average_time: stats.words_completed > 0 ? stats.total_time / stats.words_completed : 0
+            ...stats,
+            average_time: averageTime
         };
     } catch (error) {
         console.error('❌ Error getting competitive player stats:', error);
-        return { correct_letters: 0, wrong_letters: 0, total_time: 0, words_completed: 0 };
+        return {
+            correct_letters: 0,
+            wrong_letters: 0,
+            total_time: 0,
+            words_completed: 0,
+            average_time: 0
+        };
     }
 }
 
-async function updatePlayerCompetitiveStats(playerId, score, isWinner) {
+function calculateCompetitivePoints(match, isWinner) {
+    const basePoints = isWinner ? 100 : 50;
+    const scoreDifference = Math.abs(match.player1_score - match.player2_score);
+    const difficultyBonus = match.words.length * 5;
+    return basePoints + Math.floor(scoreDifference / 10) + difficultyBonus;
+}
+
+async function updatePlayerCompetitiveStats(playerId, score, isWin) {
     try {
         await dbClient.query(
             `UPDATE users 
@@ -808,162 +835,45 @@ async function updatePlayerCompetitiveStats(playerId, score, isWinner) {
                  competitive_wins = competitive_wins + $2,
                  competitive_games = competitive_games + 1
              WHERE telegram_id = $3`,
-            [score, isWinner ? 1 : 0, playerId]
+            [score, isWin ? 1 : 0, playerId]
         );
     } catch (error) {
         console.error('❌ Error updating player competitive stats:', error);
     }
 }
 
-function calculateCompetitivePoints(match, isWinner) {
-    const basePoints = isWinner ? 100 : 30;
-    const scoreBonus = Math.floor((isWinner ? match.player1_score : match.player2_score) / 10);
-    return basePoints + scoreBonus;
-}
-
-// Existing APIs remain the same...
-
-// تابع ارسال نوتیفیکیشن
-async function sendNotificationToActiveUsers(message, excludeUserId = null) {
+// تابع ارسال پیام به کاربر از طریق تلگرام
+async function sendMessageToUser(userId, message) {
     try {
-        const result = await dbClient.query(
-            'SELECT telegram_id FROM users WHERE is_active = true AND telegram_id != $1',
-            [excludeUserId || 0]
-        );
-        
-        const users = result.rows;
-        let successCount = 0;
-
-        for (const user of users) {
-            try {
-                await bot.telegram.sendMessage(user.telegram_id, message, {
-                    parse_mode: 'HTML'
-                });
-                successCount++;
-                await new Promise(resolve => setTimeout(resolve, 100));
-            } catch (error) {
-                if (error.description && error.description.includes('blocked')) {
-                    await dbClient.query(
-                        'UPDATE users SET is_active = false WHERE telegram_id = $1',
-                        [user.telegram_id]
-                    );
-                }
-            }
-        }
-        
-        return { success: successCount };
-        
+        await bot.telegram.sendMessage(userId, message, { parse_mode: 'HTML' });
     } catch (error) {
-        console.error('💥 Error sending notification:', error);
-        return { success: 0 };
+        console.error('❌ Error sending Telegram message:', error);
     }
 }
-
-// تابع ارسال پیام به کاربر خاص
-async function sendMessageToUser(telegramId, message) {
-    try {
-        await bot.telegram.sendMessage(telegramId, message, {
-            parse_mode: 'HTML'
-        });
-        return true;
-    } catch (error) {
-        console.error(`❌ Error sending message to user ${telegramId}:`, error);
-        return false;
-    }
-}
-
-// هندلر کامند /start
-bot.command('start', async (ctx) => {
-    const userId = ctx.from.id;
-    const fullName = `${ctx.from.first_name || ''} ${ctx.from.last_name || ''}`.trim();
-    const username = ctx.from.username;
-
-    const existingUser = await dbClient.query(
-        'SELECT * FROM users WHERE telegram_id = $1',
-        [userId]
-    );
-    
-    const isNewUser = existingUser.rows.length === 0;
-
-    try {
-        await dbClient.query(
-            `INSERT INTO users (telegram_id, full_name, username, last_seen) 
-             VALUES ($1, $2, $3, CURRENT_TIMESTAMP) 
-             ON CONFLICT (telegram_id) 
-             DO UPDATE SET last_seen = CURRENT_TIMESTAMP, full_name = $2, username = $3, is_active = true`,
-            [userId, fullName, username]
-        );
-    } catch (error) {
-        console.error('❌ Error saving user:', error);
-    }
-
-    if (isNewUser) {
-        const userCount = await getUserCount();
-        const welcomeMessage = `🎉 <b>کاربر جدید به ربات پیوست!</b>\n\n👤 <b>نام:</b> ${fullName}\n🆔 <b>آی‌دی:</b> <code>${userId}</code>\n📊 <b>تعداد کل کاربران:</b> ${userCount}`;
-        
-        sendNotificationToActiveUsers(welcomeMessage, userId);
-    }
-
-    const keyboard = {
-        inline_keyboard: [
-            [{
-                text: '🚀 باز کردن پنل کاربری',
-                web_app: { url: `${WEB_APP_URL}?tgid=${userId}` }
-            }]
-        ]
-    };
-
-    await ctx.reply(`سلام ${fullName}! 👋\n\nبرای مشاهده پنل کاربری و بازی روی دکمه زیر کلیک کنید:`, {
-        reply_markup: keyboard
-    });
-});
 
 // API برای ایجاد بازی جدید
 app.post('/api/games/create', async (req, res) => {
     try {
-        const { creator_id, word, category } = req.body;
-        
-        if (!creator_id || !word || !category) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        const { creator_id, word, category, max_attempts, time_limit } = req.body;
+
+        if (!creator_id || !word || !category || !max_attempts || !time_limit) {
+            return res.status(400).json({ error: 'All fields are required' });
         }
 
         const gameId = generateGameId();
-        const maxAttempts = Math.floor(word.length * 1.5);
-        const timeLimit = word.length * 30;
 
-        const result = await dbClient.query(
-            `INSERT INTO games (game_id, creator_id, word, category, max_attempts, time_limit, creator_online, is_started) 
-             VALUES ($1, $2, $3, $4, $5, $6, true, false) 
-             RETURNING *`,
-            [gameId, creator_id, word.toUpperCase(), category, maxAttempts, timeLimit]
+        await dbClient.query(
+            `INSERT INTO games (game_id, creator_id, word, category, max_attempts, time_limit) 
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [gameId, creator_id, word.toUpperCase(), category, max_attempts, time_limit]
         );
 
         await dbClient.query(
-            'INSERT INTO game_players (game_id, player_id) VALUES ($1, $2)',
+            `INSERT INTO game_players (game_id, player_id) VALUES ($1, $2)`,
             [gameId, creator_id]
         );
 
-        activeGames.set(gameId, {
-            ...result.rows[0],
-            players: [creator_id],
-            guessedLetters: new Set(),
-            incorrectGuesses: new Set(),
-            startTime: null,
-            is_started: false,
-            creator_online: true,
-            last_activity: new Date(),
-            is_active: true,
-            completed: false
-        });
-
-        updatePlayerConnection(gameId, creator_id, true);
-
-        res.json({
-            success: true,
-            game_id: gameId,
-            max_attempts: maxAttempts,
-            time_limit: timeLimit
-        });
+        res.json({ success: true, game_id: gameId });
 
     } catch (error) {
         console.error('❌ Error creating game:', error);
@@ -971,156 +881,41 @@ app.post('/api/games/create', async (req, res) => {
     }
 });
 
-// API برای شروع بازی
-async function startGameWhenPlayerJoins(gameId, joiningPlayerId, joiningPlayerName) {
-    try {
-        const game = activeGames.get(gameId);
-        if (!game || game.is_started) return;
-
-        const startTime = new Date();
-        const endTime = new Date(startTime.getTime() + game.time_limit * 1000);
-
-        game.is_started = true;
-        game.startTime = startTime;
-        game.endTime = endTime;
-        game.last_activity = new Date();
-
-        await dbClient.query(
-            'UPDATE games SET is_started = true, start_time = $1, end_time = $2 WHERE game_id = $3',
-            [startTime, endTime, gameId]
-        );
-
-        const joiningPlayerInfo = await dbClient.query(
-            'SELECT full_name, username FROM users WHERE telegram_id = $1',
-            [joiningPlayerId]
-        );
-        const playerInfo = joiningPlayerInfo.rows[0];
-        const playerName = playerInfo?.full_name || 'ناشناس';
-        const playerUsername = playerInfo?.username || 'ندارد';
-
-        const creatorMessage = `🎮 <b>بازی شروع شد!</b>\n\n👤 <b>بازیکن جدید:</b> ${playerName}\n📱 <b>آیدی:</b> ${playerUsername}\n🆔 <b>کد بازی:</b> <code>${gameId}</code>\n⏰ <b>زمان بازی:</b> ${Math.floor(game.time_limit / 60)}:${(game.time_limit % 60).toString().padStart(2, '0')}\n\nاکنون می‌توانید پیشرفت بازی را مشاهده کنید!`;
-        await sendMessageToUser(game.creator_id, creatorMessage);
-
-        const playerMessage = `🎮 <b>به بازی پیوستید!</b>\n\n🆔 <b>کد بازی:</b> <code>${gameId}</code>\n⏰ <b>زمان بازی:</b> ${Math.floor(game.time_limit / 60)}:${(game.time_limit % 60).toString().padStart(2, '0')}\n\nشروع به حدس زدن حروف کنید!`;
-        await sendMessageToUser(joiningPlayerId, playerMessage);
-
-        setTimeout(async () => {
-            await endGameByTimeout(gameId);
-        }, game.time_limit * 1000);
-
-        console.log(`🚀 Game ${gameId} started with players: ${game.players.join(', ')}`);
-
-    } catch (error) {
-        console.error('❌ Error starting game when player joins:', error);
-    }
-}
-
 // API برای پیوستن به بازی
 app.post('/api/games/:gameId/join', async (req, res) => {
     try {
         const { gameId } = req.params;
         const { player_id } = req.body;
 
-        if (!player_id) {
-            return res.status(400).json({ error: 'Player ID is required' });
+        const gameResult = await dbClient.query(
+            'SELECT * FROM games WHERE game_id = $1 AND is_active = true AND completed = false',
+            [gameId]
+        );
+
+        if (gameResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Game not found or completed' });
         }
 
-        let game = activeGames.get(gameId);
-        
-        if (!game) {
-            const dbGame = await dbClient.query(
-                'SELECT * FROM games WHERE game_id = $1 AND is_active = true AND completed = false',
-                [gameId]
-            );
-            
-            if (dbGame.rows.length === 0) {
-                return res.status(404).json({ error: 'Game not found or completed' });
-            }
-            
-            const dbGameData = dbGame.rows[0];
-            game = {
-                ...dbGameData,
-                players: await getGamePlayers(gameId),
-                guessedLetters: new Set(dbGameData.guessed_letters.split(',').filter(Boolean)),
-                incorrectGuesses: new Set(dbGameData.incorrect_letters.split(',').filter(Boolean)),
-                startTime: dbGameData.start_time ? new Date(dbGameData.start_time) : null,
-                endTime: dbGameData.end_time ? new Date(dbGameData.end_time) : null,
-                last_activity: new Date()
-            };
-            
-            activeGames.set(gameId, game);
-        }
-
-        if (game.completed) {
-            return res.status(400).json({ error: 'Game already completed' });
-        }
-
-        const isPlayerInGame = await dbClient.query(
-            'SELECT 1 FROM game_players WHERE game_id = $1 AND player_id = $2',
+        const existingPlayer = await dbClient.query(
+            'SELECT * FROM game_players WHERE game_id = $1 AND player_id = $2',
             [gameId, player_id]
         );
 
-        const joiningPlayer = await dbClient.query(
-            'SELECT full_name FROM users WHERE telegram_id = $1',
-            [player_id]
-        );
-        const joiningPlayerName = joiningPlayer.rows[0]?.full_name || 'ناشناس';
-
-        if (isPlayerInGame.rows.length > 0) {
-            if (!game.players.includes(player_id)) {
-                game.players.push(player_id);
-            }
-            
-            updatePlayerConnection(gameId, player_id, true);
-            game.last_activity = new Date();
-            
-            res.json({ 
-                success: true, 
-                players_count: game.players_count,
-                creator_id: game.creator_id,
-                is_creator: game.creator_id === player_id,
-                reconnected: true,
-                game_started: game.is_started,
-                remaining_time: game.is_started ? calculateRemainingTime(game.endTime) : null
-            });
-            return;
+        if (existingPlayer.rows.length > 0) {
+            return res.json({ success: true, message: 'Already joined' });
         }
-
-        game.players.push(player_id);
-        game.players_count += 1;
-
-        await dbClient.query(
-            'UPDATE games SET players_count = $1 WHERE game_id = $2',
-            [game.players_count, gameId]
-        );
 
         await dbClient.query(
             'INSERT INTO game_players (game_id, player_id) VALUES ($1, $2)',
             [gameId, player_id]
         );
 
-        updatePlayerConnection(gameId, player_id, true);
-        game.last_activity = new Date();
+        await dbClient.query(
+            'UPDATE games SET players_count = players_count + 1 WHERE game_id = $1',
+            [gameId]
+        );
 
-        if (game.players_count === 2 && !game.is_started) {
-            await startGameWhenPlayerJoins(gameId, player_id, joiningPlayerName);
-        }
-
-        if (game.creator_id !== player_id) {
-            const notificationMessage = `👤 <b>بازیکن جدید به بازی شما پیوست!</b>\n\n🎮 <b>کد بازی:</b> <code>${gameId}</code>\n👤 <b>بازیکن:</b> ${joiningPlayerName}\n📊 <b>تعداد بازیکنان:</b> ${game.players_count} نفر\n\n${!game.is_started ? 'در انتظار بازیکن دوم برای شروع بازی...' : 'بازی در حال انجام است!'}`;
-            await sendMessageToUser(game.creator_id, notificationMessage);
-        }
-
-        activeGames.set(gameId, game);
-
-        res.json({ 
-            success: true, 
-            players_count: game.players_count,
-            creator_id: game.creator_id,
-            is_creator: game.creator_id === player_id,
-            game_started: game.is_started,
-            remaining_time: game.is_started ? calculateRemainingTime(game.endTime) : null
-        });
+        res.json({ success: true });
 
     } catch (error) {
         console.error('❌ Error joining game:', error);
@@ -1128,49 +923,54 @@ app.post('/api/games/:gameId/join', async (req, res) => {
     }
 });
 
-// API جدید: دریافت اطلاعات بازیکنان
-app.get('/api/games/:gameId/players-info', async (req, res) => {
+// API برای شروع بازی
+app.post('/api/games/:gameId/start', async (req, res) => {
     try {
         const { gameId } = req.params;
-        
-        const result = await dbClient.query(`
-            SELECT gp.player_id, u.full_name, u.username, 
-                   gp.joined_at, 
-                   CASE WHEN gp.player_id = g.creator_id THEN true ELSE false END as is_creator
-            FROM game_players gp
-            LEFT JOIN users u ON gp.player_id = u.telegram_id
-            LEFT JOIN games g ON gp.game_id = g.game_id
-            WHERE gp.game_id = $1
-            ORDER BY gp.joined_at ASC
-        `, [gameId]);
+        const { creator_id } = req.body;
 
-        const players = result.rows.map(row => ({
-            player_id: row.player_id,
-            full_name: row.full_name || 'ناشناس',
-            username: row.username || 'ندارد',
-            is_creator: row.is_creator,
-            joined_at: row.joined_at,
-            is_online: isPlayerOnline(gameId, row.player_id)
-        }));
+        const gameResult = await dbClient.query(
+            'SELECT * FROM games WHERE game_id = $1 AND creator_id = $2 AND is_active = true AND is_started = false',
+            [gameId, creator_id]
+        );
 
-        res.json({
-            success: true,
-            players: players
-        });
+        if (gameResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Game not found or already started' });
+        }
+
+        const startTime = new Date();
+        const endTime = new Date(startTime.getTime() + gameResult.rows[0].time_limit * 1000);
+
+        await dbClient.query(
+            'UPDATE games SET is_started = true, start_time = $1, end_time = $2 WHERE game_id = $3',
+            [startTime, endTime, gameId]
+        );
+
+        // اطلاع‌رسانی به بازیکنان
+        const players = await getGamePlayers(gameId);
+        for (const playerId of players) {
+            if (playerId !== creator_id) {
+                const startMessage = `🚀 <b>بازی شروع شد!</b>\n\n🎮 <b>کد بازی:</b> <code>${gameId}</code>\n🕒 <b>زمان:</b> ${gameResult.rows[0].time_limit} ثانیه\n🔄 <b>حدس‌ها:</b> ${gameResult.rows[0].max_attempts}\n\nحدس بزنید!`;
+                await sendMessageToUser(playerId, startMessage);
+            }
+        }
+
+        res.json({ success: true });
 
     } catch (error) {
-        console.error('❌ Error fetching players info:', error);
+        console.error('❌ Error starting game:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-// API جدید: دریافت حدس‌های بازیکنان
+// API برای دریافت حدس‌های بازیکنان (برای سازنده)
 app.get('/api/games/:gameId/player-guesses', async (req, res) => {
     try {
         const { gameId } = req.params;
-        
+
         const result = await dbClient.query(`
-            SELECT pg.*, u.full_name 
+            SELECT pg.*, u.full_name as player_name,
+                   EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - pg.created_at)) as time_seconds
             FROM player_guesses pg
             LEFT JOIN users u ON pg.player_id = u.telegram_id
             WHERE pg.game_id = $1
@@ -1178,20 +978,14 @@ app.get('/api/games/:gameId/player-guesses', async (req, res) => {
             LIMIT 20
         `, [gameId]);
 
-        const guesses = result.rows.map(row => ({
-            player_id: row.player_id,
-            player_name: row.full_name || 'ناشناس',
-            letter: row.letter,
-            is_correct: row.is_correct,
-            score: row.score,
-            created_at: row.created_at,
-            time_ago: getTimeAgo(row.created_at)
+        const guesses = result.rows.map(guess => ({
+            player_name: guess.player_name || 'ناشناس',
+            letter: guess.letter,
+            is_correct: guess.is_correct,
+            time_ago: formatTimeAgo(guess.time_seconds)
         }));
 
-        res.json({
-            success: true,
-            guesses: guesses
-        });
+        res.json({ success: true, guesses });
 
     } catch (error) {
         console.error('❌ Error fetching player guesses:', error);
@@ -1199,17 +993,11 @@ app.get('/api/games/:gameId/player-guesses', async (req, res) => {
     }
 });
 
-// تابع کمکی برای نمایش زمان گذشته
-function getTimeAgo(date) {
-    const now = new Date();
-    const diffMs = now - new Date(date);
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    
-    if (diffMins < 1) return 'همین الان';
-    if (diffMins < 60) return `${diffMins} دقیقه پیش`;
-    if (diffHours < 24) return `${diffHours} ساعت پیش`;
-    return `${Math.floor(diffHours / 24)} روز پیش`;
+// تابع فرمت زمان گذشته
+function formatTimeAgo(seconds) {
+    if (seconds < 60) return `${Math.floor(seconds)} ثانیه پیش`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} دقیقه پیش`;
+    return `${Math.floor(seconds / 3600)} ساعت پیش`;
 }
 
 // تابع پایان بازی به دلیل اتمام زمان
@@ -1218,94 +1006,30 @@ async function endGameByTimeout(gameId) {
         const game = activeGames.get(gameId);
         if (!game || game.completed) return;
 
-        console.log(`⏰ Ending game ${gameId} due to timeout`);
-
-        // محاسبه حداکثر امتیاز ممکن
-        const maxPossibleScore = calculateMaxPossibleScore(game.word.length, game.time_limit);
-        
-        let winnerId = null;
-        let maxScore = -1;
-
-        for (const playerId of game.players) {
-            const playerSessions = await dbClient.query(
-                'SELECT * FROM game_sessions WHERE game_id = $1 AND player_id = $2',
-                [gameId, playerId]
-            );
-
-            if (playerSessions.rows.length > 0) {
-                const session = playerSessions.rows[0];
-                if (session.score > maxScore) {
-                    maxScore = session.score;
-                    winnerId = playerId;
-                }
-            }
-        }
-
-        // اگر هیچ امتیازی ثبت نشده، اولین بازیکن را برنده کن
-        if (!winnerId && game.players.length > 0) {
-            winnerId = game.players[0];
-        }
-
-        // به‌روزرسانی وضعیت بازی
         game.completed = true;
         game.is_active = false;
-        game.winner_id = winnerId;
 
         await dbClient.query(
-            'UPDATE games SET completed = true, is_active = false, winner_id = $1 WHERE game_id = $2',
-            [winnerId, gameId]
+            'UPDATE games SET completed = true, is_active = false WHERE game_id = $1',
+            [gameId]
         );
 
-        // به‌روزرسانی آمار بازیکنان و اعمال جریمه
-        for (const playerId of game.players) {
-            const isWinner = playerId === winnerId;
-            let finalScore = 0;
-            
-            // دریافت امتیاز بازیکن
-            const playerSession = await dbClient.query(
+        // به‌روزرسانی آمار کاربران
+        const players = await getGamePlayers(gameId);
+        for (const playerId of players) {
+            const session = await dbClient.query(
                 'SELECT score FROM game_sessions WHERE game_id = $1 AND player_id = $2',
                 [gameId, playerId]
             );
-            
-            if (playerSession.rows.length > 0) {
-                finalScore = playerSession.rows[0].score;
-                
-                // اگر بازیکن برنده نیست، جریمه اعمال کن
-                if (!isWinner && finalScore > 0) {
-                    const penalty = Math.floor(maxPossibleScore * 0.3); // 30% جریمه
-                    finalScore = Math.max(0, finalScore - penalty);
-                    
-                    // به‌روزرسانی امتیاز با جریمه
-                    await dbClient.query(
-                        'UPDATE game_sessions SET score = $1 WHERE game_id = $2 AND player_id = $3',
-                        [finalScore, gameId, playerId]
-                    );
-                }
-            }
-            
-            // به‌روزرسانی آمار کاربر
+
+            const score = session.rows[0]?.score || 0;
+
             await dbClient.query(
-                `UPDATE users SET 
-                    total_games = total_games + 1,
-                    wins = wins + $1,
-                    game_score = game_score + $2
-                 WHERE telegram_id = $3`,
-                [isWinner ? 1 : 0, finalScore, playerId]
+                'UPDATE users SET total_games = total_games + 1, game_score = game_score + $1 WHERE telegram_id = $2',
+                [score, playerId]
             );
 
-            // ارسال نوتیفیکیشن پایان بازی
-            const playerResult = await dbClient.query(
-                'SELECT full_name FROM users WHERE telegram_id = $1',
-                [playerId]
-            );
-            const playerName = playerResult.rows[0]?.full_name || 'ناشناس';
-
-            let resultMessage = '';
-            if (isWinner) {
-                resultMessage = `🎉 <b>تبریک! شما برنده شدید!</b>\n\n🏆 <b>بازی:</b> ${gameId}\n📊 <b>امتیاز شما:</b> ${finalScore}\n🕒 <b>دلیل پایان:</b> اتمام زمان\n\nشما برنده این دور از بازی شدید!`;
-            } else {
-                resultMessage = `🏁 <b>بازی به پایان رسید</b>\n\n🎮 <b>بازی:</b> ${gameId}\n📊 <b>امتیاز شما:</b> ${finalScore}\n🕒 <b>دلیل پایان:</b> اتمام زمان\n💰 <b>جریمه:</b> ${Math.floor(maxPossibleScore * 0.3)} امتیاز\n\nبرنده: ${playerName}`;
-            }
+            const resultMessage = `⌛ <b>زمان بازی به پایان رسید!</b>\n\n🎮 <b>بازی:</b> ${gameId}\n📊 <b>امتیاز شما:</b> ${score}\n\nهیچ برنده‌ای وجود ندارد.`;
 
             await sendMessageToUser(playerId, resultMessage);
         }
