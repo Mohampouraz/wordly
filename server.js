@@ -137,7 +137,6 @@ async function createTables() {
             )
         `);
 
-        // NEW: Competitive match words table
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS competitive_match_words (
                 id SERIAL PRIMARY KEY,
@@ -155,7 +154,6 @@ async function createTables() {
             )
         `);
 
-        // NEW: Competitive player stats table
         await dbClient.query(`
             CREATE TABLE IF NOT EXISTS competitive_player_stats (
                 id SERIAL PRIMARY KEY,
@@ -284,16 +282,36 @@ app.post('/api/competitive/quick-match', async (req, res) => {
             return res.status(400).json({ error: 'Player ID is required' });
         }
 
-        // Check if player is already in a match (active or waiting)
+        // Check if player is already in an active match
         for (let [matchId, match] of competitiveMatches) {
             if (match.player1_id === player_id || match.player2_id === player_id) {
+                 // --- اصلاحیه مهم برای ارسال اطلاعات کامل در هنگام اتصال مجدد ---
+                 const dbMatch = await dbClient.query('SELECT words, category FROM competitive_matches WHERE match_id = $1', [matchId]);
+                 let wordsArray = [];
+                 let categoryName = match.category;
+                 
+                 if (dbMatch.rows.length > 0) {
+                    categoryName = dbMatch.rows[0].category;
+                    try {
+                         wordsArray = JSON.parse(dbMatch.rows[0].words);
+                    } catch (e) { 
+                        console.error('Error parsing words JSON on reconnection:', e);
+                        // اگر خطا داد، آرایه خالی برمی‌گرداند
+                    }
+                 }
+                 
                 return res.json({
                     success: true,
                     match_id: matchId,
-                    reconnected: true
+                    reconnected: true,
+                    matched: true, // It's an active match
+                    category: categoryName,
+                    words: wordsArray
                 });
             }
         }
+        
+        // Check if player is already in a waiting match
         for (let [matchId, match] of waitingCompetitiveMatches) {
             if (match.player1_id === player_id) {
                 return res.json({
@@ -344,6 +362,7 @@ app.post('/api/competitive/quick-match', async (req, res) => {
 
             // Create word records
             for (let i = 0; i < words.length; i++) {
+                // --- اصلاحیه: مقداردهی اولیه پیشرفت کلمه ---
                 await dbClient.query(
                     `INSERT INTO competitive_match_words (match_id, word, word_index, player1_progress, player2_progress)
                      VALUES ($1, $2, $3, $4, $5)`,
@@ -357,8 +376,8 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                 match_id: foundMatchId,
                 matched: true,
                 opponent_name: foundMatch.player1_name,
-                category: foundMatch.category, // Added
-                words: words // Added (array)
+                category: foundMatch.category, 
+                words: words 
             });
         } else {
             // Create new match
@@ -396,7 +415,7 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                 match_id: matchId,
                 matched: false,
                 category: category,
-                words: [] // Added for consistency
+                words: [] 
             });
         }
 
@@ -1546,6 +1565,7 @@ app.get('/api/games/active', async (req, res) => {
         `);
 
         const games = result.rows.map(game => {
+            // --- اصلاحیه: استفاده از تابع بهبود یافته calculateRemainingTime ---
             const remainingTime = game.is_started && game.end_time ? calculateRemainingTime(game.end_time) : null;
             return {
                 game_id: game.game_id,
@@ -1555,7 +1575,7 @@ app.get('/api/games/active', async (req, res) => {
                 max_attempts: game.max_attempts,
                 time_limit: game.time_limit,
                 is_started: game.is_started,
-                created_at_time_ago: timeAgo(game.created_at),
+                created_at_time_ago: timeAgo(game.created_at), 
                 remaining_time: remainingTime,
             };
         });
@@ -1945,10 +1965,15 @@ function generateGameId() {
     return result;
 }
 
+// --- اصلاحیه: بهبود مدیریت تاریخ نامعتبر ---
 function calculateRemainingTime(endTime) {
     if (!endTime) return null;
     const now = new Date();
     const end = new Date(endTime);
+    
+    // اگر تاریخ نامعتبر بود (Invalid Date)، مقدار 0 برگردانده شود تا خطا رخ ندهد.
+    if (isNaN(end.getTime())) return 0; 
+
     return Math.max(0, Math.floor((end - now) / 1000));
 }
 
