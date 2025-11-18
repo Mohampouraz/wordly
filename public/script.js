@@ -268,7 +268,7 @@ function displayLeaderboardPreview(players) {
     `;
 }
 
-// NEW: Start Quick Match
+// NEW: Start Quick Match - IMPROVED
 async function startQuickMatch() {
     if (!currentUser) {
         showNotification('لطفاً منتظر بمانید اطلاعات کاربر بارگذاری شود', 'error');
@@ -277,6 +277,7 @@ async function startQuickMatch() {
     
     try {
         showNotification('در حال پیدا کردن حریف...', 'info');
+        console.log(`🎯 Starting quick match for user: ${currentUser.telegram_id}`);
         
         const response = await fetch('/api/competitive/quick-match', {
             method: 'POST',
@@ -290,22 +291,32 @@ async function startQuickMatch() {
         });
         
         const result = await response.json();
+        console.log(`📨 Quick match response:`, result);
         
         if (result.success) {
             competitiveMatchId = result.match_id;
+            console.log(`✅ Match created/joined: ${competitiveMatchId}, matched: ${result.matched}`);
+            
             openCompetitiveModal();
             startCompetitiveMatchPolling();
+            
+            if (result.matched) {
+                showNotification(`حریف پیدا شد! ${result.opponent_name}`, 'success');
+            }
         } else {
+            console.error(`❌ Quick match failed:`, result.error);
             showNotification(result.error || 'خطا در پیدا کردن حریف', 'error');
         }
     } catch (error) {
-        console.error('❌ خطا در شروع مسابقه سریع:', error);
+        console.error('❌ Error starting quick match:', error);
         showNotification('خطا در برقراری ارتباط', 'error');
     }
 }
 
-// NEW: Open Competitive Modal
+// NEW: Open Competitive Modal - IMPROVED
 function openCompetitiveModal() {
+    console.log(`🎪 Opening competitive modal for match: ${competitiveMatchId}`);
+    
     document.getElementById('competitiveModal').style.display = 'flex';
     document.getElementById('player1Name').textContent = currentUser.full_name;
     document.getElementById('player1Score').textContent = '۰ امتیاز';
@@ -320,7 +331,14 @@ function openCompetitiveModal() {
         player2: { correct: 0, wrong: 0, time: 0 }
     };
     
+    // Initialize UI elements
+    document.getElementById('player2Name').textContent = 'در انتظار حریف...';
+    document.getElementById('player2Score').textContent = '۰ امتیاز';
+    document.getElementById('player2Status').innerHTML = '<i class="fas fa-clock waiting"></i> در انتظار';
+    
     updateCompetitiveUI();
+    
+    console.log(`✅ Competitive modal opened`);
 }
 
 // NEW: Close Competitive Modal
@@ -334,11 +352,13 @@ function closeCompetitiveModal() {
     }
 }
 
-// NEW: Start Competitive Match Polling
+// NEW: Start Competitive Match Polling - IMPROVED
 function startCompetitiveMatchPolling() {
     if (competitiveMatchInterval) {
         clearInterval(competitiveMatchInterval);
     }
+    
+    console.log(`🔍 Starting polling for match: ${competitiveMatchId}`);
     
     competitiveMatchInterval = setInterval(async () => {
         try {
@@ -346,12 +366,15 @@ function startCompetitiveMatchPolling() {
             const result = await response.json();
             
             if (result.success) {
-                updateCompetitiveMatchState(result.match);
+                console.log(`📊 Match ${competitiveMatchId} status:`, result.match.status);
+                await updateCompetitiveMatchState(result.match);
+            } else {
+                console.error(`❌ Error fetching match ${competitiveMatchId}:`, result.error);
             }
         } catch (error) {
-            console.error('❌ خطا در به‌روزرسانی وضعیت مسابقه:', error);
+            console.error('❌ Error in competitive match polling:', error);
         }
-    }, 2000);
+    }, 3000);
 }
 
 // NEW: Stop Competitive Match Polling
@@ -362,43 +385,112 @@ function stopCompetitiveMatchPolling() {
     }
 }
 
-// NEW: Update Competitive Match State
-function updateCompetitiveMatchState(match) {
+// NEW: Update Competitive Match State - IMPROVED
+async function updateCompetitiveMatchState(match) {
+    console.log(`🔄 Updating match state:`, {
+        status: match.status,
+        player1: match.player1_id,
+        player2: match.player2_id,
+        currentUser: currentUser?.telegram_id
+    });
+
     // Update opponent info
     if (match.player2_id && match.player2_id !== currentUser.telegram_id) {
         document.getElementById('player2Name').textContent = match.player2_name || 'حریف';
-        document.getElementById('player2Score').textContent = toPersianNumber(match.player2_score) + ' امتیاز';
-        document.getElementById('player2Status').innerHTML = '<i class="fas fa-circle online"></i>';
+        document.getElementById('player2Score').textContent = toPersianNumber(match.player2_score || 0) + ' امتیاز';
+        document.getElementById('player2Status').innerHTML = '<i class="fas fa-circle online"></i> آنلاین';
+        console.log(`👤 Opponent set: ${match.player2_name}`);
+    } else if (!match.player2_id) {
+        document.getElementById('player2Name').textContent = 'در انتظار حریف...';
+        document.getElementById('player2Score').textContent = '۰ امتیاز';
+        document.getElementById('player2Status').innerHTML = '<i class="fas fa-clock waiting"></i> در انتظار';
     }
-    
+
     // Update scores
     if (match.player1_id === currentUser.telegram_id) {
-        competitiveScores.player1 = match.player1_score;
-        competitiveScores.player2 = match.player2_score;
+        competitiveScores.player1 = match.player1_score || 0;
+        competitiveScores.player2 = match.player2_score || 0;
     } else {
-        competitiveScores.player1 = match.player2_score;
-        competitiveScores.player2 = match.player1_score;
+        competitiveScores.player1 = match.player2_score || 0;
+        competitiveScores.player2 = match.player1_score || 0;
     }
     
     document.getElementById('player1Score').textContent = toPersianNumber(competitiveScores.player1) + ' امتیاز';
     document.getElementById('player2Score').textContent = toPersianNumber(competitiveScores.player2) + ' امتیاز';
     
-    // Update stats
-    updateCompetitiveStatsBars();
+    // Update UI based on match status
+    updateCompetitiveUIForStatus(match.status);
     
-    // Start match if both players are ready
-    if (match.status === 'active' && !isCompetitiveMatchActive) {
+    // Start match if both players are ready and status is active
+    if (match.status === 'active' && !isCompetitiveMatchActive && match.player2_id) {
+        console.log(`🎯 Starting competitive match UI`);
         startCompetitiveMatch(match);
     }
     
+    // Update match status display
+    updateMatchStatusDisplay(match.status);
+    
     // End match if completed
     if (match.status === 'completed') {
+        console.log(`🏁 Match completed`);
         endCompetitiveMatch(match);
     }
 }
 
-// NEW: Start Competitive Match
+// NEW: Update Competitive UI Based on Status
+function updateCompetitiveUIForStatus(status) {
+    const modalTitle = document.getElementById('competitiveModalTitle');
+    const waitingMessage = document.getElementById('waitingForOpponent');
+    
+    switch (status) {
+        case 'waiting':
+            modalTitle.textContent = 'در انتظار حریف...';
+            if (waitingMessage) waitingMessage.style.display = 'block';
+            break;
+        case 'matched':
+            modalTitle.textContent = 'حریف پیدا شد!';
+            if (waitingMessage) waitingMessage.style.display = 'none';
+            break;
+        case 'active':
+            modalTitle.textContent = 'مسابقه در حال انجام!';
+            if (waitingMessage) waitingMessage.style.display = 'none';
+            break;
+        case 'completed':
+            modalTitle.textContent = 'مسابقه پایان یافت';
+            if (waitingMessage) waitingMessage.style.display = 'none';
+            break;
+    }
+}
+
+// NEW: Update Match Status Display
+function updateMatchStatusDisplay(status) {
+    const statusElement = document.getElementById('matchStatus');
+    if (!statusElement) return;
+
+    switch (status) {
+        case 'waiting':
+            statusElement.innerHTML = '<i class="fas fa-clock"></i> در حال پیدا کردن حریف...';
+            statusElement.className = 'match-status waiting';
+            break;
+        case 'matched':
+            statusElement.innerHTML = '<i class="fas fa-user-check"></i> حریف پیدا شد! آماده‌سازی بازی...';
+            statusElement.className = 'match-status matched';
+            break;
+        case 'active':
+            statusElement.innerHTML = '<i class="fas fa-play-circle"></i> بازی در حال انجام';
+            statusElement.className = 'match-status active';
+            break;
+        case 'completed':
+            statusElement.innerHTML = '<i class="fas fa-flag-checkered"></i> بازی پایان یافت';
+            statusElement.className = 'match-status completed';
+            break;
+    }
+}
+
+// NEW: Start Competitive Match - IMPROVED
 function startCompetitiveMatch(match) {
+    console.log(`🎮 Starting competitive match UI for user: ${currentUser.telegram_id}`);
+    
     isCompetitiveMatchActive = true;
     competitiveWords = match.words || [];
     currentWordIndex = 0;
@@ -406,13 +498,23 @@ function startCompetitiveMatch(match) {
     document.getElementById('competitiveModalTitle').textContent = 'مسابقه در حال انجام!';
     document.getElementById('matchCategory').textContent = match.category || 'عمومی';
     
+    // Enable game controls
+    document.getElementById('competitiveGuessInput').disabled = false;
+    document.getElementById('competitiveGuessBtn').disabled = false;
+    document.getElementById('competitiveHintBtn').disabled = false;
+    document.getElementById('skipWordBtn').disabled = false;
+    
+    // Start the first word
     startCompetitiveWord();
+    
+    console.log(`✅ Competitive match UI started with ${competitiveWords.length} words`);
 }
 
 // NEW: Start Competitive Word
 function startCompetitiveWord() {
     if (currentWordIndex >= competitiveWords.length) {
         // All words completed
+        completeCompetitiveMatch();
         return;
     }
     
@@ -432,6 +534,8 @@ function startCompetitiveWord() {
     // Reset hints for this word
     competitiveHintsUsed = 0;
     document.getElementById('competitiveHintCount').textContent = toPersianNumber(3);
+    
+    console.log(`🔤 Starting word ${currentWordIndex + 1}: ${currentWord.word}`);
 }
 
 // NEW: Display Competitive Word Progress
