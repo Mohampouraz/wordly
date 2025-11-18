@@ -190,9 +190,9 @@ async function createTables() {
 
 createTables();
 
-// NEW: Competitive Mode APIs
+// NEW: Competitive Mode APIs - IMPROVED
 
-// API for quick match
+// API for quick match - FIXED MATCHING LOGIC
 app.post('/api/competitive/quick-match', async (req, res) => {
     try {
         const { player_id, player_name } = req.body;
@@ -201,9 +201,12 @@ app.post('/api/competitive/quick-match', async (req, res) => {
             return res.status(400).json({ error: 'Player ID is required' });
         }
 
+        console.log(`🔍 Quick match requested by player: ${player_id}`);
+
         // Check if player is already in a match
         for (let [matchId, match] of competitiveMatches) {
-            if (match.player1_id === player_id || match.player2_id === player_id) {
+            if ((match.player1_id === player_id || match.player2_id === player_id) && match.status !== 'completed') {
+                console.log(`🔄 Player ${player_id} reconnecting to match ${matchId}`);
                 return res.json({
                     success: true,
                     match_id: matchId,
@@ -212,20 +215,21 @@ app.post('/api/competitive/quick-match', async (req, res) => {
             }
         }
 
-        // Try to find a waiting match
+        // Try to find a waiting match with only one player
         let foundMatch = null;
         let foundMatchId = null;
 
         for (let [matchId, match] of waitingCompetitiveMatches) {
-            if (match.player1_id !== player_id && !match.player2_id) {
+            if (match.player1_id !== player_id && !match.player2_id && match.status === 'waiting') {
                 foundMatch = match;
                 foundMatchId = matchId;
+                console.log(`🎯 Found waiting match ${matchId} for player ${player_id}`);
                 break;
             }
         }
 
         if (foundMatch) {
-            // Join existing match
+            // Join existing match as player 2
             foundMatch.player2_id = player_id;
             foundMatch.player2_name = player_name;
             foundMatch.status = 'matched';
@@ -235,9 +239,10 @@ app.post('/api/competitive/quick-match', async (req, res) => {
             waitingCompetitiveMatches.delete(foundMatchId);
 
             // Generate words for the match
-            const words = await generateCompetitiveWords(foundMatch.category, 10);
+            const words = await generateCompetitiveWords(foundMatch.category, 5); // Reduced to 5 words for faster matches
             foundMatch.words = words;
             foundMatch.started_at = new Date();
+            foundMatch.status = 'active';
 
             // Save to database
             await dbClient.query(
@@ -256,6 +261,8 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                 );
             }
 
+            console.log(`🎮 Match ${foundMatchId} started with players: ${foundMatch.player1_id} and ${foundMatch.player2_id}`);
+
             res.json({
                 success: true,
                 match_id: foundMatchId,
@@ -263,7 +270,7 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                 opponent_name: foundMatch.player1_name
             });
         } else {
-            // Create new match
+            // Create new match as player 1
             const matchId = generateCompetitiveMatchId();
             const category = getRandomCategory();
             
@@ -293,6 +300,8 @@ app.post('/api/competitive/quick-match', async (req, res) => {
                 [matchId, player_id, player_name, category]
             );
 
+            console.log(`⏳ Created new waiting match ${matchId} for player ${player_id}`);
+
             res.json({
                 success: true,
                 match_id: matchId,
@@ -307,44 +316,64 @@ app.post('/api/competitive/quick-match', async (req, res) => {
     }
 });
 
-// API for getting competitive match status
+// API for getting competitive match status - IMPROVED
 app.get('/api/competitive/match/:matchId', async (req, res) => {
     try {
         const { matchId } = req.params;
         
-        let match = competitiveMatches.get(matchId) || waitingCompetitiveMatches.get(matchId);
+        console.log(`📊 Fetching match status for: ${matchId}`);
         
+        // Check active matches first
+        let match = competitiveMatches.get(matchId);
+        
+        // If not found in active, check waiting matches
         if (!match) {
-            // Try to load from database
+            match = waitingCompetitiveMatches.get(matchId);
+        }
+        
+        // If still not found, try database
+        if (!match) {
+            console.log(`🔍 Match ${matchId} not in memory, checking database...`);
             const dbMatch = await dbClient.query(
                 'SELECT * FROM competitive_matches WHERE match_id = $1',
                 [matchId]
             );
             
             if (dbMatch.rows.length === 0) {
+                console.log(`❌ Match ${matchId} not found in database`);
                 return res.status(404).json({ error: 'Match not found' });
             }
             
             match = dbMatch.rows[0];
+            console.log(`✅ Found match ${matchId} in database, status: ${match.status}`);
         }
+
+        const matchData = {
+            match_id: match.match_id,
+            player1_id: match.player1_id,
+            player1_name: match.player1_name,
+            player2_id: match.player2_id,
+            player2_name: match.player2_name,
+            player1_score: match.player1_score || 0,
+            player2_score: match.player2_score || 0,
+            category: match.category,
+            status: match.status,
+            words: match.words || [],
+            started_at: match.started_at,
+            completed_at: match.completed_at,
+            winner_id: match.winner_id
+        };
+
+        console.log(`📋 Match ${matchId} data:`, {
+            status: matchData.status,
+            player1: matchData.player1_id,
+            player2: matchData.player2_id,
+            wordsCount: matchData.words?.length || 0
+        });
 
         res.json({
             success: true,
-            match: {
-                match_id: match.match_id,
-                player1_id: match.player1_id,
-                player1_name: match.player1_name,
-                player2_id: match.player2_id,
-                player2_name: match.player2_name,
-                player1_score: match.player1_score,
-                player2_score: match.player2_score,
-                category: match.category,
-                status: match.status,
-                words: match.words || [],
-                started_at: match.started_at,
-                completed_at: match.completed_at,
-                winner_id: match.winner_id
-            }
+            match: matchData
         });
 
     } catch (error) {
@@ -821,7 +850,37 @@ function calculateCompetitivePoints(match, isWinner) {
     return basePoints + scoreBonus;
 }
 
-// Existing APIs remain the same...
+// NEW: Function to automatically start matches when both players are ready
+function startCompetitiveMatch(matchId) {
+    const match = competitiveMatches.get(matchId);
+    if (!match || match.status !== 'matched') return;
+
+    console.log(`🚀 Starting competitive match ${matchId}`);
+    
+    match.status = 'active';
+    match.started_at = new Date();
+
+    // Update database
+    dbClient.query(
+        `UPDATE competitive_matches 
+         SET status = 'active', started_at = CURRENT_TIMESTAMP 
+         WHERE match_id = $1`,
+        [matchId]
+    ).catch(err => {
+        console.error('❌ Error updating match status:', err);
+    });
+
+    console.log(`🎮 Match ${matchId} is now active with players: ${match.player1_name} vs ${match.player2_name}`);
+}
+
+// NEW: Periodic check to start matches
+setInterval(() => {
+    for (const [matchId, match] of competitiveMatches) {
+        if (match.status === 'matched' && match.player1_id && match.player2_id) {
+            startCompetitiveMatch(matchId);
+        }
+    }
+}, 2000); // Check every 2 seconds
 
 // تابع ارسال نوتیفیکیشن
 async function sendNotificationToActiveUsers(message, excludeUserId = null) {
