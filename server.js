@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const { Telegraf } = require('telegraf');
 const { Client } = require('pg');
@@ -190,6 +189,17 @@ async function createTables() {
 }
 
 createTables();
+
+// NEW: Bot command handlers
+bot.start((ctx) => {
+    ctx.reply('خوش آمدید! برای شروع بازی، روی دکمه زیر کلیک کنید.', {
+        reply_markup: {
+            inline_keyboard: [
+                [{ text: 'باز کردن بازی', web_app: { url: WEB_APP_URL } }]
+            ]
+        }
+    });
+});
 
 // NEW: Competitive Mode APIs
 
@@ -1039,7 +1049,7 @@ async function endGameByTimeout(gameId) {
         clearGameConnections(gameId);
         playerGuesses.delete(gameId);
 
-        console.log(`🎯 Game ${gameId} ended. Winner: ${winnerId}`);
+        console.log(`🎯 Game ${gameId} ended by timeout`);
 
     } catch (error) {
         console.error('❌ Error ending game by timeout:', error);
