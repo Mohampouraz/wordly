@@ -3,11 +3,10 @@ const express = require('express');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
 const { Pool } = require('pg'); 
-// برای تولید کدهای منحصر به فرد بازی
 const crypto = require('crypto');
 
 const app = express();
-app.use(express.json()); // برای دریافت داده‌های JSON از سمت کلاینت (Web App)
+app.use(express.json());
 
 // ****************************
 // تنظیمات و کانفیگ محیطی ⚙️
@@ -27,17 +26,14 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// تابع برای تولید کد بازی 6 حرفی منحصر به فرد
 function generateGameCode() {
-    // تولید رشته 6 کاراکتری آلفانومریک بزرگ (برای خوانایی بهتر)
     return crypto.randomBytes(3).toString('hex').toUpperCase(); 
 }
 
-// تابع برای اتصال و ایجاد جداول (Users, Words, Games)
+// تابع برای اتصال و ایجاد جداول (بدون تغییر)
 async function setupDatabase() {
     try {
         const client = await pool.connect();
-        // 1. جدول Users (از قبل)
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(255) PRIMARY KEY,
@@ -46,17 +42,15 @@ async function setupDatabase() {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
-        // 2. جدول Words (کلمات بازی)
         await client.query(`
             CREATE TABLE IF NOT EXISTS words (
                 id SERIAL PRIMARY KEY,
                 word VARCHAR(50) UNIQUE NOT NULL,
                 category VARCHAR(50) NOT NULL,
-                difficulty VARCHAR(20) NOT NULL, -- آسان، متوسط، سخت
+                difficulty VARCHAR(20) NOT NULL,
                 creator_id VARCHAR(255)
             );
         `);
-        // 3. جدول Games (بازی‌های فعال و پایان یافته)
         await client.query(`
             CREATE TABLE IF NOT EXISTS games (
                 id SERIAL PRIMARY KEY,
@@ -74,7 +68,7 @@ async function setupDatabase() {
     }
 }
 
-// تابع برای دریافت امتیاز یا ثبت کاربر جدید (از مرحله قبل)
+// تابع برای دریافت امتیاز یا ثبت کاربر جدید (بدون تغییر)
 async function getUserScoreAndUpsert(userId, fullName) {
     const defaultScore = 1000;
     try {
@@ -124,7 +118,7 @@ bot.onText(/\/start/, (msg) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// مسیر API برای دریافت امتیاز کاربر (از مرحله قبل)
+// مسیر API برای دریافت امتیاز کاربر (بدون تغییر)
 app.get('/api/user/score', async (req, res) => {
     const userId = req.query.userId;
     const fullName = req.query.fullName || 'Unknown User';
@@ -138,7 +132,7 @@ app.get('/api/user/score', async (req, res) => {
     res.json({ success: true, userId: userId, score: score });
 });
 
-// مسیر API جدید برای ایجاد کلمه و بازی 
+// مسیر API جدید برای ایجاد کلمه و بازی (بدون تغییر)
 app.post('/api/game/create', async (req, res) => {
     const { word, category, difficulty, creatorId } = req.body;
     
@@ -147,7 +141,6 @@ app.post('/api/game/create', async (req, res) => {
     }
 
     try {
-        // 1. ذخیره کلمه جدید در جدول words (یا بروزرسانی اگر از قبل وجود دارد)
         let wordResult = await pool.query(
             `INSERT INTO words (word, category, difficulty, creator_id) 
              VALUES ($1, $2, $3, $4) 
@@ -158,7 +151,6 @@ app.post('/api/game/create', async (req, res) => {
         );
         const wordId = wordResult.rows[0].id;
 
-        // 2. ایجاد کد بازی منحصر به فرد
         let gameCode;
         let codeExists = true;
         while(codeExists) {
@@ -169,7 +161,6 @@ app.post('/api/game/create', async (req, res) => {
             }
         }
 
-        // 3. ثبت بازی جدید در جدول games
         await pool.query(
             `INSERT INTO games (game_code, word_id, creator_id, status) 
              VALUES ($1, $2, $3, 'waiting')`,
@@ -192,7 +183,7 @@ app.post('/api/game/create', async (req, res) => {
     }
 });
 
-// مسیر API جدید برای دریافت لیست بازی‌های فعال کاربر
+// مسیر API به‌روز شده برای دریافت لیست بازی‌های فعال کاربر و بازی‌های قابل پیوستن
 app.get('/api/games/active', async (req, res) => {
     const userId = req.query.userId;
     if (!userId) {
@@ -200,7 +191,9 @@ app.get('/api/games/active', async (req, res) => {
     }
 
     try {
-        // بازی‌هایی که کاربر سازنده آن‌ها است
+        // کوئری برای دریافت: 
+        // ۱. بازی‌های ساخته شده توسط کاربر (با هر وضعیتی)
+        // ۲. بازی‌های ساخته شده توسط دیگران که وضعیت 'waiting' دارند.
         const gamesResult = await pool.query(`
             SELECT 
                 g.game_code, 
@@ -208,11 +201,13 @@ app.get('/api/games/active', async (req, res) => {
                 g.created_at,
                 w.word,
                 w.difficulty,
-                u.full_name AS creator_name
+                u.full_name AS creator_name,
+                -- فیلد کلیدی برای تشخیص نقش کاربر
+                CASE WHEN g.creator_id = $1 THEN TRUE ELSE FALSE END AS is_creator
             FROM games g
             JOIN words w ON g.word_id = w.id
             JOIN users u ON g.creator_id = u.id
-            WHERE g.creator_id = $1
+            WHERE g.creator_id = $1 OR (g.status = 'waiting' AND g.creator_id != $1)
             ORDER BY g.created_at DESC
         `, [userId]);
 
