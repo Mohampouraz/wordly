@@ -4,18 +4,25 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// --- Middleware ---
 app.use(bodyParser.json());
+// سرویس‌دهی فایل‌های استاتیک از پوشه public که شامل index.html است.
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Mock Database (State Management) ---
+// کاربران: userId: { fullName, score }
 const users = {}; 
+// بازی‌ها: gameCode: { ...gameData }
 const games = {}; 
 
-// --- Utility Functions (توابع کمکی) ---
+// ------------------------------------------------------------------
+// --- Utility Functions (توابع کمکی) -------------------------------
+// ------------------------------------------------------------------
+
 function generateGameCode() {
     let code;
     do {
+        // تولید کد ۶ رقمی تصادفی
         code = Math.floor(100000 + Math.random() * 900000).toString();
     } while (games[code]);
     return code;
@@ -23,18 +30,24 @@ function generateGameCode() {
 
 function maskWord(actualWord, correctGuessedLetters) {
     if (!actualWord) return '';
+    // حرف را در صورت فاصله بودن به عنوان فاصله نگه می‌دارد، در غیر این صورت اگر حدس خورده بود حرف را، وگرنه "_" را نمایش می‌دهد.
     return actualWord.split('').map(char => {
         if (char === ' ') return ' ';
         return correctGuessedLetters.includes(char) ? char : '_';
     }).join(' ');
 }
 
+/**
+ * مدیریت ثبت امتیاز نهایی و پرچم‌گذاری بازی
+ */
 function finalizeGameScore(gameData, status) {
     if (gameData.scoreFinalized) return;
+
     const playerId = gameData.playerId;
     if (!playerId || !users[playerId]) return;
 
     let scoreChange = 0;
+    
     if (status === 'won') {
         scoreChange = 50; 
         if (gameData.difficulty === 'متوسط') scoreChange += 10;
@@ -43,13 +56,20 @@ function finalizeGameScore(gameData, status) {
         scoreChange = -10; 
     }
 
+    // به‌روزرسانی امتیاز کاربر
     users[playerId].score = Math.max(0, users[playerId].score + scoreChange);
     gameData.scoreFinalized = true; 
     gameData.finalScoreChange = scoreChange; 
 }
 
+
+/**
+ * بررسی وضعیت بازی (برنده/بازنده/درحال انجام) و فراخوانی ثبت امتیاز
+ */
 function checkGameStatus(gameData) {
+    // اگر قبلاً نهایی شده باشد، عملیات متوقف می‌شود
     if (gameData.status === 'won' || gameData.status === 'lost') return gameData.status;
+
     if (gameData.status !== 'active') return gameData.status;
 
     const wordWithoutSpaces = gameData.word.replace(/\s/g, '').split('');
@@ -66,6 +86,7 @@ function checkGameStatus(gameData) {
         newStatus = 'lost';
     }
     
+    // اگر وضعیت تغییر کرد و بازیکن مشخص بود، امتیاز را نهایی کن
     if (newStatus !== 'active' && gameData.playerId) {
         finalizeGameScore(gameData, newStatus);
         gameData.status = newStatus; 
@@ -74,14 +95,20 @@ function checkGameStatus(gameData) {
     return gameData.status;
 }
 
+/**
+ * بازیابی داده‌های بازی برای ارسال به فرانت‌اند
+ */
 function getGameDataForClient(gameData, userId) {
+    // وضعیت بازی را قبل از ارسال چک کنید
     gameData.status = checkGameStatus(gameData);
+
     let timeRemaining = gameData.totalTimeSeconds;
     if (gameData.status === 'active' && gameData.startTime) {
         const elapsedTime = (Date.now() - gameData.startTime) / 1000;
         timeRemaining = Math.max(0, gameData.totalTimeSeconds - Math.floor(elapsedTime));
     }
     
+    // نمایش کلمه نهایی در صورت اتمام بازی
     const displayWord = (gameData.status !== 'active') ? gameData.word.split('').join(' ') : maskWord(gameData.word, gameData.correctGuessedLetters);
 
     return {
@@ -105,18 +132,23 @@ function getGameDataForClient(gameData, userId) {
     };
 }
 
-// --- API Endpoints ---
 
-// **هندلر اصلی Web App / Start**
+// ------------------------------------------------------------------
+// --- API Endpoints ------------------------------------------------
+// ------------------------------------------------------------------
+
+// **۱. هندلر اصلی Web App / Start**
+// این مسیر زمانی فراخوانی می‌شود که تلگرام Web App URL شما را باز می‌کند.
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ۱. API مدیریت امتیاز کاربر (Profile Tab)
+// ۲. API مدیریت امتیاز کاربر (Profile Tab)
 app.get('/api/user/score', (req, res) => {
     const { userId, fullName } = req.query;
     if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
 
+    // ثبت یا بارگذاری کاربر
     if (!users[userId]) {
         users[userId] = { 
             fullName: decodeURIComponent(fullName) || `User ${userId}`, 
@@ -126,15 +158,15 @@ app.get('/api/user/score', (req, res) => {
     res.json({ success: true, score: users[userId].score, fullName: users[userId].fullName });
 });
 
-// ۲. API ایجاد بازی جدید (Create Game Tab)
+// ۳. API ایجاد بازی جدید (Create Game Tab)
 app.post('/api/game/create', (req, res) => {
     const { word, category, difficulty, creatorId } = req.body;
 
     if (!word || !category || !difficulty || !creatorId) {
         return res.status(400).json({ success: false, message: 'اطلاعات ناقص است.' });
     }
-
-    // **اعتبارسنجی تعداد حروف حذف شد.**
+    
+    // **اعتبارسنجی تعداد حروف حذف شده است.**
     
     // اعتبارسنجی فرمت: فقط حروف فارسی و فاصله
     if (!/^[\u0600-\u06FF\s]+$/.test(word)) {
@@ -166,7 +198,7 @@ app.post('/api/game/create', (req, res) => {
     res.json({ success: true, gameCode: gameCode, word: newGame.word, difficulty: newGame.difficulty });
 });
 
-// ۳. API پیوستن به بازی (Join Game)
+// ۴. API پیوستن به بازی (Join Game)
 app.post('/api/game/join', (req, res) => {
     const { gameCode, playerId } = req.body;
     const game = games[gameCode];
@@ -184,7 +216,7 @@ app.post('/api/game/join', (req, res) => {
     res.json({ success: true, message: 'شما با موفقیت به بازی پیوستید.', gameData: gameDataClient });
 });
 
-// ۴. API دریافت وضعیت بازی (Game View)
+// ۵. API دریافت وضعیت بازی (Game View)
 app.get('/api/game/status/:gameCode', (req, res) => {
     const { gameCode } = req.params;
     const { userId } = req.query;
@@ -197,7 +229,7 @@ app.get('/api/game/status/:gameCode', (req, res) => {
     res.json({ success: true, gameData: gameDataClient });
 });
 
-// ۵. API حدس زدن حرف (Guess Endpoint)
+// ۶. API حدس زدن حرف (Guess Endpoint)
 app.post('/api/game/guess', (req, res) => {
     const { gameCode, playerId, guess } = req.body;
     const game = games[gameCode];
@@ -210,6 +242,7 @@ app.post('/api/game/guess', (req, res) => {
     const actualWord = game.word;
     let isCorrect = false;
 
+    // بررسی حدس تکراری
     if (game.correctGuessedLetters.includes(normalizedGuess) || game.incorrectGuessedLetters.includes(normalizedGuess)) {
         return res.json({ success: false, message: 'این حرف قبلاً حدس زده شده است.', isCorrect: false, gameData: getGameDataForClient(game, playerId) });
     }
@@ -230,12 +263,13 @@ app.post('/api/game/guess', (req, res) => {
     res.json({ success: true, message, isCorrect, gameData: getGameDataForClient(game, playerId) });
 });
 
-// ۶. API لیست بازی‌های فعال (Active Games Tab)
+// ۷. API لیست بازی‌های فعال (Active Games Tab)
 app.get('/api/games/active', (req, res) => {
     const { userId } = req.query;
 
     const activeGames = Object.values(games)
         .filter(game => 
+            // نمایش بازی‌هایی که کاربر سازنده/بازیکن است، یا منتظر بازیکن هستند و کاربر سازنده نیست.
             (game.creatorId === userId) ||
             (game.playerId === userId) ||
             (game.status === 'waiting' && game.creatorId !== userId)
@@ -247,14 +281,17 @@ app.get('/api/games/active', (req, res) => {
             creator_name: users[game.creatorId] ? users[game.creatorId].fullName : 'ناشناس',
             created_at: game.createdAt,
             is_creator: game.creatorId === userId,
-            word: game.word 
+            word: game.word // فقط برای نمایش وضعیت سازنده
         }));
 
     res.json({ success: true, games: activeGames });
 });
 
 
+// ------------------------------------------------------------------
 // --- Server Start ---
+// ------------------------------------------------------------------
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`💡 Web App (index.html) is served from the root path (/).`);
 });
