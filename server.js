@@ -14,9 +14,6 @@ const games = {}; // gameCode: { ...gameData }
 
 // --- Utility Functions ---
 
-/**
- * ایجاد یک کد بازی تصادفی ۶ رقمی
- */
 function generateGameCode() {
     let code;
     do {
@@ -25,39 +22,72 @@ function generateGameCode() {
     return code;
 }
 
-/**
- * ماسک کردن کلمه برای نمایش در فرانت‌اند
- */
 function maskWord(actualWord, correctGuessedLetters) {
     if (!actualWord) return '';
     return actualWord.split('').map(char => {
         if (char === ' ') return ' ';
-        // حرف را به صورت جداگانه برمی‌گرداند.
         return correctGuessedLetters.includes(char) ? char : '_';
     }).join(' ');
 }
 
 /**
- * بررسی وضعیت بازی (برنده/بازنده/درحال انجام)
+ * مدیریت ثبت امتیاز نهایی و پرچم‌گذاری بازی به عنوان نهایی
+ */
+function finalizeGameScore(gameData, status) {
+    // جلوگیری از ثبت امتیاز مجدد
+    if (gameData.scoreFinalized) return;
+
+    const playerId = gameData.playerId;
+    if (!playerId || !users[playerId]) return;
+
+    let scoreChange = 0;
+    
+    if (status === 'won') {
+        scoreChange = 50; 
+        // امتیاز بیشتر برای کلمات سخت‌تر
+        if (gameData.difficulty === 'متوسط') scoreChange += 10;
+        if (gameData.difficulty === 'سخت') scoreChange += 20;
+    } else if (status === 'lost') {
+        scoreChange = -10; // کسر امتیاز برای باخت
+    }
+
+    users[playerId].score = Math.max(0, users[playerId].score + scoreChange);
+    gameData.scoreFinalized = true; // علامت‌گذاری به عنوان ثبت‌شده
+    gameData.finalScoreChange = scoreChange; // ذخیره تغییرات امتیاز برای نمایش
+    
+    console.log(`Game ${gameData.gameCode} finished. Player ${playerId} score change: ${scoreChange}. New score: ${users[playerId].score}`);
+}
+
+
+/**
+ * بررسی وضعیت بازی (برنده/بازنده/درحال انجام) و فراخوانی ثبت امتیاز
  */
 function checkGameStatus(gameData) {
+    if (gameData.status === 'won' || gameData.status === 'lost') return gameData.status;
+
     if (gameData.status !== 'active') return gameData.status;
 
-    // کلمه ماسک شده را بدون فاصله بین حروف بررسی می‌کنیم
     const wordWithoutSpaces = gameData.word.replace(/\s/g, '').split('');
     const isWordGuessed = wordWithoutSpaces.every(char => gameData.correctGuessedLetters.includes(char));
 
-    const timeExpired = (Date.now() - gameData.startTime) / 1000 > gameData.totalTimeSeconds;
+    const elapsedTime = (Date.now() - gameData.startTime) / 1000;
+    const timeExpired = elapsedTime > gameData.totalTimeSeconds;
+    
+    let newStatus = 'active';
 
     if (isWordGuessed) {
-        return 'won';
+        newStatus = 'won';
+    } else if (gameData.attemptsLeft <= 0 || timeExpired) {
+        newStatus = 'lost';
+    }
+    
+    // **ثبت امتیاز نهایی در صورت اتمام بازی**
+    if (newStatus !== 'active' && gameData.playerId) {
+        finalizeGameScore(gameData, newStatus);
+        gameData.status = newStatus; // به‌روزرسانی وضعیت در شیء بازی
     }
 
-    if (gameData.attemptsLeft <= 0 || timeExpired) {
-        return 'lost';
-    }
-
-    return 'active';
+    return gameData.status;
 }
 
 /**
@@ -67,23 +97,17 @@ function getGameDataForClient(gameData, userId) {
     const isCreator = gameData.creatorId === userId;
     const isPlayer = gameData.playerId === userId;
     
-    // ۱. به‌روزرسانی وضعیت نهایی
     gameData.status = checkGameStatus(gameData);
 
-    // ۲. محاسبه زمان باقی مانده
     let timeRemaining = gameData.totalTimeSeconds;
-    if (gameData.status === 'active') {
+    if (gameData.status === 'active' && gameData.startTime) {
         const elapsedTime = (Date.now() - gameData.startTime) / 1000;
         timeRemaining = Math.max(0, gameData.totalTimeSeconds - Math.floor(elapsedTime));
     }
     
-    // ۳. آماده‌سازی کلمه برای نمایش
     const wordToDisplay = maskWord(gameData.word, gameData.correctGuessedLetters);
     const finalWordDisplay = (gameData.status !== 'active') ? gameData.word.split('').join(' ') : wordToDisplay;
 
-    // ۴. تعیین کلمه نمایش داده شده:
-    // - اگر بازی فعال است: همیشه کلمه ماسک شده را نشان می‌دهد تا پیشرفت حدس مشخص باشد.
-    // - اگر بازی تمام شده: کلمه کامل را نشان می‌دهد.
     const displayWord = (gameData.status !== 'active') ? finalWordDisplay : wordToDisplay;
 
     return {
@@ -96,7 +120,6 @@ function getGameDataForClient(gameData, userId) {
         difficulty: gameData.difficulty,
         category: gameData.category,
         creatorName: users[gameData.creatorId] ? users[gameData.creatorId].fullName : 'ناشناس',
-        // **رفع باگ نمایش نام بازیکن برای سازنده**
         playerName: gameData.playerId ? (users[gameData.playerId] ? users[gameData.playerId].fullName : 'ناشناس') : null,
         attemptsLeft: gameData.attemptsLeft,
         correctGuessedLetters: gameData.correctGuessedLetters,
@@ -106,6 +129,8 @@ function getGameDataForClient(gameData, userId) {
         totalTimeSeconds: gameData.totalTimeSeconds,
         timeRemainingSeconds: timeRemaining,
         createdAt: gameData.createdAt,
+        // **افزودن تغییرات امتیاز برای نمایش در پایان بازی**
+        finalScoreChange: gameData.finalScoreChange || 0,
     };
 }
 
@@ -122,11 +147,11 @@ app.get('/api/user/score', (req, res) => {
     if (!users[userId]) {
         users[userId] = { 
             fullName: decodeURIComponent(fullName) || `User ${userId}`, 
-            score: 0 // **اصلاح: امتیاز پایه صفر شد.**
+            score: 0 
         };
     }
 
-    res.json({ success: true, score: users[userId].score });
+    res.json({ success: true, score: users[userId].score, fullName: users[userId].fullName });
 });
 
 // ۲. API ایجاد بازی جدید (Create Game Tab)
@@ -137,14 +162,13 @@ app.post('/api/game/create', (req, res) => {
         return res.status(400).json({ success: false, message: 'اطلاعات ناقص است.' });
     }
     
-    // **حذف شرط طول کلمه بر اساس سطح دشواری. فقط حداقل طول ۵ حرف اعمال می‌شود.**
     if (word.trim().replace(/\s/g, '').length < 5) {
          return res.status(400).json({ success: false, message: 'کلمه باید حداقل ۵ حرف (بدون احتساب فاصله) داشته باشد.' });
     }
 
     const gameCode = generateGameCode();
     const attemptsLimit = 10;
-    const totalTime = 120; 
+    const totalTime = 120; // 2 minutes
 
     const newGame = {
         gameCode,
@@ -162,6 +186,8 @@ app.post('/api/game/create', (req, res) => {
         correctGuessedLetters: [],
         incorrectGuessedLetters: [],
         createdAt: new Date().toISOString(),
+        scoreFinalized: false, // **پرچم جدید برای جلوگیری از ثبت امتیاز تکراری**
+        finalScoreChange: 0,
     };
 
     games[gameCode] = newGame;
@@ -187,6 +213,7 @@ app.post('/api/game/join', (req, res) => {
     game.playerId = playerId;
     game.status = 'active';
     game.startTime = Date.now(); 
+    game.scoreFinalized = false; // Reset just in case (though shouldn't be set here)
 
     const gameDataClient = getGameDataForClient(game, playerId);
     res.json({ success: true, message: 'شما با موفقیت به بازی پیوستید.', gameData: gameDataClient });
@@ -217,10 +244,6 @@ app.post('/api/game/guess', (req, res) => {
     if (!game || game.playerId !== playerId || game.status !== 'active') {
         return res.status(400).json({ success: false, message: 'بازی فعال نیست یا شما بازیکن نیستید.' });
     }
-    if (game.attemptsLeft <= 0) {
-        game.status = 'lost';
-        return res.json({ success: false, message: 'فرصت حدس شما تمام شده است.', gameData: getGameDataForClient(game, playerId) });
-    }
 
     const normalizedGuess = guess.toLowerCase();
     const actualWord = game.word;
@@ -239,15 +262,12 @@ app.post('/api/game/guess', (req, res) => {
         isCorrect = false;
     }
 
-    game.status = checkGameStatus(game);
+    // **وضعیت را دوباره بررسی کرده و امتیاز را ثبت می‌کنیم**
+    const oldStatus = game.status;
+    const newStatus = checkGameStatus(game); // این تابع، امتیاز را ثبت و game.status را به‌روزرسانی می‌کند.
+
     const message = isCorrect ? 'حدس شما صحیح است!' : 'متأسفانه حرف غلط است.';
     
-    if (game.status === 'won') {
-        if (users[playerId]) users[playerId].score += 50; 
-    } else if (game.status === 'lost') {
-        if (users[playerId]) users[playerId].score -= 10;
-    }
-
     res.json({ success: true, message, isCorrect, gameData: getGameDataForClient(game, playerId) });
 });
 
