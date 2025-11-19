@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: 'Vazirmatn', sans-serif;
-            font-weight: 500; /* وزن پیش‌فرض فونت */
+            font-weight: 500;
         }
         .tab-active {
             @apply bg-white text-purple-700 border-b-4 border-purple-700 font-extrabold shadow-inner;
@@ -23,9 +23,24 @@
         .input-style {
             @apply mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 p-3 transition duration-150;
         }
-        /* کلاس برای نمایش حروف حدس زده شده */
-        .guessed-letter-item {
-            @apply inline-block px-3 py-1 m-1 bg-gray-200 text-gray-800 rounded-full font-bold text-lg shadow-sm;
+        /* کلاس‌های جدید برای انیمیشن و رنگ‌بندی حروف */
+        .correct-letter-display {
+            /* استایل برای حروف صحیح در نمایش کلمه */
+            @apply text-green-500 font-extrabold transition-all duration-300 ease-out inline-block;
+            animation: appear 0.5s ease-out; /* انیمیشن ظاهر شدن */
+        }
+        @keyframes appear {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .guessed-letter-correct {
+            @apply inline-block px-3 py-1 m-1 bg-green-200 text-green-800 rounded-full font-bold text-lg shadow-sm;
+        }
+        .guessed-letter-incorrect {
+            @apply inline-block px-3 py-1 m-1 bg-red-200 text-red-800 rounded-full font-bold text-lg shadow-sm;
+        }
+        .blank-letter {
+            @apply text-gray-400;
         }
     </style>
 </head>
@@ -147,7 +162,7 @@
             <div class="grid grid-cols-2 gap-4 mb-6 text-center border-b pb-4">
                 <div class="bg-purple-50 p-3 rounded-lg shadow-inner">
                     <p class="text-sm text-gray-600">زمان باقیمانده:</p>
-                    <p id="modal-timer" class="text-4xl font-mono font-bold text-red-600 mt-1"></p>
+                    <p id="modal-timer" class="text-4xl font-mono font-bold mt-1"></p>
                 </div>
                 <div class="bg-purple-50 p-3 rounded-lg shadow-inner">
                     <p class="text-sm text-gray-600">فرصت حدس:</p>
@@ -166,8 +181,14 @@
 
             <div id="modal-word-display" class="text-center text-5xl font-mono tracking-widest mb-6 font-extrabold text-gray-800">
                 </div>
+            
+            <div id="modal-creator-status" class="hidden p-4 rounded-xl bg-blue-50 border border-blue-300 mt-4 text-center">
+                <p class="font-bold text-blue-800"><i class="fa-solid fa-eye ml-2"></i> شما سازنده این بازی هستید.</p>
+                <p class="text-sm text-blue-700 mt-1">بازی توسط <span id="modal-status-player-name" class="font-extrabold">--</span> در حال انجام است. شما نمی‌توانید حدس بزنید، اما می‌توانید وضعیت را مشاهده کنید.</p>
+            </div>
 
-            <div id="modal-player-actions" class="border p-4 rounded-xl shadow-inner bg-white">
+
+            <div id="modal-player-actions" class="border p-4 rounded-xl shadow-inner bg-white mt-4">
                 <form id="guess-form" class="flex gap-3 items-center mb-3">
                     <input type="text" id="guess-input" maxlength="1" required placeholder="حدس یک حرف" class="input-style p-3 text-center text-2xl font-bold flex-grow max-w-[100px]" style="caret-color: transparent;" oninput="this.value = this.value.replace(/[^ء-ی]/g, '')">
                     <button type="submit" class="flex-grow bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition duration-150">
@@ -178,18 +199,22 @@
                     </button>
                 </form>
                 <p id="guess-message" class="text-center font-semibold text-sm"></p>
-                
-                <div class="mt-4 border-t pt-3">
-                    <p class="text-sm text-gray-600 mb-2">حروف حدس زده شده:</p>
-                    <div id="guessed-letters-history">
-                        <span class="text-gray-400">حرفی حدس زده نشده است.</span>
-                    </div>
-                </div>
             </div>
             
-            <div id="modal-creator-status" class="hidden p-4 rounded-xl bg-blue-50 border border-blue-300 mt-4 text-center">
-                <p class="font-bold text-blue-800"><i class="fa-solid fa-eye ml-2"></i> شما سازنده این بازی هستید.</p>
-                <p class="text-sm text-blue-700 mt-1">بازی توسط <span id="modal-status-player-name" class="font-extrabold">--</span> در حال انجام است. شما نمی‌توانید حدس بزنید، اما می‌توانید وضعیت را مشاهده کنید.</p>
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                <div class="p-3 rounded-xl shadow-inner bg-green-50 border border-green-300">
+                    <p class="text-sm font-bold text-green-800 mb-2"><i class="fa-solid fa-check-circle ml-2"></i> حروف درست حدس زده شده:</p>
+                    <div id="correct-letters-history">
+                        <span class="text-gray-400 text-sm">حرفی ثبت نشده است.</span>
+                    </div>
+                </div>
+                
+                <div class="p-3 rounded-xl shadow-inner bg-red-50 border border-red-300">
+                    <p class="text-sm font-bold text-red-800 mb-2"><i class="fa-solid fa-times-circle ml-2"></i> حروف غلط حدس زده شده:</p>
+                    <div id="incorrect-letters-history">
+                        <span class="text-gray-400 text-sm">حرفی ثبت نشده است.</span>
+                    </div>
+                </div>
             </div>
             
         </div>
@@ -220,30 +245,43 @@
     <script>
         let GLOBAL_USER_ID = null;
         let GLOBAL_FULL_NAME = 'کاربر میهمان';
-        let currentInterval = null; // برای مدیریت تایمر بازی
-        let currentGameCode = null; // کد بازی جاری
+        let currentInterval = null;
+        let currentGameCode = null;
+        
+        // ساختار شبیه‌سازی داده‌ها از سرور (برای نمایش در فرانت‌اند)
+        let mockGameData = {
+            gameCode: '',
+            isCreator: false,
+            isPlayer: false,
+            status: 'waiting',
+            wordLength: 0,
+            wordToDisplay: '', 
+            difficulty: '',
+            category: '',
+            creatorName: '',
+            playerName: '',
+            attemptsLeft: 0,
+            correctGuessedLetters: [],
+            incorrectGuessedLetters: [],
+            hintsUsed: 0,
+            hintCost: 0,
+            totalTimeSeconds: 0,
+            timeRemainingSeconds: 0
+        };
 
-        // توابع کمکی
+
+        // --- توابع کمکی ---
         function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('tab-active');
-            });
-
+            document.querySelectorAll('.tab-content').forEach(content => { content.classList.add('hidden'); });
+            document.querySelectorAll('.tab-button').forEach(button => { button.classList.remove('tab-active'); });
             document.getElementById(`content-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-${tabId}`).classList.add('tab-active');
-
-            if (tabId === 'active') {
-                loadActiveGames();
-            }
+            if (tabId === 'active') { loadActiveGames(); }
         }
 
         function updateDateTime() {
             const now = new Date();
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            // استفاده از RegExp برای حذف کاراکترهای نامرئی
             const currentTime = now.toLocaleTimeString('fa-IR', timeOptions).replace(/[\u200E\u200F]/g, ''); 
             document.getElementById('current-time').textContent = currentTime;
 
@@ -270,8 +308,10 @@
             const remainingSeconds = seconds % 60;
             return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
         }
-
-
+        
+        
+        // --- توابع اصلی مدیریت UI/Data ---
+        
         function loadUserDataAndScore() {
             try {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
@@ -296,6 +336,7 @@
                                     document.getElementById('user-score').textContent = localizedScore;
                                     document.getElementById('user-level').textContent = level;
                                     
+                                    // منطق رنگ‌بندی سطح (همانند قبل)
                                     document.getElementById('user-level').classList.remove('bg-green-500', 'bg-yellow-500', 'bg-blue-500', 'bg-gray-500');
                                     if (score >= 1500) {
                                         document.getElementById('user-level').classList.add('bg-yellow-500');
@@ -313,19 +354,7 @@
                                 document.getElementById('user-score').textContent = 'خطا در ارتباط';
                             });
 
-                    } else {
-                        document.getElementById('user-name').textContent = 'بازیکن موقت';
-                        document.getElementById('user-id').textContent = 'N/A';
-                        document.getElementById('user-score').textContent = '1000'; 
-                        document.getElementById('user-level').textContent = 'بازیکن میهمان';
-                        document.getElementById('modal-name').value = 'بازیکن موقت';
-                    }
-                } else {
-                    document.getElementById('user-name').textContent = 'بازیکن آزمایشی';
-                    document.getElementById('user-id').textContent = '000000000';
-                    document.getElementById('user-score').textContent = '1000';
-                    document.getElementById('user-level').textContent = 'بازیکن میهمان';
-                    document.getElementById('modal-name').value = 'بازیکن آزمایشی';
+                    } 
                 }
             } catch (e) {
                 console.error("Critical error in loadTelegramUserData:", e);
@@ -350,7 +379,6 @@
             const category = form['category'].value.trim();
             const difficulty = form['difficulty'].value;
 
-            // اعتبارسنجی فارسی بودن و حداقل طول
             if (word.length < 5 || !/^[\u0600-\u06FF]+$/.test(word)) {
                 document.getElementById('word-error').classList.remove('hidden');
                 messageElement.textContent = '';
@@ -395,24 +423,20 @@
             let body = null;
             let successMessage = '';
 
-            // اگر کاربر سازنده است، همیشه وضعیت را مشاهده می‌کند
             if (isCreator) {
                 endpoint = `/api/game/status/${gameCode}?userId=${GLOBAL_USER_ID}`;
                 successMessage = 'مشاهده وضعیت بازی';
                 method = 'GET';
             } else if (status === 'waiting') {
-                // بازیکن برای شروع بازی می‌پیوندد
                 endpoint = '/api/game/join';
                 method = 'POST';
                 body = JSON.stringify({ gameCode, playerId: GLOBAL_USER_ID });
                 successMessage = 'شما به بازی پیوستید!';
             } else if (status === 'active') {
-                 // بازیکن فعال به مشاهده بازی می‌آید
                 endpoint = `/api/game/status/${gameCode}?userId=${GLOBAL_USER_ID}`;
                 successMessage = 'مشاهده وضعیت بازی';
                 method = 'GET';
             } else {
-                // بازی تمام شده
                 endpoint = `/api/game/status/${gameCode}?userId=${GLOBAL_USER_ID}`;
                 successMessage = 'مشاهده نتیجه بازی';
                 method = 'GET';
@@ -427,7 +451,6 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // اگر Join موفق بود (POST)، اطلاعات بازی در فیلد gameData نیست، مستقیماً از دیتا استفاده می‌کنیم
                     const gameData = data.gameData || data; 
                     
                     showGameView(gameData);
@@ -459,8 +482,10 @@
             }
         }
 
-        // تابع به‌روزرسانی نمای بازی (Modal)
+        // تابع به‌روزرسانی نمای بازی (Modal) با رندر رنگی و انیمیشنی
         function showGameView(gameData) {
+            Object.assign(mockGameData, gameData);
+            
             const isCreator = gameData.isCreator;
             const isPlayer = gameData.isPlayer;
             const isActive = gameData.status === 'active';
@@ -470,59 +495,61 @@
             document.getElementById('modal-word-category').innerHTML = `<i class="fa-solid fa-tag ml-1"></i> ${gameData.category}`;
             document.getElementById('modal-word-difficulty').innerHTML = `<i class="fa-solid fa-star ml-1"></i> ${gameData.difficulty}`;
             document.getElementById('modal-word-length').textContent = `طول: ${gameData.wordLength} حرف`;
-            
-            // نمایش کلمه (فاصله بین حروف برای زیبایی)
-            document.getElementById('modal-word-display').textContent = gameData.wordToDisplay.split('').join(' ');
-            
-            // نمایش فرصت‌ها و راهنما
             document.getElementById('modal-attempts-left').textContent = gameData.attemptsLeft;
             document.getElementById('hint-cost').textContent = gameData.hintCost;
             
-            // به‌روزرسانی تاریخچه حدس‌ها
-            const historyEl = document.getElementById('guessed-letters-history');
-            historyEl.innerHTML = gameData.guessedLetters.length > 0
-                ? gameData.guessedLetters.map(l => `<span class="guessed-letter-item">${l}</span>`).join('')
-                : `<span class="text-gray-400">حرفی حدس زده نشده است.</span>`;
+            // ** ۱. نمایش کلمه (رندر با رنگ سبز و انیمیشن) **
+            const wordDisplayEl = document.getElementById('modal-word-display');
+            wordDisplayEl.innerHTML = (gameData.wordToDisplay || "").split(' ').map(char => {
+                if (char === '_') {
+                    return `<span class="blank-letter mx-1">_</span>`;
+                } else if (char.length === 1) {
+                    // حروف ظاهر شده (حدس صحیح) را با رنگ سبز و انیمیشن نمایش می‌دهد
+                    return `<span class="correct-letter-display mx-1">${char}</span>`;
+                }
+                return char;
+            }).join(' ');
 
-            // منطق نمایش دکمه‌ها و فرم
+            // ** ۲. به‌روزرسانی تاریخچه حدس‌های درست (سبز) **
+            const correctHistoryEl = document.getElementById('correct-letters-history');
+            correctHistoryEl.innerHTML = gameData.correctGuessedLetters && gameData.correctGuessedLetters.length > 0
+                ? gameData.correctGuessedLetters.map(l => `<span class="guessed-letter-correct">${l}</span>`).join('')
+                : `<span class="text-gray-400 text-sm">حرفی ثبت نشده است.</span>`;
+            
+            // ** ۳. به‌روزرسانی تاریخچه حدس‌های غلط (قرمز) **
+            const incorrectHistoryEl = document.getElementById('incorrect-letters-history');
+            incorrectHistoryEl.innerHTML = gameData.incorrectGuessedLetters && gameData.incorrectGuessedLetters.length > 0
+                ? gameData.incorrectGuessedLetters.map(l => `<span class="guessed-letter-incorrect">${l}</span>`).join('')
+                : `<span class="text-gray-400 text-sm">حرفی ثبت نشده است.</span>`;
+
+
+            // منطق نمایش دکمه‌ها و فرم (Player/Creator)
             const playerActionsEl = document.getElementById('modal-player-actions');
             const creatorStatusEl = document.getElementById('modal-creator-status');
-            const guessInput = document.getElementById('guess-input');
-            const hintButton = document.getElementById('hint-button');
 
             if (isPlayer && isActive) {
-                // اگر بازی‌کننده است و بازی فعال است
                 playerActionsEl.classList.remove('hidden');
                 creatorStatusEl.classList.add('hidden');
-                guessInput.disabled = false;
-                hintButton.disabled = false;
             } else if (isCreator || isFinished) {
-                // اگر سازنده است یا بازی تمام شده است (فقط مشاهده)
                 playerActionsEl.classList.add('hidden');
                 creatorStatusEl.classList.remove('hidden');
                 document.getElementById('modal-status-player-name').textContent = gameData.playerName || 'هنوز کسی نپیوسته است';
             } else {
-                 // حالت‌های دیگر (مثلاً بازی‌کننده است اما بازی تمام شده)
-                playerActionsEl.classList.add('hidden');
-                creatorStatusEl.classList.add('hidden');
+                 playerActionsEl.classList.add('hidden');
+                 creatorStatusEl.classList.add('hidden');
             }
             
             // مدیریت پیام وضعیت نهایی
             const msgEl = document.getElementById('guess-message');
-            if (gameData.status === 'won') {
-                msgEl.textContent = 'تبریک! کلمه حدس زده شد.';
-                msgEl.className = 'mt-4 text-center font-extrabold text-green-600 text-lg';
-            } else if (gameData.status === 'lost') {
-                msgEl.textContent = 'متأسفانه باختید. فرصت‌ها یا زمان تمام شد.';
-                msgEl.className = 'mt-4 text-center font-extrabold text-red-600 text-lg';
-            } else if (isFinished) {
-                msgEl.textContent = `بازی به اتمام رسید (وضعیت: ${gameData.status})`;
-                msgEl.className = 'mt-4 text-center font-extrabold text-gray-600 text-lg';
+            if (isFinished) {
+                 msgEl.textContent = gameData.status === 'won' ? 'تبریک! کلمه حدس زده شد.' : 'متأسفانه باختید. فرصت‌ها یا زمان تمام شد.';
+                 msgEl.className = `mt-4 text-center font-extrabold text-${gameData.status === 'won' ? 'green' : 'red'}-600 text-lg`;
             } else if (!isActive) {
                 msgEl.textContent = 'منتظر پیوستن بازیکن...';
                 msgEl.className = 'mt-4 text-center font-semibold text-gray-500';
+            } else {
+                msgEl.textContent = ''; 
             }
-
 
             // مدیریت تایمر
             if (currentInterval) clearInterval(currentInterval);
@@ -530,8 +557,8 @@
             if (isActive) {
                 startTimer(gameData.timeRemainingSeconds, gameData.totalTimeSeconds);
             } else {
-                // نمایش زمان کل یا پیام پایان
-                document.getElementById('modal-timer').textContent = isFinished ? 'پایان' : formatTime(gameData.totalTimeSeconds);
+                const timerEl = document.getElementById('modal-timer');
+                timerEl.textContent = isFinished ? 'پایان' : formatTime(gameData.totalTimeSeconds);
                 timerEl.classList.remove('animate-pulse', 'text-red-600', 'text-yellow-600', 'text-green-600');
             }
         }
@@ -541,7 +568,7 @@
             if (currentInterval) clearInterval(currentInterval);
             currentInterval = null;
             currentGameCode = null;
-            loadActiveGames(); // برای اطمینان از به‌روزرسانی وضعیت در صفحه اصلی
+            loadActiveGames(); 
         }
 
         // تابع مدیریت Real-time Timer
@@ -552,14 +579,13 @@
 
             timerEl.classList.remove('animate-pulse', 'text-red-600', 'text-yellow-600', 'text-green-600');
             
-            // تعیین رنگ اولیه
             if (seconds > totalTime * 0.5) {
                 timerEl.classList.add('text-green-600');
             } else if (seconds > totalTime * 0.2) {
                 timerEl.classList.add('text-yellow-600');
             } else {
                 timerEl.classList.add('text-red-600');
-                timerEl.classList.add('animate-pulse'); // چشمک زدن در زمان کم
+                timerEl.classList.add('animate-pulse');
             }
 
             timerEl.textContent = formatTime(seconds);
@@ -568,7 +594,6 @@
                 seconds--;
                 timerEl.textContent = formatTime(seconds);
 
-                // تغییر رنگ بر اساس زمان
                 if (seconds === Math.round(totalTime * 0.5)) {
                     timerEl.classList.remove('text-green-600');
                     timerEl.classList.add('text-yellow-600');
@@ -581,10 +606,8 @@
                 if (seconds <= 0) {
                     clearInterval(currentInterval);
                     timerEl.textContent = "زمان تمام شد!";
-                    // TODO: فراخوانی API برای اتمام بازی و ثبت باخت (در server.js تا حدودی مدیریت شد)
                 }
                 
-                // در فواصل منظم (مثلاً هر 10 ثانیه) وضعیت را از سرور می‌گیریم تا به‌روز باشد
                 if (seconds > 0 && seconds % 10 === 0 && currentGameCode) {
                     fetchGameStatus(currentGameCode);
                 }
@@ -611,7 +634,6 @@
                         let statusColor, statusText, buttonText, buttonClass, details, action;
                         
                         if (game.is_creator) {
-                            // منطق برای سازنده
                             statusColor = game.status === 'waiting' ? 'border-yellow-500' : 'border-purple-500';
                             statusText = game.status === 'waiting' ? 'منتظر بازیکن' : game.status === 'active' ? 'درحال بازی' : 'پایان یافته';
                             buttonText = game.status === 'waiting' ? `دعوت (کد: ${game.game_code})` : 'مشاهده وضعیت';
@@ -619,7 +641,6 @@
                             details = `<span class="font-bold text-gray-800">[${game.difficulty}] کلمه: ${game.word.split('').join(' ')}</span>`;
                             action = `joinGameOrView('${game.game_code}', true, '${game.status}')`;
                         } else {
-                            // منطق برای بازیکن دیگر
                             statusColor = game.status === 'waiting' ? 'border-green-500' : 'border-gray-500';
                             statusText = game.status === 'waiting' ? `قابل پیوستن (سازنده: ${game.creator_name})` : `درحال انجام (سازنده: ${game.creator_name})`;
                             buttonText = game.status === 'waiting' ? 'پیوستن به بازی' : 'مشاهده بازی';
@@ -650,15 +671,51 @@
         }
         
         // Listener برای فرم حدس
-        document.getElementById('guess-form').addEventListener('submit', (e) => {
+        document.getElementById('guess-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            alert("قابلیت حدس هنوز در سمت سرور پیاده‌سازی نشده است. لطفا منتظر به‌روزرسانی‌های بعدی باشید!");
-            document.getElementById('guess-input').value = '';
+            const guessInput = document.getElementById('guess-input');
+            const guess = guessInput.value.trim().toLowerCase();
+            guessInput.value = '';
+
+            if (guess.length !== 1 || !/^[\u0600-\u06FF]+$/.test(guess)) {
+                document.getElementById('guess-message').textContent = 'لطفا فقط یک حرف فارسی وارد کنید.';
+                document.getElementById('guess-message').className = 'mt-4 text-center font-bold text-red-600';
+                return;
+            }
+            if (!mockGameData.isPlayer || mockGameData.status !== 'active') return;
+
+            try {
+                const response = await fetch('/api/game/guess', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        gameCode: mockGameData.gameCode,
+                        playerId: GLOBAL_USER_ID,
+                        guess: guess
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showGameView(data.gameData);
+                    document.getElementById('guess-message').textContent = data.message;
+                    document.getElementById('guess-message').className = data.isCorrect
+                        ? 'mt-4 text-center font-bold text-green-600'
+                        : 'mt-4 text-center font-bold text-red-600';
+                } else {
+                    document.getElementById('guess-message').textContent = data.message || 'خطا در حدس.';
+                    document.getElementById('guess-message').className = 'mt-4 text-center font-bold text-red-600';
+                }
+            } catch (error) {
+                 document.getElementById('guess-message').textContent = 'خطای شبکه در ارسال حدس.';
+                 document.getElementById('guess-message').className = 'mt-4 text-center font-bold text-red-600';
+                 console.error("Error guessing:", error);
+            }
         });
         
         // Listener برای دکمه راهنما
         document.getElementById('hint-button').addEventListener('click', () => {
-             alert("قابلیت راهنما هنوز در سمت سرور پیاده‌سازی نشده است. لطفا منتظر به‌روزرسانی‌های بعدی باشید!");
+             alert("قابلیت راهنما هنوز در سمت سرور پیاده‌سازی نشده است.");
         });
 
 
