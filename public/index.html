@@ -3,847 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>بازی حدس کلمه دو نفره</title>
-    <!-- بارگذاری Tailwind CSS -->
+    <title>بازی کلمات - ربات تلگرام</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- تنظیمات سفارشی Tailwind -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#4f46e5',
-                        'secondary': '#10b981',
-                        'background': '#f9fafb',
-                        'card': '#ffffff',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Tahoma', 'sans-serif'],
-                    },
-                }
-            }
-        }
-    </script>
-    <!-- استایل‌های سفارشی -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap');
-        body { font-family: 'Vazirmatn', sans-serif; background-color: #f0f4f8; }
-        .game-mask {
-            font-size: 2.5rem;
-            letter-spacing: 0.5rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 80px;
-            font-weight: 700;
-            color: #1e293b;
-            padding: 1rem;
-            border-radius: 0.75rem;
-            background-color: #e2e8f0;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
+        /* تنظیم فونت‌های فارسی برای خوانایی بهتر */
+        body {
+            font-family: Tahoma, 'IRANSans', Arial, sans-serif;
         }
-        .correct-guess {
-            animation: bounce-in 0.5s ease;
-            background-color: #d1fae5;
-        }
-        .wrong-guess {
-            animation: shake 0.5s;
-            background-color: #fee2e2;
-        }
-        @keyframes bounce-in {
-            0% { transform: scale(0.5); opacity: 0; }
-            70% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(1); }
-        }
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-5px); }
-            40%, 80% { transform: translateX(5px); }
-        }
-        .hover-effect {
-            transition: all 0.3s ease;
-        }
-        .hover-effect:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        /* کلاس برای فعال کردن زبانه (Tab) */
+        .tab-active {
+            @apply bg-white text-blue-600 border-b-2 border-blue-600;
         }
     </style>
-    <!-- بارگذاری Firebase JS SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, collection, query, where, addDoc, setDoc, updateDoc, arrayUnion, arrayRemove, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        
-        // بارگذاری بانک کلمات
-        import { getRandomWordSet, calculateTimeLimit, calculateMaxHints } from './words.js';
-
-        // متغیرهای سراسری Canvas (اجباری)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        // متغیرهای Firebase
-        let app, db, auth;
-        let userId = null;
-        let isAuthReady = false;
-        let activeGameId = null;
-        let unsubscribeGame = null;
-
-        // متغیرهای بازی
-        let gameState = {
-            currentWordIndex: 0,
-            words: [], // شامل 10 کلمه
-            players: {}, // { userId: { score: 0, guesses: [], hintsUsed: 0 } }
-            currentMask: '',
-            timer: null,
-            timeRemaining: 0,
-            maxHints: 0,
-            currentWord: { text: '', category: '', level: 1 }
-        };
-
-        // المان‌های UI
-        const uiElements = {
-            appContainer: document.getElementById('app-container'),
-            loadingScreen: document.getElementById('loading-screen'),
-            gameScreen: document.getElementById('game-screen'),
-            waitingScreen: document.getElementById('waiting-screen'),
-            maskDisplay: document.getElementById('word-mask'),
-            categoryDisplay: document.getElementById('category-display'),
-            timerDisplay: document.getElementById('timer-display'),
-            guessInput: document.getElementById('guess-input'),
-            guessBtn: document.getElementById('guess-btn'),
-            hintBtn: document.getElementById('hint-btn'),
-            scoreBoard: document.getElementById('score-board'),
-            messageBox: document.getElementById('message-box'),
-            wordSubmitBtn: document.getElementById('word-submit-btn'),
-            wordSubmitModal: document.getElementById('word-submit-modal'),
-            submitModalBtn: document.getElementById('submit-word-btn'),
-        };
-
-        // --- ۱. توابع کمکی ---
-
-        function displayMessage(text, type = 'info') {
-            uiElements.messageBox.innerHTML = `<p class="p-3 rounded-lg text-center font-bold ${type === 'error' ? 'bg-red-100 text-red-700' : type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}">${text}</p>`;
-            setTimeout(() => {
-                uiElements.messageBox.innerHTML = '';
-            }, 5000);
-        }
-
-        function toggleScreen(screen) {
-            uiElements.loadingScreen.classList.add('hidden');
-            uiElements.gameScreen.classList.add('hidden');
-            uiElements.waitingScreen.classList.add('hidden');
-            if (screen) {
-                screen.classList.remove('hidden');
-            }
-        }
-
-        /**
-         * ایجاد ماسک برای کلمه
-         * @param {string} word - کلمه کامل
-         * @param {Array<string>} guessedLetters - حروف حدس زده شده
-         * @returns {string} ماسک جدید
-         */
-        function createMask(word, guessedLetters) {
-            let mask = '';
-            for (const char of word) {
-                if (char === ' ') {
-                    mask += ' ';
-                } else if (guessedLetters.includes(char)) {
-                    mask += char;
-                } else {
-                    mask += '_';
-                }
-            }
-            return mask;
-        }
-
-        /**
-         * نمایش UI بازی
-         */
-        function renderGame() {
-            if (!activeGameId || !gameState.currentWord.text) return;
-
-            toggleScreen(uiElements.gameScreen);
-
-            // ۱. نمایش ماسک کلمه
-            const maskText = gameState.currentMask.split('').join(' ');
-            uiElements.maskDisplay.textContent = maskText;
-            uiElements.categoryDisplay.textContent = `دسته بندی: ${gameState.currentWord.category} (سطح ${gameState.currentWord.level})`;
-            
-            // ۲. نمایش زمان
-            uiElements.timerDisplay.textContent = `${gameState.timeRemaining} ثانیه`;
-
-            // ۳. نمایش امتیازات
-            let scoreHTML = `<div class="flex justify-around items-center font-bold text-lg mb-2">
-                                <span class="text-blue-600">امتیاز شما</span>
-                                <span class="text-red-600">امتیاز حریف</span>
-                            </div>`;
-            
-            const playerIds = Object.keys(gameState.players);
-            const selfPlayer = gameState.players[userId];
-            const opponentId = playerIds.find(id => id !== userId);
-            const opponentPlayer = opponentId ? gameState.players[opponentId] : { score: 0 };
-
-            scoreHTML += `<div class="flex justify-around items-center text-3xl font-extrabold p-4 rounded-xl bg-gray-100 shadow-inner">
-                            <span class="text-blue-800">${selfPlayer?.score || 0}</span>
-                            <span class="text-red-800">${opponentPlayer?.score || 0}</span>
-                          </div>`;
-            
-            uiElements.scoreBoard.innerHTML = scoreHTML;
-
-            // ۴. مدیریت دکمه راهنمایی
-            const hintsUsed = selfPlayer?.hintsUsed || 0;
-            const maxHints = gameState.maxHints;
-            uiElements.hintBtn.disabled = hintsUsed >= maxHints;
-            uiElements.hintBtn.textContent = `راهنمایی (${maxHints - hintsUsed} باقی مانده)`;
-        }
-
-        // --- ۲. منطق Firebase/Firestore ---
-
-        /**
-         * آغازگر Firebase و احراز هویت
-         */
-        async function initializeFirebase() {
-            try {
-                setLogLevel('debug');
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // احراز هویت
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
-                // گوش دادن به تغییرات وضعیت احراز هویت
-                onAuthStateChanged(auth, (user) => {
-                    if (user) {
-                        userId = user.uid;
-                        isAuthReady = true;
-                        displayMessage(`کاربر با شناسه: ${userId} وارد شد.`, 'success');
-                        
-                        // بعد از احراز هویت، منطق پیدا کردن/ایجاد بازی اجرا می‌شود
-                        findOrCreateGame();
-                    } else {
-                        displayMessage('خطا در احراز هویت.', 'error');
-                        isAuthReady = true;
-                    }
-                });
-            } catch (error) {
-                console.error("خطا در راه‌اندازی Firebase:", error);
-                displayMessage('خطای بحرانی در اتصال به سرویس‌ها.', 'error');
-            }
-        }
-        
-        /**
-         * پیدا کردن یک بازی در حال انتظار یا ایجاد یک بازی جدید
-         */
-        async function findOrCreateGame() {
-            if (!isAuthReady || activeGameId) return;
-
-            toggleScreen(uiElements.loadingScreen);
-            
-            const gamesRef = collection(db, `artifacts/${appId}/public/data/games`);
-            
-            // ۱. جستجوی بازی در حال انتظار (یک بازیکن)
-            const q = query(gamesRef, where("status", "==", "waiting"));
-            const querySnapshot = await getDocs(q);
-
-            if (!querySnapshot.empty) {
-                // پیوستن به بازی موجود
-                const waitingGameDoc = querySnapshot.docs[0];
-                activeGameId = waitingGameDoc.id;
-                const gameData = waitingGameDoc.data();
-                
-                if (gameData.players.includes(userId)) {
-                     // اگر کاربر قبلاً در این بازی بوده، به آن برگرد
-                     console.log("بازگشت به بازی قبلی");
-                } else {
-                    // پیوستن به بازی و آغاز آن
-                    await updateDoc(doc(db, gamesRef.path, activeGameId), {
-                        players: arrayUnion(userId),
-                        status: 'in_progress',
-                        startTime: Date.now(),
-                    });
-                    displayMessage('به بازی پیوستید! شروع بازی...', 'success');
-                }
-                
-                setupGameListener(activeGameId);
-                
-            } else {
-                // ایجاد بازی جدید
-                const newWords = getRandomWordSet();
-                const initialWord = newWords[0];
-                const initialMask = createMask(initialWord.text, []);
-                const timeLimit = calculateTimeLimit(initialWord);
-                const maxHints = calculateMaxHints(initialWord);
-
-                const newGame = {
-                    players: [userId],
-                    status: 'waiting',
-                    currentWordIndex: 0,
-                    words: newWords,
-                    gameState: {
-                        [userId]: { score: 0, guessedLetters: [], hintsUsed: 0 },
-                    },
-                    currentMask: initialMask,
-                    currentWordDetails: initialWord,
-                    timeLimit: timeLimit,
-                    maxHints: maxHints,
-                    lastActionTime: Date.now(),
-                    turn: userId // نفر اول شروع کننده
-                };
-
-                const docRef = await addDoc(gamesRef, newGame);
-                activeGameId = docRef.id;
-                displayMessage('در انتظار بازیکن دوم...', 'info');
-                toggleScreen(uiElements.waitingScreen);
-                setupGameListener(activeGameId);
-            }
-        }
-
-        /**
-         * گوش دادن به تغییرات وضعیت بازی
-         */
-        function setupGameListener(gameId) {
-            if (unsubscribeGame) unsubscribeGame(); // پاک کردن لیسنر قبلی
-
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
-            
-            unsubscribeGame = onSnapshot(gameRef, (docSnapshot) => {
-                if (docSnapshot.exists()) {
-                    const data = docSnapshot.data();
-                    gameState = {
-                        currentWordIndex: data.currentWordIndex,
-                        words: data.words,
-                        players: data.gameState,
-                        currentMask: data.currentMask,
-                        currentWord: data.currentWordDetails,
-                        timeLimit: data.timeLimit,
-                        maxHints: data.maxHints,
-                        turn: data.turn,
-                        status: data.status,
-                    };
-                    
-                    if (data.status === 'in_progress') {
-                        // آغاز تایمر فقط برای پلیر در نوبت
-                        if (data.turn === userId) {
-                            startTimer(data.timeLimit, data.lastActionTime);
-                        } else {
-                            stopTimer();
-                            displayMessage('در انتظار نوبت حریف...', 'info');
-                        }
-                        renderGame();
-                    } else if (data.status === 'waiting') {
-                        toggleScreen(uiElements.waitingScreen);
-                    } else if (data.status === 'finished') {
-                        // نمایش نتایج
-                        stopTimer();
-                        renderGameResult(data);
-                    }
-                } else {
-                    displayMessage('بازی یافت نشد یا پایان یافته است.', 'error');
-                }
-            });
-        }
-        
-        // --- ۳. منطق تایمر ---
-        
-        function startTimer(duration, lastActionTime) {
-            stopTimer();
-            const elapsedTime = Math.floor((Date.now() - lastActionTime) / 1000);
-            gameState.timeRemaining = duration - elapsedTime;
-
-            uiElements.timerDisplay.classList.remove('text-green-600', 'text-yellow-600', 'text-red-600');
-            if (gameState.timeRemaining > duration / 2) {
-                uiElements.timerDisplay.classList.add('text-green-600');
-            } else if (gameState.timeRemaining > duration / 4) {
-                uiElements.timerDisplay.classList.add('text-yellow-600');
-            } else {
-                uiElements.timerDisplay.classList.add('text-red-600');
-            }
-
-            if (gameState.timeRemaining <= 0) {
-                handleTimeout();
-                return;
-            }
-
-            gameState.timer = setInterval(() => {
-                gameState.timeRemaining--;
-                renderGame();
-                if (gameState.timeRemaining <= 0) {
-                    clearInterval(gameState.timer);
-                    handleTimeout();
-                }
-            }, 1000);
-        }
-
-        function stopTimer() {
-            if (gameState.timer) {
-                clearInterval(gameState.timer);
-                gameState.timer = null;
-            }
-        }
-        
-        /**
-         * مدیریت اتمام زمان حدس
-         */
-        async function handleTimeout() {
-            displayMessage('زمان به پایان رسید! -۱۰۰ امتیاز', 'error');
-            await applyGuessResult('', false, true); // حدس غلط/تایم اوت
-        }
-        
-        // --- ۴. منطق بازی ---
-
-        /**
-         * هندل کردن حدس کاربر (حرف یا کلمه)
-         */
-        async function handleGuess(guess) {
-            if (!activeGameId || gameState.status !== 'in_progress' || gameState.turn !== userId) return;
-            guess = guess.trim().toLowerCase();
-            uiElements.guessInput.value = '';
-            
-            if (guess.length === 0) return;
-
-            const word = gameState.currentWord.text.toLowerCase();
-            const selfData = gameState.players[userId];
-            let isCorrect = false;
-
-            // حدس کلمه کامل
-            if (guess.length > 1) {
-                if (guess === word) {
-                    isCorrect = true;
-                    displayMessage('تبریک! کلمه را درست حدس زدید!', 'success');
-                } else {
-                    displayMessage('حدس کلمه اشتباه بود.', 'error');
-                }
-            } 
-            // حدس حرف
-            else if (guess.length === 1) {
-                if (word.includes(guess) && !selfData.guessedLetters.includes(guess)) {
-                    isCorrect = true;
-                    displayMessage(`حرف "${guess}" در کلمه وجود دارد!`, 'success');
-                } else if (selfData.guessedLetters.includes(guess)) {
-                    displayMessage(`حرف "${guess}" قبلاً حدس زده شده است.`, 'info');
-                    return; // امتیاز کم نشود
-                } else {
-                    displayMessage(`حرف "${guess}" در کلمه نیست.`, 'error');
-                }
-                
-                // اضافه کردن حرف به لیست حدس‌ها
-                selfData.guessedLetters.push(guess);
-            }
-            
-            await applyGuessResult(guess, isCorrect, false);
-        }
-        
-        /**
-         * محاسبه و اعمال نتیجه حدس
-         */
-        async function applyGuessResult(guess, isCorrect, isTimeout) {
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, activeGameId);
-            const word = gameState.currentWord.text.toLowerCase();
-            const selfData = gameState.players[userId];
-            const timeBonus = isCorrect && !isTimeout ? Math.max(0, 100 - (gameState.timeLimit - gameState.timeRemaining) * 5) : 0; // زمان کوتاه‌تر = امتیاز بیشتر
-            
-            let scoreChange = 0;
-            let newMask = gameState.currentMask;
-            let nextWord = false;
-            let gameOver = false;
-            
-            if (isCorrect) {
-                scoreChange = 100 + timeBonus;
-                if (guess.length === 1) {
-                    newMask = createMask(word, selfData.guessedLetters);
-                    if (newMask.replace(/\s/g, '') === word.replace(/\s/g, '')) {
-                        // کلمه کامل شد
-                        nextWord = true;
-                    }
-                } else if (guess.length > 1) {
-                    // حدس کلمه کامل
-                    newMask = word.toUpperCase();
-                    nextWord = true;
-                }
-            } else {
-                scoreChange = isTimeout ? -100 : -50;
-                newMask = gameState.currentMask;
-            }
-            
-            // به‌روزرسانی نوبت، امتیاز و وضعیت
-            const playerIds = Object.keys(gameState.players);
-            const opponentId = playerIds.find(id => id !== userId);
-            let nextTurn = opponentId;
-            let nextWordIndex = gameState.currentWordIndex;
-
-            if (nextWord) {
-                nextWordIndex++;
-                if (nextWordIndex >= gameState.words.length) {
-                    gameOver = true;
-                    nextTurn = null; // بازی تمام شد
-                } else {
-                    // تنظیم کلمه بعدی
-                    const nextDetails = gameState.words[nextWordIndex];
-                    const nextTimeLimit = calculateTimeLimit(nextDetails);
-                    const nextMaxHints = calculateMaxHints(nextDetails);
-                    
-                    await updateDoc(gameRef, {
-                        currentWordIndex: nextWordIndex,
-                        currentWordDetails: nextDetails,
-                        currentMask: createMask(nextDetails.text, []),
-                        timeLimit: nextTimeLimit,
-                        maxHints: nextMaxHints,
-                        'gameState': { 
-                            ...gameState.players,
-                            [userId]: { ...selfData, score: selfData.score + scoreChange, hintsUsed: 0, guessedLetters: [] },
-                        },
-                        turn: opponentId,
-                        lastActionTime: Date.now(),
-                        status: gameOver ? 'finished' : 'in_progress',
-                    });
-                    displayMessage(`کلمه تمام شد. کلمه بعدی...`, 'success');
-                    return;
-                }
-            }
-
-            // به‌روزرسانی معمولی (حدس حرف یا غلط)
-            await updateDoc(gameRef, {
-                currentMask: newMask,
-                'gameState': { 
-                    ...gameState.players,
-                    [userId]: { ...selfData, score: selfData.score + scoreChange }
-                },
-                turn: nextTurn,
-                lastActionTime: Date.now(),
-                status: gameOver ? 'finished' : 'in_progress',
-            });
-            
-            if (gameOver) {
-                 displayMessage('بازی به پایان رسید. در حال محاسبه نتایج...', 'info');
-                 // رندر نهایی در listener انجام می‌شود
-            } else if (!nextWord) {
-                // انیمیشن حدس
-                const maskDiv = uiElements.maskDisplay;
-                maskDiv.classList.add(isCorrect ? 'correct-guess' : 'wrong-guess');
-                setTimeout(() => {
-                    maskDiv.classList.remove('correct-guess', 'wrong-guess');
-                }, 500);
-            }
-        }
-
-        /**
-         * درخواست راهنمایی
-         */
-        async function handleHint() {
-            if (!activeGameId || gameState.status !== 'in_progress' || gameState.turn !== userId) return;
-            const selfData = gameState.players[userId];
-
-            if (selfData.hintsUsed >= gameState.maxHints) {
-                displayMessage('حداکثر تعداد راهنمایی مجاز استفاده شده است.', 'error');
-                return;
-            }
-
-            const word = gameState.currentWord.text.toLowerCase();
-            const unguessedLetters = Array.from(new Set(word.replace(/\s/g, ''))).filter(char => !selfData.guessedLetters.includes(char));
-
-            if (unguessedLetters.length === 0) {
-                 displayMessage('دیگر حرفی برای راهنمایی باقی نمانده است!', 'info');
-                 return;
-            }
-            
-            // انتخاب رندوم یک حرف
-            const hintChar = unguessedLetters[Math.floor(Math.random() * unguessedLetters.length)];
-            
-            // اعمال راهنمایی
-            selfData.guessedLetters.push(hintChar);
-            const newMask = createMask(word, selfData.guessedLetters);
-            const scoreChange = -75; // کسر امتیاز برای راهنمایی
-
-            let nextWord = false;
-            let gameOver = false;
-
-            if (newMask.replace(/\s/g, '') === word.replace(/\s/g, '')) {
-                // کلمه کامل شد
-                nextWord = true;
-            }
-            
-            const playerIds = Object.keys(gameState.players);
-            const opponentId = playerIds.find(id => id !== userId);
-            let nextTurn = opponentId;
-            let nextWordIndex = gameState.currentWordIndex;
-
-            if (nextWord) {
-                nextWordIndex++;
-                if (nextWordIndex >= gameState.words.length) {
-                    gameOver = true;
-                    nextTurn = null; 
-                } else {
-                    const nextDetails = gameState.words[nextWordIndex];
-                    const nextTimeLimit = calculateTimeLimit(nextDetails);
-                    const nextMaxHints = calculateMaxHints(nextDetails);
-                    
-                    await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, activeGameId), {
-                        currentWordIndex: nextWordIndex,
-                        currentWordDetails: nextDetails,
-                        currentMask: createMask(nextDetails.text, []),
-                        timeLimit: nextTimeLimit,
-                        maxHints: nextMaxHints,
-                        'gameState': { 
-                            ...gameState.players,
-                            [userId]: { ...selfData, score: selfData.score + scoreChange, hintsUsed: selfData.hintsUsed + 1, guessedLetters: [] },
-                        },
-                        turn: opponentId,
-                        lastActionTime: Date.now(),
-                        status: gameOver ? 'finished' : 'in_progress',
-                    });
-                    displayMessage(`راهنمایی: حرف "${hintChar}" نمایش داده شد. کلمه تمام شد.`, 'info');
-                    return;
-                }
-            }
-
-            // به‌روزرسانی معمولی
-            await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, activeGameId), {
-                currentMask: newMask,
-                'gameState': { 
-                    ...gameState.players,
-                    [userId]: { ...selfData, score: selfData.score + scoreChange, hintsUsed: selfData.hintsUsed + 1 }
-                },
-                turn: nextTurn,
-                lastActionTime: Date.now(),
-                status: gameOver ? 'finished' : 'in_progress',
-            });
-            displayMessage(`راهنمایی: حرف "${hintChar}" نمایش داده شد. -۷۵ امتیاز`, 'info');
-        }
-
-        /**
-         * رندر نهایی نتایج بازی
-         */
-        function renderGameResult(data) {
-            const playerIds = Object.keys(data.gameState);
-            const selfScore = data.gameState[userId]?.score || 0;
-            const opponentId = playerIds.find(id => id !== userId);
-            const opponentScore = opponentId ? data.gameState[opponentId]?.score || 0 : 0;
-            
-            let resultText = '';
-            let resultColor = 'text-gray-700';
-            
-            if (selfScore > opponentScore) {
-                resultText = 'شما برنده شدید! تبریک!';
-                resultColor = 'text-green-600';
-            } else if (selfScore < opponentScore) {
-                resultText = 'شما بازنده شدید. تلاش بیشتر در دور بعد!';
-                resultColor = 'text-red-600';
-            } else {
-                resultText = 'مساوی شد! رقابت نزدیک بود.';
-                resultColor = 'text-yellow-600';
-            }
-            
-            const resultHTML = `
-                <div class="flex flex-col items-center justify-center min-h-[500px] p-6 bg-card rounded-xl shadow-2xl">
-                    <h2 class="text-4xl font-extrabold mb-4 ${resultColor}">${resultText}</h2>
-                    <p class="text-2xl font-bold mb-6 text-gray-800">نتایج نهایی:</p>
-                    <div class="w-full max-w-sm space-y-4">
-                        <div class="flex justify-between items-center p-4 bg-blue-50 rounded-lg shadow-md">
-                            <span class="font-semibold text-lg text-blue-800">امتیاز شما:</span>
-                            <span class="text-3xl font-black text-blue-600">${selfScore}</span>
-                        </div>
-                        <div class="flex justify-between items-center p-4 bg-red-50 rounded-lg shadow-md">
-                            <span class="font-semibold text-lg text-red-800">امتیاز حریف:</span>
-                            <span class="text-3xl font-black text-red-600">${opponentScore}</span>
-                        </div>
-                    </div>
-                    <button onclick="window.location.reload()" class="mt-8 px-6 py-3 bg-primary text-white font-bold rounded-full hover-effect hover:bg-indigo-700 transition duration-300">
-                        بازی جدید
-                    </button>
-                </div>
-            `;
-            uiElements.appContainer.innerHTML = resultHTML;
-        }
-
-        // --- ۵. منطق ساخت کلمه ---
-
-        async function submitCustomWord() {
-            const wordInput = document.getElementById('custom-word-input');
-            const categorySelect = document.getElementById('custom-category-select');
-            const word = wordInput.value.trim();
-            const category = categorySelect.value;
-            
-            if (word.length < 3 || category === '') {
-                displayMessage('لطفاً کلمه و دسته‌بندی معتبر وارد کنید.', 'error');
-                return;
-            }
-
-            try {
-                const customWordsRef = collection(db, `artifacts/${appId}/public/data/custom_words`);
-                
-                await addDoc(customWordsRef, {
-                    text: word,
-                    category: category,
-                    level: 3, // کلمات سفارشی همیشه سخت محسوب می شوند
-                    creatorId: userId,
-                    createdAt: Date.now(),
-                    status: 'pending' // برای بررسی توسط ادمین در محیط واقعی
-                });
-                
-                displayMessage('کلمه شما با موفقیت ثبت شد و پس از تایید به بانک کلمات اضافه خواهد شد.', 'success');
-                wordInput.value = '';
-                categorySelect.value = '';
-                // بستن مودال (شبیه سازی بستن)
-                uiElements.wordSubmitModal.classList.add('hidden');
-
-            } catch (error) {
-                console.error("خطا در ثبت کلمه سفارشی:", error);
-                displayMessage('خطا در ذخیره کلمه. لطفاً دوباره تلاش کنید.', 'error');
-            }
-        }
-
-        // --- ۶. رویدادها ---
-        
-        // هندل کردن دکمه حدس
-        uiElements.guessBtn.addEventListener('click', () => {
-            handleGuess(uiElements.guessInput.value);
-        });
-
-        // هندل کردن دکمه راهنمایی
-        uiElements.hintBtn.addEventListener('click', handleHint);
-
-        // هندل کردن دکمه ثبت کلمه در مودال
-        uiElements.submitModalBtn.addEventListener('click', submitCustomWord);
-        
-        // نمایش مودال ساخت کلمه
-        uiElements.wordSubmitBtn.addEventListener('click', () => {
-            uiElements.wordSubmitModal.classList.remove('hidden');
-        });
-
-        // بستن مودال
-        document.getElementById('close-modal-btn').addEventListener('click', () => {
-            uiElements.wordSubmitModal.classList.add('hidden');
-        });
-
-
-        // --- شروع برنامه ---
-        window.onload = initializeFirebase;
-
-    </script>
 </head>
-<body class="p-4 sm:p-8 min-h-screen bg-gray-100 flex justify-center items-center">
+<body class="bg-gray-100 min-h-screen p-4">
 
-    <!-- کانتینر اصلی اپلیکیشن -->
-    <div id="app-container" class="w-full max-w-3xl bg-card rounded-2xl shadow-xl p-6 sm:p-10 border-t-4 border-primary">
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden">
         
-        <header class="text-center mb-8">
-            <h1 class="text-4xl font-extrabold text-gray-900 mb-2">بازی حدس کلمه آنلاین</h1>
-            <p class="text-lg text-gray-500">رقابت دو نفره هیجان انگیز</p>
+        <header class="p-4 bg-blue-600 text-white text-center">
+            <h1 class="text-2xl font-bold">💎 بازی کلمات (Wordly)</h1>
         </header>
 
-        <!-- صفحه Loading -->
-        <div id="loading-screen" class="flex flex-col items-center justify-center min-h-[400px]">
-            <svg class="animate-spin -ml-1 mr-3 h-10 w-10 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-4 text-gray-600 text-xl font-medium">در حال اتصال و جستجوی حریف...</p>
-        </div>
-        
-        <!-- صفحه انتظار (Waiting) -->
-        <div id="waiting-screen" class="hidden flex flex-col items-center justify-center min-h-[400px]">
-             <span class="text-6xl mb-4 animate-pulse">⏳</span>
-             <h2 class="text-3xl font-bold text-gray-800 mb-2">منتظر بازیکن دوم</h2>
-             <p class="text-lg text-gray-500 mb-6">به محض پیوستن یک بازیکن، بازی آغاز خواهد شد.</p>
-             <button id="word-submit-btn" class="px-6 py-3 bg-secondary text-white font-bold rounded-full hover-effect hover:bg-emerald-600 transition duration-300">
-                کلمه جدید پیشنهاد بده
+        <nav class="flex border-b border-gray-200">
+            <button id="tab-profile" class="tab-button flex-1 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out tab-active" onclick="showTab('profile')">
+                <span class="inline-block ml-1">👤</span> اطلاعات کاربری
             </button>
-        </div>
+            <button id="tab-create" class="tab-button flex-1 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out" onclick="showTab('create')">
+                <span class="inline-block ml-1">➕</span> ایجاد بازی
+            </button>
+            <button id="tab-duel" class="tab-button flex-1 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out" onclick="showTab('duel')">
+                <span class="inline-block ml-1">⚔️</span> بازی دو نفره
+            </button>
+            <button id="tab-active" class="tab-button flex-1 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 transition duration-150 ease-in-out" onclick="showTab('active')">
+                <span class="inline-block ml-1">🔥</span> بازی‌های فعال
+            </button>
+        </nav>
 
-        <!-- صفحه اصلی بازی (Game) -->
-        <div id="game-screen" class="hidden space-y-6">
+        <div class="p-6">
             
-            <!-- نمایش وضعیت امتیاز و زمان -->
-            <div id="game-status" class="grid grid-cols-3 gap-4 p-4 bg-primary/10 rounded-xl shadow-inner">
-                <div class="col-span-1 text-center">
-                    <p class="text-sm font-semibold text-gray-600">دسته بندی</p>
-                    <p id="category-display" class="text-lg font-bold text-primary truncate">...</p>
-                </div>
-                <div class="col-span-1 text-center">
-                    <p class="text-sm font-semibold text-gray-600">زمان باقی مانده</p>
-                    <p id="timer-display" class="text-3xl font-extrabold text-red-600 transition duration-300">--</p>
-                </div>
-                <div class="col-span-1 text-center">
-                    <p class="text-sm font-semibold text-gray-600">کلمه</p>
-                    <p class="text-lg font-bold text-primary">شماره <span id="word-index-display">1</span> از 10</p>
-                </div>
-            </div>
-
-            <!-- نمایش ماسک کلمه -->
-            <div id="word-mask" class="game-mask text-center bg-white border border-gray-300 shadow-lg">
-                _ _ _ _ _
-            </div>
-
-            <!-- نمایش امتیازات -->
-            <div id="score-board" class="p-4 rounded-xl bg-white shadow-md">
-                <!-- امتیازات اینجا رندر می‌شوند -->
-            </div>
-
-            <!-- باکس پیام‌ها -->
-            <div id="message-box" class="min-h-[50px]">
-                <!-- پیام‌های موفقیت/خطا اینجا نمایش داده می‌شوند -->
-            </div>
-
-            <!-- بخش کنترل و حدس -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <input type="text" id="guess-input" maxlength="20" placeholder="حرف یا کلمه را حدس بزنید..." 
-                       class="flex-grow p-3 border-2 border-gray-300 rounded-xl focus:border-primary focus:ring-primary focus:outline-none transition duration-200 text-lg text-center" 
-                       oninput="this.value = this.value.replace(/[^آ-ی ا-ی]/, '')">
+            <div id="content-profile" class="tab-content">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">👤 اطلاعات پروفایل شما</h2>
                 
-                <button id="guess-btn" class="sm:w-32 p-3 bg-primary text-white font-bold rounded-xl hover-effect hover:bg-indigo-700 transition duration-300 shadow-lg">
-                    حدس بزن
-                </button>
-                
-                <button id="hint-btn" class="sm:w-48 p-3 bg-yellow-500 text-white font-bold rounded-xl hover-effect hover:bg-yellow-600 transition duration-300 shadow-lg disabled:bg-gray-400">
-                    راهنمایی (۲-۴)
+                <div class="bg-blue-50 border border-blue-200 p-6 rounded-xl shadow-lg">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
+                        
+                        <div>
+                            <p class="mb-2"><span class="font-bold text-blue-600">نام کاربری:</span> <span id="user-name">ابوالفضل رضایی</span></p>
+                            <p class="mb-2"><span class="font-bold text-blue-600">آیدی عددی:</span> <span id="user-id">123456789</span></p>
+                            <p class="mb-2"><span class="font-bold text-blue-600">امتیاز کل:</span> <span id="user-score" class="text-lg font-extrabold text-green-600">1250</span></p>
+                        </div>
+                        
+                        <div>
+                            <p class="mb-2"><span class="font-bold text-blue-600">تاریخ امروز (شمسی):</span> <span id="current-date">۱۴۰۴/۰۸/۳۰</span></p>
+                            <p class="mb-2"><span class="font-bold text-blue-600">زمان لحظه‌ای:</span> <span id="current-time" class="font-mono">۰۳:۲۲:۴۷</span></p>
+                        </div>
+
+                    </div>
+
+                    <hr class="my-4 border-blue-200">
+                    
+                    <button onclick="document.getElementById('edit-modal').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                        ویرایش پروفایل
+                    </button>
+                    
+                </div>
+            </div>
+
+            <div id="content-create" class="tab-content hidden">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">➕ ایجاد بازی جدید (تک‌نفره)</h2>
+                <p class="text-gray-600">اینجا فرم و تنظیمات شروع یک بازی جدید (مثلاً حالت سخت/آسان) قرار می‌گیرد.</p>
+                <button class="mt-4 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
+                    شروع بازی
                 </button>
             </div>
-            
-            <p class="text-sm text-gray-500 text-center mt-4">توجه: استفاده از راهنمایی ۷۵ امتیاز کسر می‌کند. حدس اشتباه ۵۰ امتیاز کسر می‌کند.</p>
+
+            <div id="content-duel" class="tab-content hidden">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">⚔️ دعوت به بازی دو نفره</h2>
+                <p class="text-gray-600">این بخش برای ارسال لینک دعوت و لیست دوستان است.</p>
+                <div class="mt-4 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded">
+                    <p>لینک دعوت شما: `WEB_APP_URL?invite=1234`</p>
+                </div>
+            </div>
+
+            <div id="content-active" class="tab-content hidden">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800">🔥 بازی‌های فعال من</h2>
+                <p class="text-gray-600">لیست بازی‌هایی که در حال انجام هستند و نوبت کاربر است.</p>
+                
+                <ul class="mt-4 space-y-3">
+                    <li class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex justify-between items-center">
+                        <span class="font-medium text-gray-700">بازی با @opponent_user (نوبت شما)</span>
+                        <button class="bg-red-500 hover:bg-red-600 text-white text-xs font-bold py-1 px-3 rounded">
+                            ادامه
+                        </button>
+                    </li>
+                </ul>
+            </div>
 
         </div>
+    </div>
+
+    <div id="edit-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center transition-opacity duration-300 z-50">
         
-    </div>
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 p-6 rtl">
+            
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 class="text-xl font-bold text-gray-800">✏️ ویرایش اطلاعات کاربری</h3>
+                <button onclick="document.getElementById('edit-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 text-2xl font-light">
+                    &times;
+                </button>
+            </div>
+            
+            <form>
+                <div class="mb-4">
+                    <label for="modal-name" class="block text-gray-700 text-sm font-bold mb-2">نام کاربری:</label>
+                    <input type="text" id="modal-name" value="ابوالفضل رضایی" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div class="flex justify-end pt-4 border-t">
+                    <button type="button" onclick="document.getElementById('edit-modal').classList.add('hidden')" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-lg ml-3">
+                        لغو
+                    </button>
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                        ذخیره تغییرات
+                    </button>
+                </div>
+            </form>
 
-    <!-- Modal ساخت کلمه جدید -->
-    <div id="word-submit-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4 transition-opacity duration-300">
-        <div class="bg-white rounded-xl p-8 w-full max-w-lg shadow-2xl animate-bounce-in">
-            <h3 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">پیشنهاد کلمه جدید</h3>
-            <p class="text-sm text-gray-600 mb-4">کلمات پیشنهادی شما در بانک کلمات بازی برای استفاده دیگران (به جز خودتان) ذخیره می‌شوند.</p>
-            
-            <div class="space-y-4">
-                <input type="text" id="custom-word-input" placeholder="کلمه پیشنهادی (حداقل ۳ حرف)" 
-                       class="w-full p-3 border border-gray-300 rounded-lg focus:border-secondary focus:ring-secondary"
-                       oninput="this.value = this.value.replace(/[^آ-ی ا-ی]/, '')">
-                
-                <select id="custom-category-select" class="w-full p-3 border border-gray-300 rounded-lg focus:border-secondary focus:ring-secondary">
-                    <option value="">انتخاب دسته‌بندی...</option>
-                    <option value="شهر">شهر</option>
-                    <option value="کشور">کشور</option>
-                    <option value="میوه">میوه</option>
-                    <option value="اشیاء">اشیاء</option>
-                    <option value="نام">نام</option>
-                </select>
-            </div>
-            
-            <div class="mt-6 flex justify-end gap-3">
-                <button id="close-modal-btn" class="px-5 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition duration-200">
-                    بستن
-                </button>
-                <button id="submit-word-btn" class="px-5 py-2 bg-secondary text-white font-bold rounded-lg hover:bg-emerald-600 transition duration-300">
-                    ثبت کلمه
-                </button>
-            </div>
         </div>
     </div>
+
+    <script>
+        // تابع برای جابجایی بین زبانه‌ها
+        function showTab(tabId) {
+            // مخفی کردن همه محتواها
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            // غیرفعال کردن کلاس active از همه دکمه‌ها
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('tab-active');
+            });
+
+            // نمایش محتوای زبانه انتخاب شده
+            document.getElementById(`content-${tabId}`).classList.remove('hidden');
+            // فعال کردن دکمه زبانه انتخاب شده
+            document.getElementById(`tab-${tabId}`).classList.add('tab-active');
+        }
+
+        // تابع برای به‌روزرسانی زمان و تاریخ
+        function updateDateTime() {
+            const now = new Date();
+            
+            // نمایش زمان (مثال: ۰۳:۲۲:۴۷)
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const currentTime = now.toLocaleTimeString('fa-IR', timeOptions).replace(/[\u200E\u200F]/g, ''); // حذف کاراکترهای LTR/RTL
+            document.getElementById('current-time').textContent = currentTime;
+
+            // نمایش تاریخ شمسی (مثال: ۱۴۰۴/۰۸/۳۰)
+            const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            const currentDate = now.toLocaleDateString('fa-IR', dateOptions).replace(/[\u200E\u200F]/g, '');
+            document.getElementById('current-date').textContent = currentDate;
+        }
+
+        // به‌روزرسانی اولیه و تنظیم برای به‌روزرسانی هر ثانیه
+        updateDateTime();
+        setInterval(updateDateTime, 1000); 
+
+        // مطمئن می‌شویم که اولین زبانه (profile) در ابتدا نمایش داده شود
+        document.addEventListener('DOMContentLoaded', () => {
+            showTab('profile');
+        });
+
+    </script>
 </body>
 </html>
