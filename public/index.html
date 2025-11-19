@@ -6,11 +6,10 @@
     <title>Wordly - بازی کلمات</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ/AHwE2YV5B8u/W0B0Fw/A5q2r9wF8yFvj5zF+D5s1f1f/d+N/A5q2r9wF8yFvj5zF+D5s1f1f/d+N/A5==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLMDJ/AHwE2YV5B8u/W0B0Fw/A5q2r9wF8yFvj5zF+D5s1f1f/d+N/A5q2r9wF8yFvj5zF+D5s1f1f/d+N/A5" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <style>
-        /* ... (استایل‌ها بدون تغییر) ... */
         body {
             font-family: 'Vazirmatn', sans-serif;
             font-weight: 500;
@@ -25,7 +24,8 @@
             @apply mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 p-3 transition duration-150;
         }
         .correct-letter-display {
-            @apply text-green-500 font-extrabold transition-all duration-300 ease-out inline-block;
+            /* **استایل برای نمایش سبز و انیمیشنی حروف درست** */
+            @apply text-green-600 font-extrabold transition-all duration-300 ease-out inline-block;
             animation: appear 0.5s ease-out; 
         }
         @keyframes appear {
@@ -96,8 +96,8 @@
 
                     <div>
                         <label for="word-input" class="block text-sm font-medium text-gray-700">کلمه انتخابی (فارسی، حداقل ۵ حرف):</label>
-                        <input type="text" id="word-input" name="word" required minlength="5" pattern="[\u0600-\u06FF]+" placeholder="مثلاً: برنامه" class="input-style border-2 border-purple-300/50" />
-                        <p class="text-xs text-red-500 mt-1 hidden" id="word-error">کلمه باید حداقل ۵ حرف و فقط فارسی باشد.</p>
+                        <input type="text" id="word-input" name="word" required minlength="5" pattern="[\u0600-\u06FF\s]+" placeholder="مثلاً: برنامه نویسی" class="input-style border-2 border-purple-300/50" />
+                        <p class="text-xs text-red-500 mt-1 hidden" id="word-error">کلمه باید حداقل ۵ حرف و فقط شامل حروف فارسی و فاصله باشد.</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -108,9 +108,9 @@
                         <div>
                             <label for="difficulty-select" class="block text-sm font-medium text-gray-700">سطح دشواری:</label>
                             <select id="difficulty-select" name="difficulty" required class="input-style">
-                                <option value="آسان">آسان (۱ امتیاز راهنما)</option>
-                                <option value="متوسط">متوسط (۲ امتیاز راهنما)</option>
-                                <option value="سخت">سخت (۳ امتیاز راهنما)</option>
+                                <option value="آسان">آسان</option>
+                                <option value="متوسط">متوسط</option>
+                                <option value="سخت">سخت</option>
                             </select>
                         </div>
                     </div>
@@ -287,13 +287,13 @@
             const currentDate = now.toLocaleDateString('fa-IR', dateOptions).replace(/[\u200E\u200F]/g, '');
             document.getElementById('current-date').textContent = currentDate;
         }
-
+        
         function getLevelFromScore(score) {
             if (score >= 1500) return 'استاد کلمات 👑';
             if (score >= 1200) return 'بازیکن حرفه‌ای ⭐';
             if (score >= 1000) return 'بازیکن تازه‌کار ✨';
             if (score > 0) return 'تازه وارد';
-            return 'بازیکن میهمان'; // **تغییر: برای امتیاز صفر**
+            return 'بازیکن میهمان'; 
         }
         
         function toJalali(dateString) {
@@ -335,7 +335,6 @@
                                     document.getElementById('user-score').textContent = localizedScore;
                                     document.getElementById('user-level').textContent = level;
                                     
-                                    // منطق رنگ‌بندی سطح (همانند قبل)
                                     document.getElementById('user-level').classList.remove('bg-green-500', 'bg-yellow-500', 'bg-blue-500', 'bg-gray-500');
                                     if (score >= 1500) {
                                         document.getElementById('user-level').classList.add('bg-yellow-500');
@@ -362,7 +361,6 @@
         
         // تابع ایجاد بازی
         document.getElementById('create-game-form').addEventListener('submit', async (e) => {
-            // ... (منطق بدون تغییر) ...
             e.preventDefault();
             const form = e.target;
             const messageElement = document.getElementById('create-game-message');
@@ -378,8 +376,9 @@
             const word = form['word'].value.trim();
             const category = form['category'].value.trim();
             const difficulty = form['difficulty'].value;
-
-            if (word.length < 5 || !/^[\u0600-\u06FF]+$/.test(word)) {
+            
+            // اعتبارسنجی فرانت‌اند (کلمات فارسی و حداقل طول)
+            if (word.trim().replace(/\s/g, '').length < 5 || !/^[\u0600-\u06FF\s]+$/.test(word)) {
                 document.getElementById('word-error').classList.remove('hidden');
                 messageElement.textContent = '';
                 return;
@@ -422,19 +421,17 @@
             let body = null;
             let successMessage = '';
 
-            // **تغییر: سازنده همیشه از endpoint وضعیت استفاده می‌کند**
             endpoint = `/api/game/status/${gameCode}?userId=${GLOBAL_USER_ID}`;
             method = 'GET';
 
             if (isCreator) {
                 successMessage = 'مشاهده وضعیت بازی';
             } else if (status === 'waiting') {
-                // اگر بازیکن است و بازی منتظر است، اول پیوستن را انجام می‌دهد
                 endpoint = '/api/game/join';
                 method = 'POST';
                 body = JSON.stringify({ gameCode, playerId: GLOBAL_USER_ID });
                 successMessage = 'شما به بازی پیوستید!';
-            } else { // active or finished and player
+            } else { 
                 successMessage = 'مشاهده وضعیت بازی';
             }
 
@@ -493,7 +490,7 @@
             document.getElementById('modal-attempts-left').textContent = gameData.attemptsLeft;
             document.getElementById('hint-cost').textContent = gameData.hintCost;
             
-            // ** ۱. نمایش کلمه (رندر با رنگ سبز و انیمیشن) - نمایش حروفی که بازیکن حدس زده است **
+            // ۱. نمایش کلمه (رندر با رنگ سبز و انیمیشن)
             const wordDisplayEl = document.getElementById('modal-word-display');
             wordDisplayEl.innerHTML = (gameData.wordToDisplay || "").split(' ').map(char => {
                 if (char === '_') {
@@ -504,7 +501,7 @@
                 return char;
             }).join(' ');
             
-            // ** ۲. به‌روزرسانی تاریخچه حدس‌ها (بدون تغییر) **
+            // ۲. به‌روزرسانی تاریخچه حدس‌ها 
             const correctHistoryEl = document.getElementById('correct-letters-history');
             correctHistoryEl.innerHTML = gameData.correctGuessedLetters && gameData.correctGuessedLetters.length > 0
                 ? gameData.correctGuessedLetters.map(l => `<span class="guessed-letter-correct">${l}</span>`).join('')
@@ -516,12 +513,11 @@
                 : `<span class="text-gray-400 text-sm">حرفی ثبت نشده است.</span>`;
 
 
-            // ** ۳. منطق نمایش دکمه‌ها و فرم (Player/Creator) **
+            // ۳. منطق نمایش دکمه‌ها و فرم (Player/Creator)
             const playerActionsEl = document.getElementById('modal-player-actions');
             const creatorStatusEl = document.getElementById('modal-creator-status');
             const creatorPlayerNameEl = document.getElementById('modal-status-player-name');
 
-            // **رفع باگ نمایش نام بازیکن برای سازنده**
             creatorPlayerNameEl.textContent = gameData.playerName || 'هنوز کسی نپیوسته است';
             
             if (isPlayer && isActive) {
@@ -535,7 +531,7 @@
                  creatorStatusEl.classList.add('hidden');
             }
             
-            // ** ۴. مدیریت پیام وضعیت نهایی **
+            // ۴. مدیریت پیام وضعیت نهایی 
             const msgEl = document.getElementById('guess-message');
             if (isFinished) {
                  msgEl.textContent = gameData.status === 'won' ? 'تبریک! کلمه حدس زده شد.' : 'متأسفانه باختید. فرصت‌ها یا زمان تمام شد.';
@@ -547,7 +543,7 @@
                 msgEl.textContent = ''; 
             }
 
-            // ** ۵. مدیریت تایمر (بدون تغییر) **
+            // ۵. مدیریت تایمر
             if (currentInterval) clearInterval(currentInterval);
 
             if (isActive) {
@@ -567,7 +563,6 @@
             loadActiveGames(); 
         }
 
-        // تابع مدیریت Real-time Timer (بدون تغییر)
         function startTimer(initialSeconds, totalSeconds) {
             let seconds = initialSeconds;
             const timerEl = document.getElementById('modal-timer');
@@ -604,15 +599,14 @@
                     timerEl.textContent = "زمان تمام شد!";
                 }
                 
-                // به‌روزرسانی وضعیت هر ۱۰ ثانیه (برای بازیکن و سازنده)
-                if (seconds > 0 && seconds % 10 === 0 && currentGameCode) {
+                // **Real-time به‌روزرسانی وضعیت (برای بازیکن و سازنده)**
+                if (seconds > 0 && seconds % 5 === 0 && currentGameCode) { // تنظیم شده روی 5 ثانیه
                     fetchGameStatus(currentGameCode);
                 }
 
             }, 1000);
         }
         
-        // ... (loadActiveGames و guess form listener بدون تغییر) ...
         async function loadActiveGames() {
             const listElement = document.getElementById('active-games-list');
             listElement.innerHTML = `<div class="text-center text-gray-500 p-8 bg-gray-100 rounded-lg"><i class="fa-solid fa-spinner fa-spin ml-2"></i> در حال بارگذاری...</div>`;
@@ -635,7 +629,6 @@
                             statusText = game.status === 'waiting' ? 'منتظر بازیکن' : game.status === 'active' ? 'درحال بازی' : 'پایان یافته';
                             buttonText = game.status === 'waiting' ? `دعوت (کد: ${game.game_code})` : 'مشاهده وضعیت';
                             buttonClass = game.status === 'waiting' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-purple-600 hover:bg-purple-700';
-                            // کلمه برای سازنده قابل مشاهده است
                             details = `<span class="font-bold text-gray-800">[${game.difficulty}] کلمه: ${game.word.split('').join(' ')}</span>`; 
                             action = `joinGameOrView('${game.game_code}', true, '${game.status}')`;
                         } else {
