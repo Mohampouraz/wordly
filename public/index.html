@@ -27,6 +27,11 @@
             border: 1px solid #ddd;
         }
 
+        /* 🚨 رفع مشکل زبانه ها: تضمین پنهان شدن عناصر با کلاس hidden */
+        .page-content.hidden {
+            display: none !important;
+        }
+        
         /* Input & Select Fields */
         .input-field {
             width: 100%;
@@ -157,7 +162,7 @@
                 <i class="fas fa-sync fa-spin text-blue-500 text-4xl"></i>
             </div>
 
-            <div id="profile-tab" class="page-content block"> 
+            <div id="profile-tab" class="page-content"> 
                 <h2 class="text-2xl font-bold text-gray-700 mb-5 text-center">👋 خوش آمدید <span id="userNameDisplay" class="text-blue-600"></span>!</h2>
                 <div class="info-card text-center">
                     <h3 class="text-gray-600 text-lg font-semibold">امتیاز شما:</h3>
@@ -292,12 +297,11 @@
             }, 5000);
         }
 
-        // 🚨 تابع اصلاح شده مدیریت تب‌ها برای رفع مشکل نمایش محتوا زیر هم
+        // 🚨 تابع اصلاح شده مدیریت تب‌ها برای رفع قطعی مشکل نمایش محتوا زیر هم
         function showTab(tabId) {
-            // ۱. پنهان کردن تمام تب‌ها و حذف کلاس block
+            // ۱. پنهان کردن تمام تب‌ها
             document.querySelectorAll('.page-content').forEach(tab => {
                 tab.classList.add('hidden');
-                tab.classList.remove('block'); 
             });
             
             // ۲. حذف وضعیت فعال از تمام دکمه‌های ناوبری
@@ -308,11 +312,10 @@
                 clearInterval(gameTimerInterval);
             }
 
-            // ۳. نمایش تب جدید با افزودن کلاس block
+            // ۳. نمایش تب جدید
             const targetTab = document.getElementById(`${tabId}-tab`);
             if (targetTab) {
-                targetTab.classList.remove('hidden');
-                targetTab.classList.add('block'); 
+                targetTab.classList.remove('hidden'); 
             }
             
             // ۴. فعال کردن دکمه ناوبری
@@ -335,7 +338,7 @@
         }
 
 
-        // --- API & Core Logic Functions ---
+        // --- API & Core Logic Functions (بدون تغییر) ---
         
         async function loadUserProfile() {
             showLoading();
@@ -359,7 +362,6 @@
                     return;
                 }
 
-                // API call
                 const response = await fetch(`/api/user/score?userId=${userId}&fullName=${encodeURIComponent(fullName)}`);
                 const data = await response.json();
                 if (data.success) {
