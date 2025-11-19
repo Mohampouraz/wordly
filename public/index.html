@@ -13,7 +13,6 @@
         body {
             font-family: 'Vazirmatn', sans-serif;
             font-weight: 500;
-            /* پس زمینه شیب‌دار جذاب */
             background: linear-gradient(135deg, #f0f4f8 0%, #e0e7ee 100%);
         }
         .container-card {
@@ -69,18 +68,14 @@
         </nav>
 
         <div class="p-8">
-            
             <div id="content-profile" class="tab-content">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2"><i class="fa-solid fa-chart-line ml-2 text-indigo-600"></i> آمار و امتیازات</h2>
-                
                 <div class="bg-gradient-to-br from-indigo-50 to-purple-100 border border-indigo-200 p-8 rounded-2xl shadow-xl">
-                    
                     <div class="text-center mb-6">
                         <p class="text-xl text-gray-600">امتیاز کل:</p>
                         <p id="user-score" class="text-7xl font-extrabold text-indigo-700 mt-1 animate-pulse">...</p>
                         <span id="user-level" class="inline-block bg-green-500 text-white text-sm font-semibold px-4 py-2 rounded-full mt-3 shadow-lg transform rotate-1">درحال بارگذاری سطح...</span>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-700 mt-8">
                         <div class="bg-white p-5 rounded-xl shadow-md border-r-4 border-indigo-400"><p class="mb-2"><span class="font-bold text-indigo-600">نام کاربری:</span> <span id="user-name" class="font-medium text-gray-900">...</span></p></div>
                         <div class="bg-white p-5 rounded-xl shadow-md border-r-4 border-indigo-400"><p class="mb-2"><span class="font-bold text-indigo-600">آیدی تلگرام:</span> <span id="user-id" class="text-sm text-gray-500 font-mono">...</span></p></div>
@@ -88,19 +83,15 @@
                     </div>
                 </div>
             </div>
-            
             <div id="content-create" class="tab-content hidden">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800"><i class="fa-solid fa-pen-nib ml-2 text-indigo-600"></i> تعریف کلمه جدید برای رقابت</h2>
                 <form id="create-game-form" class="p-8 bg-gray-50 border border-indigo-100 rounded-xl shadow-xl space-y-6">
-                    
                     <p class="text-gray-600 border-b pb-3 mb-4"><i class="fa-solid fa-keyboard ml-1 text-indigo-500"></i> مشخصات کلمه‌ای که دیگران باید حدس بزنند:</p>
-
                     <div>
                         <label for="word-input" class="block text-base font-medium text-gray-700">کلمه انتخابی (فارسی، حداقل ۵ حرف):</label>
                         <input type="text" id="word-input" name="word" required minlength="5" pattern="[\u0600-\u06FF\s]+" placeholder="مثلاً: برنامه نویسی" class="input-modern border-2 border-indigo-300/50" />
                         <p class="text-sm text-red-500 mt-1 hidden" id="word-error">کلمه باید حداقل ۵ حرف و فقط شامل حروف فارسی و فاصله باشد.</p>
                     </div>
-
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="category-input" class="block text-base font-medium text-gray-700">دسته‌بندی کلمه:</label>
@@ -115,37 +106,26 @@
                             </select>
                         </div>
                     </div>
-
-                    <button type="submit" class="btn-primary">
-                        <i class="fa-solid fa-rocket ml-2"></i> ثبت و شروع انتظار برای بازیکن
-                    </button>
-                    
+                    <button type="submit" class="btn-primary"><i class="fa-solid fa-rocket ml-2"></i> ثبت و شروع انتظار برای بازیکن</button>
                     <p id="create-game-message" class="mt-4 text-center font-bold"></p>
                 </form>
             </div>
-            
             <div id="content-active" class="tab-content hidden">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800"><i class="fa-solid fa-list-ul ml-2 text-indigo-600"></i> بازی‌های در دسترس شما</h2>
                 <p class="text-gray-600 mb-4">می‌توانید به بازی‌های `منتظر بازیکن` بپیوندید یا وضعیت بازی‌های خود را مشاهده کنید:</p>
-                
                 <div id="active-games-list" class="mt-4 space-y-4">
-                    <div class="text-center text-gray-500 p-8 bg-gray-100 rounded-xl shadow-inner">
-                         <i class="fa-solid fa-spinner fa-spin ml-2"></i> در حال بارگذاری لیست بازی‌ها...
-                    </div>
+                    <div class="text-center text-gray-500 p-8 bg-gray-100 rounded-xl shadow-inner"><i class="fa-solid fa-spinner fa-spin ml-2"></i> در حال بارگذاری...</div>
                 </div>
             </div>
-
         </div>
     </div>
 
     <div id="game-view-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-90 flex items-center justify-center transition-opacity duration-300 z-50 p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl p-8 rtl transform scale-95 transition-transform duration-300 ease-out border-t-8 border-indigo-500">
-            
             <div class="flex justify-between items-center border-b pb-4 mb-5">
                 <h3 class="text-2xl font-extrabold text-indigo-700"><i class="fa-solid fa-gamepad ml-2"></i> بازی فعال: <span id="modal-game-code" class="text-base bg-indigo-100 px-3 py-1 rounded-full text-indigo-600"></span></h3>
                 <button onclick="closeGameView()" class="text-gray-400 hover:text-gray-600 text-3xl font-light leading-none transition duration-150">&times;</button>
             </div>
-            
             <div class="grid grid-cols-2 gap-4 mb-6 text-center">
                 <div class="bg-indigo-50 p-4 rounded-xl shadow-inner border border-indigo-200">
                     <p class="text-sm text-gray-600">زمان باقیمانده:</p>
@@ -156,67 +136,73 @@
                     <p id="modal-attempts-left" class="text-5xl font-extrabold text-red-600 mt-1">--</p>
                 </div>
             </div>
-
-            <div id="modal-word-display" class="text-center text-6xl font-mono tracking-wider my-8 font-extrabold text-gray-800 min-h-[70px]">
-                </div>
-
+            <div id="modal-word-display" class="text-center text-6xl font-mono tracking-wider my-8 font-extrabold text-gray-800 min-h-[70px]"></div>
             <div id="modal-game-result" class="hidden p-6 rounded-xl shadow-2xl mt-4 text-center transform scale-100 transition-all duration-500 ease-out">
                 <p id="result-message" class="text-3xl font-extrabold mb-3"></p>
                 <p class="text-lg font-bold text-gray-700">تغییر امتیاز: <span id="score-change" class="text-2xl font-mono ml-2"></span></p>
                 <button onclick="closeGameView()" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-6 rounded-full mt-4"><i class="fa-solid fa-check ml-2"></i> تأیید و بازگشت</button>
             </div>
-            
             <div id="modal-creator-status" class="hidden p-5 rounded-xl bg-blue-50 border border-blue-300 mt-4 text-center">
                 <p class="font-bold text-blue-800"><i class="fa-solid fa-eye ml-2"></i> شما سازنده این بازی هستید.</p>
                 <p class="text-sm text-blue-700 mt-1">بازیکن: <span id="modal-status-player-name" class="font-extrabold">--</span> | کلمه: <span id="modal-creator-word" class="font-mono text-gray-800">--</span></p>
             </div>
-
-
             <div id="modal-player-actions" class="border p-5 rounded-xl shadow-xl bg-white mt-4">
                 <form id="guess-form" class="flex gap-4 items-center mb-3">
                     <input type="text" id="guess-input" maxlength="1" required placeholder="فقط یک حرف فارسی" class="input-modern p-3 text-center text-2xl font-bold flex-grow max-w-[120px]" style="caret-color: transparent;" oninput="this.value = this.value.replace(/[^ء-ی]/g, '')">
-                    <button type="submit" class="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg">
-                        <i class="fa-solid fa-paper-plane ml-2"></i> حدس
-                    </button>
-                    <button type="button" id="hint-button" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl transition duration-150 whitespace-nowrap shadow-lg">
-                        <i class="fa-solid fa-lightbulb ml-2"></i> راهنمایی
-                    </button>
+                    <button type="submit" class="flex-grow bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg"><i class="fa-solid fa-paper-plane ml-2"></i> حدس</button>
+                    <button type="button" id="hint-button" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded-xl transition duration-150 whitespace-nowrap shadow-lg"><i class="fa-solid fa-lightbulb ml-2"></i> راهنمایی</button>
                 </form>
                 <p id="guess-message" class="text-center font-semibold text-sm mt-3"></p>
             </div>
-            
             <div class="grid grid-cols-2 gap-4 mt-6">
                 <div class="p-4 rounded-xl shadow-inner bg-green-50 border border-green-300">
                     <p class="text-sm font-bold text-green-800 mb-2"><i class="fa-solid fa-check-circle ml-2"></i> حروف درست:</p>
                     <div id="correct-letters-history"></div>
                 </div>
-                
                 <div class="p-4 rounded-xl shadow-inner bg-red-50 border border-red-300">
                     <p class="text-sm font-bold text-red-800 mb-2"><i class="fa-solid fa-times-circle ml-2"></i> حروف غلط:</p>
                     <div id="incorrect-letters-history"></div>
                 </div>
             </div>
-            
         </div>
     </div>
 
     <script>
+        // **این بخش کلیدی برای بالا آمدن وب‌اَپ است**
+        if (window.Telegram && window.Telegram.WebApp) {
+            // ۱. اعلان آماده بودن به تلگرام برای بسته شدن صفحه لودینگ
+            window.Telegram.WebApp.ready(); 
+            
+            // ۲. اگر از منوی پیوست یا کامند /start آمده، دکمه اصلی را مخفی می‌کند (چون خود اپ باز شده است)
+            // و رنگ پس‌زمینه را تنظیم می‌کند
+            window.Telegram.WebApp.MainButton.hide(); 
+            
+            // ۳. اگر به هر دلیلی وب‌اَپ بسته شد، صفحه را هم می‌بندد (اختیاری)
+            // window.Telegram.WebApp.onEvent('viewportChanged', (isStateStable) => {
+            //     if (isStateStable && !window.Telegram.WebApp.isExpanded) {
+            //         window.Telegram.WebApp.close();
+            //     }
+            // });
+
+            console.log("Telegram WebApp Initialized and Ready.");
+        } else {
+            console.warn("Telegram WebApp object not found. Running in standalone mode.");
+        }
+        
         let GLOBAL_USER_ID = null;
         let GLOBAL_FULL_NAME = 'کاربر میهمان';
         let currentInterval = null;
         let currentGameCode = null;
-        
         let mockGameData = {};
 
-
-        // --- توابع کمکی ---
+        // --- توابع کمکی (بدون تغییر) ---
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(content => { content.classList.add('hidden'); });
             document.querySelectorAll('.tab-button-modern').forEach(button => { button.classList.remove('tab-active-modern'); });
             document.getElementById(`content-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-${tabId}`).classList.add('tab-active-modern');
             if (tabId === 'active') { loadActiveGames(); }
-            if (tabId === 'profile') { loadUserDataAndScore(); } // بارگذاری مجدد امتیاز
+            if (tabId === 'profile') { loadUserDataAndScore(); }
         }
 
         function updateDateTime() {
@@ -224,7 +210,6 @@
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
             const currentTime = now.toLocaleTimeString('fa-IR', timeOptions).replace(/[\u200E\u200F]/g, ''); 
             document.getElementById('current-time').textContent = currentTime;
-
             const dateOptions = { year: 'numeric', month: '2-digit', day: '2-digit' };
             const currentDate = now.toLocaleDateString('fa-IR', dateOptions).replace(/[\u200E\u200F]/g, '');
             document.getElementById('current-date').textContent = currentDate;
@@ -250,12 +235,10 @@
             return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
         }
         
-        
-        // --- توابع اصلی مدیریت UI/Data ---
+        // --- توابع اصلی (بدون تغییر در منطق) ---
         
         function loadUserDataAndScore() {
             try {
-                // Initialize Telegram User Data
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
                     const userData = window.Telegram.WebApp.initDataUnsafe.user;
                     GLOBAL_USER_ID = userData.id.toString();
@@ -264,12 +247,10 @@
                     document.getElementById('user-name').textContent = GLOBAL_FULL_NAME;
                     document.getElementById('user-id').textContent = GLOBAL_USER_ID;
                 } else {
-                    // Fallback for non-Telegram environment
                     GLOBAL_USER_ID = '00000000';
                     GLOBAL_FULL_NAME = 'کاربر تست';
                 }
                 
-                // Fetch Score from Server
                 fetch(`/api/user/score?userId=${GLOBAL_USER_ID}&fullName=${encodeURIComponent(GLOBAL_FULL_NAME)}`)
                     .then(response => response.json())
                     .then(data => {
@@ -305,7 +286,6 @@
             }
         }
         
-        // تابع ایجاد بازی
         document.getElementById('create-game-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -321,7 +301,7 @@
 
             const word = form['word'].value.trim();
             const category = form['category'].value.trim();
-            const difficulty = form['difficulty'].value;
+            const difficulty = form['difficulty'].value.split(' ')[0];
             
             if (word.trim().replace(/\s/g, '').length < 5 || !/^[\u0600-\u06FF\s]+$/.test(word)) {
                 document.getElementById('word-error').classList.remove('hidden');
@@ -338,8 +318,7 @@
                     body: JSON.stringify({
                         word: word,
                         category: category,
-                        // گرفتن فقط مقدار متنی دشواری، نه امتیاز
-                        difficulty: difficulty.split(' ')[0] 
+                        difficulty: difficulty 
                     })
                 });
                 const data = await response.json();
@@ -410,7 +389,6 @@
             }
         }
 
-        // تابع به‌روزرسانی نمای بازی (Modal)
         function showGameView(gameData) {
             Object.assign(mockGameData, gameData);
             
@@ -419,20 +397,17 @@
             const isActive = gameData.status === 'active';
             const isFinished = ['lost', 'won'].includes(gameData.status);
 
-            // ۱. تنظیم مشخصات
             document.getElementById('modal-game-code').textContent = gameData.gameCode;
             document.getElementById('modal-attempts-left').textContent = gameData.attemptsLeft;
             document.getElementById('modal-creator-word').textContent = gameData.wordToDisplay.replace(/ /g, '');
             
-            // ۲. رندر کلمه
             const wordDisplayEl = document.getElementById('modal-word-display');
             wordDisplayEl.innerHTML = (gameData.wordToDisplay || "").split(' ').map(char => {
-                const displayChar = char === '_' ? 'ـ' : char; // نمایش "ـ" به جای "_"
+                const displayChar = char === '_' ? 'ـ' : char; 
                 return `<span class="letter-box ${char === '_' ? 'bg-gray-200 text-gray-800' : 'bg-green-100 text-green-700 correct-letter-display'}">${displayChar}</span>`;
             }).join(' ');
 
             
-            // ۳. رندر تاریخچه حدس‌ها
             const correctHistoryEl = document.getElementById('correct-letters-history');
             correctHistoryEl.innerHTML = gameData.correctGuessedLetters && gameData.correctGuessedLetters.length > 0
                 ? gameData.correctGuessedLetters.map(l => `<span class="guessed-letter-correct">${l}</span>`).join('')
@@ -443,7 +418,6 @@
                 ? gameData.incorrectGuessedLetters.map(l => `<span class="guessed-letter-incorrect">${l}</span>`).join('')
                 : `<span class="text-gray-400 text-sm">...</span>`;
 
-            // ۴. مدیریت وضعیت پایان بازی و امتیاز
             const resultModalEl = document.getElementById('modal-game-result');
             const playerActionsEl = document.getElementById('modal-player-actions');
             const creatorStatusEl = document.getElementById('modal-creator-status');
@@ -468,7 +442,6 @@
                     document.getElementById('score-change').className = 'text-2xl font-mono ml-2 text-red-600';
                 }
                 
-                // بارگذاری مجدد امتیاز در پروفایل
                 loadUserDataAndScore(); 
 
             } else {
@@ -487,7 +460,6 @@
                 document.getElementById('guess-message').textContent = ''; 
             }
 
-            // ۵. مدیریت تایمر
             if (currentInterval) clearInterval(currentInterval);
 
             if (isActive) {
@@ -495,7 +467,7 @@
             } else {
                 const timerEl = document.getElementById('modal-timer');
                 timerEl.textContent = isFinished ? 'پایان' : formatTime(gameData.totalTimeSeconds);
-                timerEl.classList.remove('animate-pulse', 'text-red-600', 'text-yellow-600', 'text-green-600');
+                timerEl.classList.remove('animate-pulse', 'text-red-600', 'text-yellow-600', 'text-indigo-600');
             }
         }
         
