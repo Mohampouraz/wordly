@@ -1,17 +1,18 @@
-// server.js - شامل Express، ربات تلگرام و اتصال به PostgreSQL
+// server.js - شامل Express، ربات تلگرام، و مدیریت دیتابیس برای بازی‌ها و کلمات
 const express = require('express');
 const path = require('path');
 const TelegramBot = require('node-telegram-bot-api');
-// **** اضافه شدن کتابخانه PostgreSQL ****
 const { Pool } = require('pg'); 
+// برای تولید کدهای منحصر به فرد بازی
+const crypto = require('crypto');
 
 const app = express();
+app.use(express.json()); // برای دریافت داده‌های JSON از سمت کلاینت (Web App)
 
 // ****************************
 // تنظیمات و کانفیگ محیطی ⚙️
 // ****************************
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
-// **مهم**: از آدرس واقعی دیتابیس خود استفاده کنید.
 const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5";
 const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlygame.onrender.com";
 const PORT = process.env.PORT || 3000;
@@ -21,19 +22,22 @@ const PORT = process.env.PORT || 3000;
 // ۱. تنظیمات دیتابیس PostgreSQL
 // ****************************
 
-// ایجاد یک Pool برای مدیریت بهینه اتصالات به دیتابیس
 const pool = new Pool({
     connectionString: DATABASE_URL,
-    // در محیط‌های Production (مثل Render) به SSL نیاز است
-    ssl: {
-        rejectUnauthorized: false 
-    }
+    ssl: { rejectUnauthorized: false }
 });
 
-// تابع برای اتصال و ایجاد جدول کاربران
+// تابع برای تولید کد بازی 6 حرفی منحصر به فرد
+function generateGameCode() {
+    // تولید رشته 6 کاراکتری آلفانومریک بزرگ (برای خوانایی بهتر)
+    return crypto.randomBytes(3).toString('hex').toUpperCase(); 
+}
+
+// تابع برای اتصال و ایجاد جداول (Users, Words, Games)
 async function setupDatabase() {
     try {
         const client = await pool.connect();
+        // 1. جدول Users (از قبل)
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(255) PRIMARY KEY,
@@ -42,42 +46,57 @@ async function setupDatabase() {
                 created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             );
         `);
+        // 2. جدول Words (کلمات بازی)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS words (
+                id SERIAL PRIMARY KEY,
+                word VARCHAR(50) UNIQUE NOT NULL,
+                category VARCHAR(50) NOT NULL,
+                difficulty VARCHAR(20) NOT NULL, -- آسان، متوسط، سخت
+                creator_id VARCHAR(255)
+            );
+        `);
+        // 3. جدول Games (بازی‌های فعال و پایان یافته)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS games (
+                id SERIAL PRIMARY KEY,
+                game_code VARCHAR(10) UNIQUE NOT NULL,
+                word_id INTEGER REFERENCES words(id) NOT NULL,
+                creator_id VARCHAR(255) REFERENCES users(id) NOT NULL,
+                status VARCHAR(20) DEFAULT 'waiting', -- waiting, active, finished
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
         client.release();
-        console.log('✅ PostgreSQL: Database connection successful and "users" table ensured.');
+        console.log('✅ PostgreSQL: All database tables (Users, Words, Games) ensured.');
     } catch (err) {
         console.error('❌ PostgreSQL: Error setting up database:', err.message);
-        // از اجرای سرور جلوگیری نمی‌کنیم، اما خطا را ثبت می‌کنیم
     }
 }
 
-// تابع برای دریافت امتیاز یا ثبت کاربر جدید (Upsert Logic)
+// تابع برای دریافت امتیاز یا ثبت کاربر جدید (از مرحله قبل)
 async function getUserScoreAndUpsert(userId, fullName) {
     const defaultScore = 1000;
     try {
-        const result = await pool.query('SELECT score FROM users WHERE id = $1', [userId]);
+        let result = await pool.query('SELECT score FROM users WHERE id = $1', [userId]);
 
         if (result.rows.length > 0) {
-            // کاربر قبلاً ثبت شده است
             return result.rows[0].score;
         } else {
-            // کاربر جدید است، آن را ثبت می‌کنیم
             await pool.query(
                 'INSERT INTO users (id, full_name, score) VALUES ($1, $2, $3)',
                 [userId, fullName, defaultScore]
             );
-            console.log(`👤 New user registered: ${fullName} (${userId})`);
             return defaultScore;
         }
     } catch (error) {
         console.error('❌ Error in getUserScoreAndUpsert:', error.message);
-        // در صورت خطا، امتیاز پیش‌فرض را برمی‌گردانیم تا برنامه متوقف نشود
         return defaultScore; 
     }
 }
 
-
 // ****************************
-// ۲. راه‌اندازی ربات تلگرام 🤖
+// ۲. راه‌اندازی ربات تلگرام 🤖 (بدون تغییر)
 // ****************************
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 console.log('🤖 Telegram Bot is running in polling mode...');
@@ -88,23 +107,13 @@ bot.onText(/\/start/, (msg) => {
 
     const keyboard = {
         inline_keyboard: [
-            [
-                { 
-                    text: "🚀 باز کردن پنل بازی", 
-                    web_app: { 
-                        url: WEB_APP_URL 
-                    } 
-                }
-            ]
+            [{ text: "🚀 باز کردن پنل بازی", web_app: { url: WEB_APP_URL } }]
         ]
     };
-
     bot.sendMessage(
         chatId, 
         `سلام ${userName} 👋! برای دسترسی به پنل کاربری و شروع بازی کلمات، دکمه زیر را فشار دهید:`, 
-        { 
-            reply_markup: keyboard 
-        }
+        { reply_markup: keyboard }
     );
 });
 
@@ -115,29 +124,107 @@ bot.onText(/\/start/, (msg) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// مسیر اصلی (/)
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// مسیر API واقعی برای دریافت امتیاز کاربر از دیتابیس
+// مسیر API برای دریافت امتیاز کاربر (از مرحله قبل)
 app.get('/api/user/score', async (req, res) => {
     const userId = req.query.userId;
-    const fullName = req.query.fullName || 'Unknown User'; // نام از جاوااسکریپت WebApp فرستاده می‌شود
+    const fullName = req.query.fullName || 'Unknown User';
 
     if (!userId) {
         return res.status(400).json({ success: false, message: "User ID is required." });
     }
     
-    // استفاده از منطق دیتابیس
     const score = await getUserScoreAndUpsert(userId, fullName);
 
-    res.json({ 
-        success: true, 
-        userId: userId, 
-        score: score, 
-        message: 'Score retrieved from PostgreSQL.'
-    });
+    res.json({ success: true, userId: userId, score: score });
+});
+
+// مسیر API جدید برای ایجاد کلمه و بازی 
+app.post('/api/game/create', async (req, res) => {
+    const { word, category, difficulty, creatorId } = req.body;
+    
+    if (!word || !category || !difficulty || !creatorId) {
+        return res.status(400).json({ success: false, message: "Missing required fields (word, category, difficulty, creatorId)." });
+    }
+
+    try {
+        // 1. ذخیره کلمه جدید در جدول words (یا بروزرسانی اگر از قبل وجود دارد)
+        let wordResult = await pool.query(
+            `INSERT INTO words (word, category, difficulty, creator_id) 
+             VALUES ($1, $2, $3, $4) 
+             ON CONFLICT (word) 
+             DO UPDATE SET category = $2, difficulty = $3
+             RETURNING id`, 
+            [word.toLowerCase(), category, difficulty, creatorId]
+        );
+        const wordId = wordResult.rows[0].id;
+
+        // 2. ایجاد کد بازی منحصر به فرد
+        let gameCode;
+        let codeExists = true;
+        while(codeExists) {
+            gameCode = generateGameCode();
+            const check = await pool.query('SELECT game_code FROM games WHERE game_code = $1', [gameCode]);
+            if (check.rows.length === 0) {
+                codeExists = false;
+            }
+        }
+
+        // 3. ثبت بازی جدید در جدول games
+        await pool.query(
+            `INSERT INTO games (game_code, word_id, creator_id, status) 
+             VALUES ($1, $2, $3, 'waiting')`,
+            [gameCode, wordId, creatorId]
+        );
+        
+        console.log(`🎮 Game created: ${gameCode} by ${creatorId}`);
+        
+        return res.json({ 
+            success: true, 
+            message: "Game created successfully.",
+            gameCode: gameCode,
+            word: word,
+            difficulty: difficulty
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating game:', error.message);
+        return res.status(500).json({ success: false, message: "Internal server error during game creation." });
+    }
+});
+
+// مسیر API جدید برای دریافت لیست بازی‌های فعال کاربر
+app.get('/api/games/active', async (req, res) => {
+    const userId = req.query.userId;
+    if (!userId) {
+        return res.status(400).json({ success: false, message: "User ID is required." });
+    }
+
+    try {
+        // بازی‌هایی که کاربر سازنده آن‌ها است
+        const gamesResult = await pool.query(`
+            SELECT 
+                g.game_code, 
+                g.status, 
+                g.created_at,
+                w.word,
+                w.difficulty,
+                u.full_name AS creator_name
+            FROM games g
+            JOIN words w ON g.word_id = w.id
+            JOIN users u ON g.creator_id = u.id
+            WHERE g.creator_id = $1
+            ORDER BY g.created_at DESC
+        `, [userId]);
+
+        return res.json({ 
+            success: true, 
+            games: gamesResult.rows 
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching active games:', error.message);
+        return res.status(500).json({ success: false, message: "Internal server error fetching active games." });
+    }
 });
 
 
@@ -147,7 +234,5 @@ app.get('/api/user/score', async (req, res) => {
 setupDatabase().then(() => {
     app.listen(PORT, () => {
         console.log(`🌐 Express Server is running on port ${PORT}`);
-        console.log(`Web App URL: ${WEB_APP_URL}`);
-        console.log('-----------------------------------');
     });
 });
