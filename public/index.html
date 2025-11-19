@@ -14,30 +14,25 @@
         body {
             font-family: 'Vazirmatn', sans-serif;
             font-weight: 500;
-            /* پس زمینه تیره تر و مدرن */
             background-color: #0d1117; 
             color: #c9d1d9;
         }
         .container-card {
-            /* استایل جدید کارت اصلی */
             @apply max-w-4xl mx-auto bg-[#161b22] shadow-2xl rounded-xl overflow-hidden my-8 border-t-4 border-cyan-500 transition-all duration-300 hover:shadow-cyan-500/20;
         }
         .header-bg {
             @apply bg-cyan-700 text-white p-6;
         }
         .tab-active-modern {
-            /* استایل تب فعال جدید */
             @apply bg-cyan-900 text-cyan-200 border-b-4 border-cyan-500 font-extrabold shadow-inner shadow-black/50;
         }
         .tab-button-modern {
             @apply py-3 px-2 text-center text-sm font-semibold text-gray-400 transition duration-300 ease-in-out hover:bg-cyan-900/50 hover:text-white;
         }
         .input-modern {
-            /* استایل اینپوت مدرن */
             @apply mt-1 block w-full rounded-lg border-gray-700 bg-[#0d1117] text-white shadow-lg focus:border-cyan-500 focus:ring-cyan-500 p-4 transition duration-200 text-lg;
         }
         .btn-primary {
-            /* استایل دکمه اصلی */
             @apply w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg transition duration-300 transform hover:scale-[1.01] hover:shadow-cyan-500/50;
         }
         .btn-secondary {
@@ -184,14 +179,11 @@
     </div>
 
     <script>
-        // **۱. اصلاح هسته‌ای برای بارگذاری وب‌اَپ در تلگرام**
+        // **۱. اصلاح هسته‌ای برای بارگذاری وب‌اَپ در تلگرام با /start**
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready(); 
             window.Telegram.WebApp.MainButton.hide(); 
-            // تنظیم رنگ پس‌زمینه و هدر برای تطابق با تم تلگرام (اختیاری)
-            // window.Telegram.WebApp.setBackgroundColor('#0d1117');
-            // window.Telegram.WebApp.setHeaderColor('#161b22');
-            console.log("Telegram WebApp Initialized and Ready.");
+            console.log("Telegram WebApp Initialized and Ready for /start command.");
         } else {
             console.warn("Telegram WebApp object not found. Running in standalone mode.");
         }
@@ -246,7 +238,6 @@
         
         function loadUserDataAndScore() {
             try {
-                // تلاش برای گرفتن اطلاعات کاربر از تلگرام
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
                     const userData = window.Telegram.WebApp.initDataUnsafe.user;
                     GLOBAL_USER_ID = userData.id.toString();
@@ -275,7 +266,7 @@
                             document.getElementById('user-level').textContent = level;
                             
                             const levelEl = document.getElementById('user-level');
-                            levelEl.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-blue-500', 'bg-gray-500');
+                            levelEl.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-blue-500', 'bg-gray-500', 'bg-cyan-500');
                             if (score >= 1000) {
                                 levelEl.classList.add('bg-yellow-500');
                             } else if (score >= 500) {
@@ -306,7 +297,7 @@
             const wordErrorEl = document.getElementById('word-error');
             messageElement.textContent = 'در حال ثبت بازی...';
             messageElement.className = 'mt-4 text-center font-bold text-cyan-500';
-            wordErrorEl.classList.add('hidden'); // مخفی کردن خطای قبلی
+            wordErrorEl.classList.add('hidden'); 
 
             if (!GLOBAL_USER_ID) {
                 messageElement.textContent = 'خطا: اطلاعات کاربری بارگذاری نشده است.';
@@ -318,7 +309,7 @@
             const category = form['category'].value.trim();
             const difficulty = form['difficulty'].value.split(' ')[0];
             
-            // **اعتبارسنجی حداقل ۵ حرف فارسی بدون احتساب فاصله**
+            // اعتبارسنجی حداقل ۵ حرف فارسی بدون احتساب فاصله
             const sanitizedWordLength = word.trim().replace(/\s/g, '').length;
             if (sanitizedWordLength < 5 || !/^[\u0600-\u06FF\s]+$/.test(word)) {
                 wordErrorEl.classList.remove('hidden');
@@ -336,7 +327,7 @@
                         word: word,
                         category: category,
                         difficulty: difficulty,
-                        creatorId: GLOBAL_USER_ID // ارسال creatorId
+                        creatorId: GLOBAL_USER_ID 
                     })
                 });
                 const data = await response.json();
@@ -411,13 +402,12 @@
             Object.assign(mockGameData, gameData);
             
             const isCreator = gameData.isCreator;
-            const isPlayer = gameData.isPlayer;
             const isActive = gameData.status === 'active';
             const isFinished = ['lost', 'won'].includes(gameData.status);
 
             document.getElementById('modal-game-code').textContent = gameData.gameCode;
             document.getElementById('modal-attempts-left').textContent = gameData.attemptsLeft;
-            document.getElementById('modal-creator-word').textContent = gameData.wordToDisplay.replace(/ /g, ''); // نمایش کامل کلمه برای سازنده
+            document.getElementById('modal-creator-word').textContent = gameData.wordToDisplay.replace(/ /g, ''); 
             
             const wordDisplayEl = document.getElementById('modal-word-display');
             wordDisplayEl.innerHTML = (gameData.wordToDisplay || "").split(' ').map(char => {
@@ -465,7 +455,7 @@
             } else {
                 resultModalEl.classList.add('hidden');
                 
-                if (isPlayer && isActive) {
+                if (gameData.isPlayer && isActive) {
                     playerActionsEl.classList.remove('hidden');
                     creatorStatusEl.classList.add('hidden');
                 } else if (isCreator || gameData.status === 'waiting') {
@@ -527,6 +517,7 @@
                     timerEl.textContent = "زمان تمام شد!";
                 }
                 
+                // هر ۵ ثانیه یک بار وضعیت بازی را از سرور می‌گیرد تا اطلاعات به‌روز شود.
                 if (seconds > 0 && seconds % 5 === 0 && currentGameCode) {
                     fetchGameStatus(currentGameCode);
                 }
