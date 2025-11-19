@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wordly Arena 🎮</title>
     
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/tailwind/dist/tailwind.min.css" rel="stylesheet">
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     
@@ -347,6 +347,7 @@
                 
                 document.getElementById('userNameDisplay').textContent = fullName;
 
+                // API call
                 const response = await fetch(`/api/user/score?userId=${userId}&fullName=${encodeURIComponent(fullName)}`);
                 const data = await response.json();
                 if (data.success) {
@@ -366,7 +367,7 @@
         async function createGame() {
             showLoading();
             const word = document.getElementById('createWord').value;
-            const category = document.getElementById('createCategory').value; // استفاده از INPUT جدید
+            const category = document.getElementById('createCategory').value;
             const difficulty = document.getElementById('createDifficulty').value;
 
             if (!word || !category || !difficulty) {
@@ -391,7 +392,7 @@
                     document.getElementById('createdGameInfo').classList.remove('hidden');
                     
                     document.getElementById('createWord').value = '';
-                    document.getElementById('createCategory').value = ''; // خالی کردن فیلد جدید
+                    document.getElementById('createCategory').value = '';
                 } else {
                     showMessage('createGameMessage', data.message || 'خطا در ایجاد بازی.', 'error');
                     document.getElementById('createdGameInfo').classList.add('hidden');
