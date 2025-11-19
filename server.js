@@ -5,28 +5,32 @@ const { Pool } = require('pg');
 const TelegramBot = require('node-telegram-bot-api'); 
 
 const app = express();
+// استفاده از PORT محیطی Render
 const PORT = process.env.PORT || 3000;
 
-// --- 📢 تنظیمات ضروری ---
-// از متغیرهای محیطی Render استفاده کنید یا مقادیر واقعی را قرار دهید
+// --- 📢 تنظیمات ضروری (استفاده از متغیرهای محیطی Render) ---
+// توکن بات تلگرام
 const TOKEN = process.env.BOT_TOKEN || '8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA'; 
+// آدرس URL عمومی Render App شما (برای Webhook)
 const WEB_APP_URL = process.env.WEB_APP_URL || 'https://wordlygame.onrender.com';
+// رشته اتصال PostgreSQL
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5';
-// ------------------------
+// ------------------------------------------------------------
 
 
 // --- ۱. تنظیمات اتصال PostgreSQL (حل مشکل SSL/TLS required) ---
 const pool = new Pool({
     connectionString: DATABASE_URL, 
     ssl: { 
-        rejectUnauthorized: false 
+        rejectUnauthorized: false // تنظیم ضروری برای Render
     }
 });
 // ------------------------------------------------------------------
 
 /**
- * ⚠️ تابع حیاتی: این تابع جداول users و games را ایجاد می‌کند.
- * ⚠️ پس از اولین دیپلوی موفق، بهتر است برای جلوگیری از خطاهای احتمالی، آن را حذف کنید.
+ * 🏗️ تابع ایجاد جداول: این تابع یک بار در هنگام راه‌اندازی، جداول users و games را ایجاد می‌کند.
+ * پس از اولین دیپلوی موفق که در آن پیام "جداول با موفقیت ایجاد شدند" را در لاگ‌ها دیدید، 
+ * می‌توانید این تابع و فراخوانی آن در app.listen را حذف کنید تا کد تمیزتر شود.
  */
 async function ensureTablesExist() {
     console.log("--- 🏗️ در حال بررسی و ایجاد جداول دیتابیس... 🏗️ ---");
@@ -66,8 +70,6 @@ async function ensureTablesExist() {
 
     } catch (error) {
         console.error("❌ خطای اسکیما (ایجاد جداول):", error.message);
-        // در صورت خطای جدی، سرویس باید کرش کند تا خطا مشخص شود
-        // throw error; 
     } finally {
         client.release();
     }
@@ -128,7 +130,6 @@ async function finalizeGameScore(gameCode, gameData, status) {
 
 async function checkGameStatus(gameData) {
     if (gameData.status === 'won' || gameData.status === 'lost') return gameData.status;
-
     if (gameData.status !== 'active') return gameData.status;
 
     const wordWithoutSpaces = gameData.word.replace(/\s/g, '').split('');
@@ -203,7 +204,6 @@ async function getGameDataForClient(gameData, userId) {
 // ------------------------------------------------------------------
 
 app.use(bodyParser.json());
-// فرض می‌کنیم فایل‌های فرانت‌اند در پوشه 'public' قرار دارند
 app.use(express.static(path.join(__dirname, 'public')));
 
 
@@ -227,7 +227,6 @@ bot.onText(/\/start/, (msg) => {
     };
 
     bot.sendMessage(chatId, 'برای شروع، دکمه بازی را بزنید:', keyboard);
-    console.log(`Bot received /start from ${msg.chat.id} and sent the Web App button.`);
 });
 
 // Endpoint Webhook که تلگرام پیام‌ها را به آن ارسال می‌کند
@@ -267,7 +266,6 @@ app.get('/api/user/score', async (req, res) => {
 
     } catch (error) {
         console.error("DB Error in /api/user/score:", error);
-        // خطای 42P01 (relation does not exist) اکنون باید با ensureTablesExist() گرفته شود.
         res.status(500).json({ success: false, message: 'خطای سرور در بارگذاری کاربر.' });
     }
 });
