@@ -119,8 +119,8 @@
             </div>
 
             <div id="content-active" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6 text-gray-800"><i class="fa-solid fa-fire ml-2 text-indigo-500"></i> بازی‌های فعال من</h2>
-                <p class="text-gray-600 mb-4">بازی‌هایی که شما ساخته‌اید یا در آن‌ها شرکت کرده‌اید:</p>
+                <h2 class="text-2xl font-bold mb-6 text-gray-800"><i class="fa-solid fa-fire ml-2 text-indigo-500"></i> بازی‌های فعال و قابل پیوستن</h2>
+                <p class="text-gray-600 mb-4">لیستی از بازی‌های ایجاد شده توسط شما و بازی‌هایی که می‌توانید به آن‌ها بپیوندید:</p>
                 
                 <div id="active-games-list" class="mt-4 space-y-4">
                     <div class="text-center text-gray-500 p-8 bg-gray-100 rounded-lg">
@@ -169,7 +169,6 @@
             document.getElementById(`content-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-${tabId}`).classList.add('tab-active');
 
-            // منطق خاص برای بارگذاری بازی‌ها
             if (tabId === 'active') {
                 loadActiveGames();
             }
@@ -193,14 +192,13 @@
             return 'بازیکن میهمان';
         }
         
-        // تابع برای تبدیل تاریخ میلادی به شمسی
         function toJalali(dateString) {
             const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' };
             return new Date(dateString).toLocaleDateString('fa-IR', options).replace(/[\u200E\u200F]/g, '');
         }
 
-        // منطق اصلی: دریافت داده‌های کاربر از تلگرام و بارگذاری امتیاز از سرور
         function loadUserDataAndScore() {
+            // ... (منطق بارگذاری اطلاعات کاربر بدون تغییر) ...
             try {
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
                     const userData = window.Telegram.WebApp.initDataUnsafe.user;
@@ -242,7 +240,6 @@
                             });
 
                     } else {
-                        // حالت اجرای داخل WebApp بدون داده کاربری
                         document.getElementById('user-name').textContent = 'بازیکن موقت';
                         document.getElementById('user-id').textContent = 'N/A';
                         document.getElementById('user-score').textContent = '1000'; 
@@ -250,7 +247,6 @@
                         document.getElementById('modal-name').value = 'بازیکن موقت';
                     }
                 } else {
-                    // حالت اجرای خارج از تلگرام
                     document.getElementById('user-name').textContent = 'بازیکن آزمایشی';
                     document.getElementById('user-id').textContent = '000000000';
                     document.getElementById('user-score').textContent = '1000';
@@ -262,7 +258,7 @@
             }
         }
         
-        // تابع جدید: ارسال داده‌های ایجاد بازی به سرور
+        // تابع ایجاد بازی (بدون تغییر)
         document.getElementById('create-game-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -280,7 +276,6 @@
             const category = form['category'].value.trim();
             const difficulty = form['difficulty'].value;
 
-            // اعتبارسنجی سمت کلاینت
             if (word.length < 5 || !/^[\u0600-\u06FF\s]+$/.test(word)) {
                 document.getElementById('word-error').classList.remove('hidden');
                 messageElement.textContent = '';
@@ -305,8 +300,8 @@
                 if (data.success) {
                     messageElement.textContent = `✅ بازی با کد ${data.gameCode} ایجاد شد! (کلمه: ${data.word} - سطح: ${data.difficulty})`;
                     messageElement.className = 'mt-4 text-center font-bold text-green-600 p-3 bg-green-50 rounded-lg border border-green-300';
-                    form.reset(); // پاک کردن فرم
-                    loadActiveGames(); // بروزرسانی لیست بازی‌های فعال
+                    form.reset(); 
+                    loadActiveGames();
                 } else {
                     messageElement.textContent = `❌ خطا در ایجاد بازی: ${data.message}`;
                     messageElement.className = 'mt-4 text-center font-bold text-red-600';
@@ -317,7 +312,7 @@
             }
         });
         
-        // تابع جدید: بارگذاری لیست بازی‌های فعال کاربر
+        // تابع به‌روز شده: بارگذاری لیست بازی‌های فعال و قابل پیوستن
         async function loadActiveGames() {
             const listElement = document.getElementById('active-games-list');
             listElement.innerHTML = `<div class="text-center text-gray-500 p-8 bg-gray-100 rounded-lg"><i class="fa-solid fa-spinner fa-spin ml-2"></i> در حال بارگذاری...</div>`;
@@ -333,25 +328,38 @@
 
                 if (data.success && data.games.length > 0) {
                     listElement.innerHTML = data.games.map(game => {
-                        const statusColor = game.status === 'waiting' ? 'border-yellow-500' : 'border-green-500';
-                        const statusText = game.status === 'waiting' ? 'منتظر بازیکن' : 'درحال بازی';
-                        const buttonText = game.status === 'waiting' ? 'دعوت (کد: ' + game.game_code + ')' : 'مشاهده وضعیت';
-                        const buttonClass = game.status === 'waiting' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-indigo-600 hover:bg-indigo-700';
-
+                        let statusText, statusColor, buttonText, buttonClass, details;
+                        
+                        if (game.is_creator) {
+                            // منطق برای سازنده بازی
+                            statusColor = game.status === 'waiting' ? 'border-yellow-500' : 'border-indigo-500';
+                            statusText = game.status === 'waiting' ? 'منتظر بازیکن (شما سازنده هستید)' : 'درحال بازی (شما سازنده هستید)';
+                            buttonText = game.status === 'waiting' ? `دعوت (کد: ${game.game_code})` : 'مشاهده وضعیت بازی';
+                            buttonClass = game.status === 'waiting' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-indigo-600 hover:bg-indigo-700';
+                            details = `<span class="font-bold text-gray-800">[${game.difficulty}] کلمه: ${game.word}</span>`; // کلمه برای سازنده قابل نمایش است
+                        } else {
+                            // منطق برای بازیکن دیگر (فقط بازی‌های 'waiting' دیده می‌شوند)
+                            statusColor = 'border-green-500';
+                            statusText = `قابل پیوستن (سازنده: ${game.creator_name})`;
+                            buttonText = 'پیوستن به بازی';
+                            buttonClass = 'bg-green-600 hover:bg-green-700';
+                            details = `<span class="font-bold text-gray-800">[${game.difficulty}] بازی با کد: ${game.game_code}</span>`; // کلمه پنهان است
+                        }
+                        
                         return `
                             <li class="bg-white p-4 rounded-xl shadow-md border-l-4 ${statusColor} flex justify-between items-center transform hover:shadow-lg transition-shadow duration-300">
                                 <div>
-                                    <span class="font-bold text-gray-800">[${game.difficulty}] کلمه: ${game.word}</span>
-                                    <p class="text-sm text-gray-500 mt-1">وضعیت: ${statusText} • ایجاد: ${toJalali(game.created_at)}</p>
+                                    ${details}
+                                    <p class="text-sm text-gray-500 mt-1">وضعیت: ${statusText} • شروع: ${toJalali(game.created_at)}</p>
                                 </div>
                                 <button class="${buttonClass} text-white font-bold py-2 px-4 rounded-full shadow-md text-sm">
-                                    <i class="fa-solid fa-link ml-1"></i> ${buttonText}
+                                    <i class="fa-solid ${game.is_creator ? 'fa-eye' : 'fa-sign-in-alt'} ml-1"></i> ${buttonText}
                                 </button>
                             </li>
                         `;
                     }).join('');
                 } else {
-                    listElement.innerHTML = `<div class="text-center text-gray-500 p-8 bg-gray-100 rounded-lg"><i class="fa-solid fa-info-circle ml-2"></i> شما هیچ بازی فعالی نساخته‌اید.</div>`;
+                    listElement.innerHTML = `<div class="text-center text-gray-500 p-8 bg-gray-100 rounded-lg"><i class="fa-solid fa-info-circle ml-2"></i> هیچ بازی فعالی برای شما یا بازی قابل پیوستنی یافت نشد.</div>`;
                 }
             } catch (error) {
                 console.error("Error loading active games:", error);
