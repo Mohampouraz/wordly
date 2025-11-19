@@ -8,31 +8,74 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- 📢 تنظیمات ضروری ---
-const TOKEN = '8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA'; // توکن شما
-// آدرس URL عمومی سرور EXPRESS شما (برای Webhook و Web App)
-const WEB_APP_URL = 'https://wordlygame.onrender.com'; 
+// از متغیرهای محیطی Render استفاده کنید یا مقادیر واقعی را قرار دهید
+const TOKEN = process.env.BOT_TOKEN || '8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA'; 
+const WEB_APP_URL = process.env.WEB_APP_URL || 'https://wordlygame.onrender.com';
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5';
 // ------------------------
 
 
 // --- ۱. تنظیمات اتصال PostgreSQL (حل مشکل SSL/TLS required) ---
-// اگر از متغیرهای محیطی استفاده می‌کنید، از process.env.DATABASE_URL استفاده کنید.
-// در غیر این صورت، آن را با رشته اتصال واقعی خود جایگزین کنید.
-const DATABASE_URL = 'postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5'; 
-
 const pool = new Pool({
-    connectionString: DATABASE_URL,
-    // اضافه کردن تنظیمات SSL برای رفع خطای "SSL/TLS required" در هاستینگ‌های ابری
+    connectionString: DATABASE_URL, 
     ssl: { 
         rejectUnauthorized: false 
     }
 });
 // ------------------------------------------------------------------
 
-// --- ۲. راه‌اندازی ربات با متد Webhook (حل مشکل 409 Conflict) ---
-// Polling را حذف کردیم و از Webhook استفاده می‌کنیم
-const bot = new TelegramBot(TOKEN); 
+/**
+ * ⚠️ تابع حیاتی: این تابع جداول users و games را ایجاد می‌کند.
+ * ⚠️ پس از اولین دیپلوی موفق، بهتر است برای جلوگیری از خطاهای احتمالی، آن را حذف کنید.
+ */
+async function ensureTablesExist() {
+    console.log("--- 🏗️ در حال بررسی و ایجاد جداول دیتابیس... 🏗️ ---");
+    const client = await pool.connect();
+    try {
+        const createUsersTableQuery = `
+            CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                full_name VARCHAR(255) NOT NULL,
+                score INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        `;
 
-// یک مسیر مخفی برای امنیت Webhook
+        const createGamesTableQuery = `
+            CREATE TABLE IF NOT EXISTS games (
+                game_code VARCHAR(6) PRIMARY KEY,
+                word TEXT NOT NULL,
+                category VARCHAR(100),
+                difficulty VARCHAR(50),
+                creator_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+                player_id TEXT REFERENCES users(id) ON DELETE SET NULL, 
+                status VARCHAR(20) DEFAULT 'waiting', 
+                attempts_left INTEGER DEFAULT 10,
+                correct_guessed_letters TEXT[] DEFAULT '{}', 
+                incorrect_guessed_letters TEXT[] DEFAULT '{}', 
+                start_time TIMESTAMP,
+                score_finalized BOOLEAN DEFAULT FALSE,
+                final_score_change INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        `;
+        
+        await client.query(createUsersTableQuery);
+        await client.query(createGamesTableQuery);
+        console.log("✅ جداول users و games با موفقیت ایجاد (یا تأیید) شدند.");
+
+    } catch (error) {
+        console.error("❌ خطای اسکیما (ایجاد جداول):", error.message);
+        // در صورت خطای جدی، سرویس باید کرش کند تا خطا مشخص شود
+        // throw error; 
+    } finally {
+        client.release();
+    }
+}
+
+
+// --- ۲. راه‌اندازی ربات با متد Webhook ---
+const bot = new TelegramBot(TOKEN); 
 const secretPath = `/webhook/${TOKEN}`; 
 
 // --- Utility Functions (توابع کمکی) ---
@@ -48,9 +91,6 @@ function maskWord(actualWord, correctGuessedLetters) {
     }).join(' ');
 }
 
-/**
- * بررسی وضعیت بازی و نهایی کردن امتیاز در دیتابیس
- */
 async function finalizeGameScore(gameCode, gameData, status) {
     if (gameData.score_finalized) return 0; 
 
@@ -68,13 +108,11 @@ async function finalizeGameScore(gameCode, gameData, status) {
     }
 
     try {
-        // ۱. به‌روزرسانی امتیاز کاربر
         await pool.query(
             'UPDATE users SET score = GREATEST(0, score + $1) WHERE id = $2',
             [scoreChange, playerId]
         );
 
-        // ۲. به‌روزرسانی پرچم نهایی شدن بازی
         await pool.query(
             'UPDATE games SET score_finalized = TRUE, final_score_change = $1, status = $2 WHERE game_code = $3',
             [scoreChange, status, gameCode]
@@ -88,9 +126,6 @@ async function finalizeGameScore(gameCode, gameData, status) {
     }
 }
 
-/**
- * بررسی وضعیت بازی و فراخوانی نهایی کردن امتیاز
- */
 async function checkGameStatus(gameData) {
     if (gameData.status === 'won' || gameData.status === 'lost') return gameData.status;
 
@@ -99,7 +134,6 @@ async function checkGameStatus(gameData) {
     const wordWithoutSpaces = gameData.word.replace(/\s/g, '').split('');
     const isWordGuessed = wordWithoutSpaces.every(char => gameData.correct_guessed_letters.includes(char));
 
-    // محاسبه زمان باقیمانده (totalTimeSeconds 120 ثانیه است)
     const startTime = new Date(gameData.start_time).getTime();
     const elapsedTime = (Date.now() - startTime) / 1000;
     const totalTimeSeconds = 120; 
@@ -115,15 +149,11 @@ async function checkGameStatus(gameData) {
     
     if (newStatus !== 'active' && gameData.player_id) {
         await finalizeGameScore(gameData.game_code, gameData, newStatus);
-        // بازی از طریق finalizeGameScore در دیتابیس به‌روزرسانی می‌شود
     }
 
     return newStatus;
 }
 
-/**
- * بازیابی داده‌های بازی برای ارسال به فرانت‌اند
- */
 async function getGameDataForClient(gameData, userId) {
     const status = await checkGameStatus(gameData);
     gameData.status = status; 
@@ -146,8 +176,6 @@ async function getGameDataForClient(gameData, userId) {
         playerName = playerResult.rows[0] ? playerResult.rows[0].full_name : null;
     }
 
-
-    // تبدیل نام ستون‌های snake_case به camelCase برای فرانت‌اند
     return {
         gameCode: gameData.game_code,
         isCreator: gameData.creator_id === userId,
@@ -175,10 +203,11 @@ async function getGameDataForClient(gameData, userId) {
 // ------------------------------------------------------------------
 
 app.use(bodyParser.json());
+// فرض می‌کنیم فایل‌های فرانت‌اند در پوشه 'public' قرار دارند
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-// ۳. منطق بات تلگرام: هندل کامند /start
+// منطق بات تلگرام: هندل کامند /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
 
@@ -201,10 +230,10 @@ bot.onText(/\/start/, (msg) => {
     console.log(`Bot received /start from ${msg.chat.id} and sent the Web App button.`);
 });
 
-// ۴. Endpoint Webhook که تلگرام پیام‌ها را به آن ارسال می‌کند (حل مشکل Polling)
+// Endpoint Webhook که تلگرام پیام‌ها را به آن ارسال می‌کند
 app.post(secretPath, (req, res) => {
     bot.processUpdate(req.body);
-    res.sendStatus(200); // پاسخ موفقیت‌آمیز به تلگرام
+    res.sendStatus(200); 
 });
 
 
@@ -238,6 +267,7 @@ app.get('/api/user/score', async (req, res) => {
 
     } catch (error) {
         console.error("DB Error in /api/user/score:", error);
+        // خطای 42P01 (relation does not exist) اکنون باید با ensureTablesExist() گرفته شود.
         res.status(500).json({ success: false, message: 'خطای سرور در بارگذاری کاربر.' });
     }
 });
@@ -348,7 +378,6 @@ app.post('/api/game/guess', async (req, res) => {
             return res.status(400).json({ success: false, message: 'بازی فعال نیست یا شما بازیکن نیستید.' });
         }
 
-        // بررسی حدس تکراری
         const allGuessed = [...game.correct_guessed_letters, ...game.incorrect_guessed_letters];
         if (allGuessed.includes(normalizedGuess)) {
             const gameDataClient = await getGameDataForClient(game, playerId);
@@ -434,8 +463,10 @@ app.get('/api/games/active', async (req, res) => {
 app.listen(PORT, async () => {
     console.log(`✅ Express Server is running on http://localhost:${PORT}`);
     
+    // ⚠️ اجرای تابع ایجاد جداول قبل از شروع برنامه ⚠️
+    await ensureTablesExist(); 
+    
     try {
-        // تنظیم Webhook پس از راه‌اندازی سرور
         await bot.setWebHook(WEB_APP_URL + secretPath);
         console.log(`🤖 Telegram Bot Webhook set up on ${WEB_APP_URL + secretPath}`);
     } catch (error) {
