@@ -1,4 +1,4 @@
-<!-- index.html -->
+<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -11,17 +11,35 @@
 </head>
 <body>
     <div class="container">
-        <h1>بازی حدس کلمه</h1>
-        <div id="game-status">در حال انتظار برای بازیکن دیگر...</div>
-        <div id="word-display"></div>
-        <div id="timer">زمان باقی‌مانده: <span id="time-left"></span></div>
-        <input type="text" id="guess-input" maxlength="1" placeholder="یک حرف حدس بزنید">
-        <button id="guess-btn">حدس زدن</button>
-        <button id="hint-btn">راهنمایی بگیر (-۵۰ امتیاز)</button>
-        <div id="score">امتیاز شما: <span id="your-score">۰</span></div>
-        <div id="opponent-score">امتیاز حریف: <span id="opp-score">۰</span></div>
-        <div id="words-left">کلمات باقی‌مانده: ۱۰</div>
-        <div id="add-word-section">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('home')">خانه</button>
+            <button class="tab-btn" onclick="openTab('game')">بازی</button>
+            <button class="tab-btn" onclick="openTab('add-word')">اضافه کردن کلمه</button>
+        </div>
+
+        <div id="home" class="tab-content active">
+            <h1>خوش آمدید!</h1>
+            <p id="user-fullname"></p>
+            <p id="current-date-time"></p>
+        </div>
+
+        <div id="game" class="tab-content">
+            <div id="game-status">در حال انتظار برای بازیکن دیگر...</div>
+            <div id="word-display"></div>
+            <div id="timer">زمان باقی‌مانده: <span id="time-left"></span></div>
+            <input type="text" id="guess-input" maxlength="1" placeholder="یک حرف حدس بزنید">
+            <button id="guess-btn">حدس زدن</button>
+            <button id="hint-btn">راهنمایی بگیر (-۵۰ امتیاز)</button>
+            <div id="score">امتیاز شما: <span id="your-score">۰</span></div>
+            <div id="opponent-score">امتیاز حریف: <span id="opp-score">۰</span></div>
+            <div id="words-left">کلمات باقی‌مانده: ۱۰</div>
+            <div id="end-game" style="display: none;">
+                <h2>بازی تمام شد!</h2>
+                <p id="winner-msg"></p>
+            </div>
+        </div>
+
+        <div id="add-word" class="tab-content">
             <h2>اضافه کردن کلمه جدید</h2>
             <select id="category-select">
                 <option value="city">شهر</option>
@@ -33,10 +51,6 @@
             <input type="text" id="new-word" placeholder="کلمه جدید وارد کنید">
             <input type="number" id="new-level" min="1" max="5" placeholder="سطح (۱-۵)">
             <button id="add-word-btn">اضافه کردن کلمه</button>
-        </div>
-        <div id="end-game" style="display: none;">
-            <h2>بازی تمام شد!</h2>
-            <p id="winner-msg"></p>
         </div>
     </div>
     <script src="script.js"></script>
