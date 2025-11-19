@@ -12,9 +12,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Vazirmatn', sans-serif; /* استفاده از فونت فارسی */
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); /* گرادیانت پس زمینه */
-            color: #ecf0f1; /* رنگ متن اصلی */
+            font-family: 'Vazirmatn', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: #ecf0f1;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -23,9 +23,9 @@
             padding: 20px;
         }
         .container {
-            background-color: #2c3e50; /* پس زمینه تیره برای کانتینر اصلی */
+            background-color: #2c3e50; 
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); /* سایه عمیق‌تر */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
             width: 100%;
             max-width: 500px;
             overflow: hidden;
@@ -42,13 +42,13 @@
             border: 1px solid transparent;
         }
         .nav-button.active, .nav-button:hover {
-            background-color: #34495e; /* پس زمینه فعال/هاور */
+            background-color: #34495e; 
             color: #ecf0f1;
             border-color: #3498db;
         }
         .tab-content {
             padding: 25px;
-            background-color: #34495e; /* پس زمینه بخش محتوا */
+            background-color: #34495e; 
             border-radius: 0 0 20px 20px;
             min-height: 300px;
         }
@@ -114,7 +114,7 @@
             letter-spacing: 5px;
             margin: 20px 0;
             text-align: center;
-            color: #f1c40f; /* رنگ زرد برای کلمه */
+            color: #f1c40f; 
         }
         .message-box {
             padding: 12px;
@@ -182,15 +182,10 @@
 
             <div id="create-game-tab" class="page-content hidden">
                 <h2 class="text-2xl font-bold text-blue-400 mb-5 text-center">ایجاد بازی جدید 🚀</h2>
-                <input type="text" id="createWord" class="input-field text-right" placeholder="کلمه یا عبارت را وارد کنید (فقط فارسی)" />
-                <select id="createCategory" class="input-field">
-                    <option value="">دسته بندی را انتخاب کنید</option>
-                    <option value="حیوانات">حیوانات</option>
-                    <option value="غذاها">غذاها</option>
-                    <option value="فیلم و سریال">فیلم و سریال</option>
-                    <option value="ورزش">ورزش</option>
-                    <option value="سایر">سایر</option>
-                </select>
+                <input type="text" id="createWord" class="input-field text-right" placeholder="کلمه یا عبارت اصلی را وارد کنید (فقط فارسی)" />
+                
+                <input type="text" id="createCategory" class="input-field text-right" placeholder="دسته‌بندی یا موضوع را وارد کنید (مثلاً حیوانات، فیلم)" />
+                
                 <select id="createDifficulty" class="input-field">
                     <option value="">دشواری را انتخاب کنید</option>
                     <option value="آسان">آسان</option>
@@ -275,8 +270,8 @@
 
         let userId = '';
         let fullName = '';
-        let currentActiveGameCode = null; // برای پیگیری بازی در حال انجام
-        let gameTimerInterval; // برای نگهداری اینتروال تایمر بازی
+        let currentActiveGameCode = null; 
+        let gameTimerInterval; 
 
         // Helper function to show/hide loading spinner
         function showLoading() {
@@ -290,10 +285,8 @@
         // Helper function for messages
         function showMessage(elementId, message, type = 'info') {
             const el = document.getElementById(elementId);
-            // تعیین محل پیام: اگر ID تب باشد، پیام را در یک باکس موقت بالای آن تب نمایش بده
             const targetElement = el.classList.contains('page-content') ? el.querySelector('.message-box') : el;
 
-            // اگر elementId خود message box باشد
             if (!targetElement) {
                 const tempEl = document.getElementById(elementId);
                 tempEl.textContent = message;
@@ -305,7 +298,6 @@
                 return;
             }
 
-            // اگر ID تب داده شده باشد (مثل 'createGameMessage')
             targetElement.textContent = message;
             targetElement.className = `message-box mt-4 ${type}`; 
             targetElement.classList.remove('hidden');
@@ -319,7 +311,6 @@
             document.querySelectorAll('.page-content').forEach(tab => tab.classList.add('hidden'));
             document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
             
-            // اگر از تب بازی خارج شدیم، تایمر را متوقف می‌کنیم
             if (gameTimerInterval) {
                 clearInterval(gameTimerInterval);
             }
@@ -327,7 +318,6 @@
             document.getElementById(`${tabId}-tab`).classList.remove('hidden');
             document.querySelector(`.nav-button[onclick="showTab('${tabId}')"]`).classList.add('active');
             
-            // Logic for specific tabs on show
             if (tabId === 'profile') {
                 loadUserProfile();
             } else if (tabId === 'active-games') {
@@ -346,12 +336,10 @@
         async function loadUserProfile() {
             showLoading();
             try {
-                // Get user info from Telegram Web App
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
                     userId = window.Telegram.WebApp.initDataUnsafe.user.id;
                     fullName = window.Telegram.WebApp.initDataUnsafe.user.first_name + (window.Telegram.WebApp.initDataUnsafe.user.last_name ? ' ' + window.Telegram.WebApp.initDataUnsafe.user.last_name : '');
                 } else {
-                    // Fallback for testing outside Telegram
                     userId = 'test_user_123'; 
                     fullName = 'کاربر تست';
                     console.warn("Telegram WebApp data not available, using test user.");
@@ -378,7 +366,7 @@
         async function createGame() {
             showLoading();
             const word = document.getElementById('createWord').value;
-            const category = document.getElementById('createCategory').value;
+            const category = document.getElementById('createCategory').value; // استفاده از INPUT جدید
             const difficulty = document.getElementById('createDifficulty').value;
 
             if (!word || !category || !difficulty) {
@@ -403,6 +391,7 @@
                     document.getElementById('createdGameInfo').classList.remove('hidden');
                     
                     document.getElementById('createWord').value = '';
+                    document.getElementById('createCategory').value = ''; // خالی کردن فیلد جدید
                 } else {
                     showMessage('createGameMessage', data.message || 'خطا در ایجاد بازی.', 'error');
                     document.getElementById('createdGameInfo').classList.add('hidden');
@@ -491,7 +480,6 @@
                             statusColor = 'text-red-500';
                         }
                         
-                        // Display word for creator if game is waiting or ended
                         const wordDisplay = (game.is_creator && (game.status === 'waiting' || game.status !== 'active') && game.word) ? 
                             `<p class="text-gray-400 text-sm">کلمه شما: <span class="font-bold text-blue-300">${game.word}</span></p>` : '';
 
@@ -520,7 +508,7 @@
         function joinGameFromList(gameCode) {
             document.getElementById('joinGameCode').value = gameCode;
             showTab('join-game');
-            joinGame(); // Call joinGame function
+            joinGame(); 
         }
 
         // View game from active games list (for creator/player)
@@ -556,9 +544,8 @@
             document.getElementById('correctLettersDisplay').textContent = gameData.correctGuessedLetters.join(', ');
             document.getElementById('incorrectLettersDisplay').textContent = gameData.incorrectGuessedLetters.join(', ');
             document.getElementById('gameResultDisplay').classList.add('hidden'); 
-            document.getElementById('gameResultDisplay').className = ''; // Reset classes
+            document.getElementById('gameResultDisplay').className = ''; 
 
-            // Clear any existing timer
             if (gameTimerInterval) {
                 clearInterval(gameTimerInterval);
             }
@@ -569,13 +556,10 @@
                 document.getElementById('guessInput').value = '';
                 document.getElementById('timeRemaining').textContent = `${gameData.timeRemainingSeconds}s`;
                 
-                // Start countdown timer
                 gameTimerInterval = setInterval(() => {
-                    // بازی ممکن است با اتمام زمان، هنوز در بک‌اند به وضعیت 'lost' تغییر نکرده باشد
                     if (gameData.timeRemainingSeconds <= 0) {
                         clearInterval(gameTimerInterval);
                         document.getElementById('timeRemaining').textContent = '0s';
-                        // Refresh game status to check for loss due to time
                         viewGameFromList(gameData.gameCode); 
                     } else {
                         gameData.timeRemainingSeconds--;
@@ -606,7 +590,7 @@
             showLoading();
             const guessInput = document.getElementById('guessInput');
             const guess = guessInput.value.trim();
-            guessInput.value = ''; // Clear input immediately
+            guessInput.value = ''; 
 
             if (!guess || guess.length !== 1 || !/^[\u0600-\u06FF]$/.test(guess)) {
                 showMessage('gameMessage', 'لطفاً فقط یک حرف فارسی وارد کنید.', 'error');
@@ -629,11 +613,9 @@
 
                 if (data.success) {
                     showMessage('gameMessage', data.message, data.isCorrect ? 'success' : 'error');
-                    // رندر مجدد برد با داده‌های جدید
                     renderGameBoard(data.gameData); 
                 } else {
                     showMessage('gameMessage', data.message || 'خطا در حدس زدن.', 'error');
-                    // در صورت خطا، برد را رفرش کنید تا وضعیت صحیح را نمایش دهد
                     viewGameFromList(currentActiveGameCode); 
                 }
             } catch (error) {
