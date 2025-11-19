@@ -2,7 +2,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const { MongoClient } = require('mongodb');
+const { Pool } = require('pg');
 const words = require('./words.js');
 require('dotenv').config();
 
@@ -19,13 +19,29 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const DATABASE_URL = process.env.DATABASE_URL;
 const WEB_APP_URL = process.env.WEB_APP_URL;
 
-let db;
-MongoClient.connect(DATABASE_URL, { useUnifiedTopology: true })
-    .then(client => {
-        db = client.db('wordgame');
-        console.log('Connected to Database');
-    })
-    .catch(err => console.error(err));
+const pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // اگر نیاز به SSL باشد، بسته به تنظیمات
+});
+
+async function initDb() {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS words (
+                id SERIAL PRIMARY KEY,
+                category TEXT NOT NULL,
+                word TEXT UNIQUE NOT NULL,
+                level INTEGER NOT NULL CHECK (level >= 1 AND level <= 5),
+                "addedBy" BIGINT NOT NULL
+            )
+        `);
+        console.log('Table "words" is ready.');
+    } catch (err) {
+        console.error('Error initializing database:', err);
+    }
+}
+
+initDb();
 
 app.use(express.static(__dirname));
 
@@ -132,10 +148,16 @@ io.on('connection', (socket) => {
     });
 
     socket.on('addWord', async (data) => {
-        // Prevent adding duplicate words
-        const existing = await db.collection('words').findOne({ word: data.word });
-        if (!existing) {
-            await db.collection('words').insertOne(data);
+        try {
+            const existing = await pool.query('SELECT 1 FROM words WHERE word = $1', [data.word]);
+            if (existing.rowCount === 0) {
+                await pool.query(
+                    'INSERT INTO words (category, word, level, "addedBy") VALUES ($1, $2, $3, $4)',
+                    [data.category, data.word, data.level, data.addedBy]
+                );
+            }
+        } catch (err) {
+            console.error('Error adding word:', err);
         }
     });
 
@@ -160,13 +182,22 @@ io.on('connection', (socket) => {
 });
 
 async function getRandomWords(count, ...excludedUsers) {
-    const dbWords = await db.collection('words').find({ addedBy: { $nin: excludedUsers } }).toArray();
-    const allWords = [...words, ...dbWords];
-    const selected = [];
-    for (let i = 0; i < count; i++) {
-        selected.push(allWords[Math.floor(Math.random() * allWords.length)]);
+    try {
+        const res = await pool.query(
+            'SELECT category, word, level FROM words WHERE "addedBy" NOT IN ($1, $2)',
+            [excludedUsers[0], excludedUsers[1]]
+        );
+        const dbWords = res.rows;
+        const allWords = [...words, ...dbWords];
+        const selected = [];
+        for (let i = 0; i < count; i++) {
+            selected.push(allWords[Math.floor(Math.random() * allWords.length)]);
+        }
+        return selected;
+    } catch (err) {
+        console.error('Error getting random words:', err);
+        return words.slice(0, count); // Fallback to static words
     }
-    return selected;
 }
 
 function calculateTime(wordObj) {
