@@ -17,7 +17,7 @@ const WEB_APP_URL = 'https://wordlygame.onrender.com'; 
 // --- ۱. تنظیمات اتصال PostgreSQL (حل مشکل SSL/TLS required) ---
 // اگر از متغیرهای محیطی استفاده می‌کنید، از process.env.DATABASE_URL استفاده کنید.
 // در غیر این صورت، آن را با رشته اتصال واقعی خود جایگزین کنید.
-const DATABASE_URL = 'postgres://USERNAME:PASSWORD@HOST:PORT/DATABASE_NAME'; 
+const DATABASE_URL = 'postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5'; 
 
 const pool = new Pool({
     connectionString: DATABASE_URL,
