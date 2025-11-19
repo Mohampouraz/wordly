@@ -12,18 +12,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;700;800&display=swap" rel="stylesheet">
     
     <style>
-        /* Base Styles */
+        /* Base Styles (Light Mode) */
         body {
             font-family: 'Vazirmatn', sans-serif;
-            background: #1e1e2f; /* Deep Dark Background */
-            color: #d8dee9;
+            background: #f0f2f5; /* Light Gray Background */
+            color: #333;
             min-height: 100vh;
         }
         .container {
-            background-color: #27283b; /* Slightly Lighter Card Background */
-            border-radius: 16px;
-            box-shadow: 0 4px 60px rgba(0, 0, 0, 0.4);
+            background-color: #ffffff; /* White Card Background */
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             max-width: 500px;
+            border: 1px solid #ddd;
         }
 
         /* Input & Select Fields */
@@ -31,95 +32,97 @@
             width: 100%;
             padding: 12px 15px;
             margin-bottom: 15px;
-            border: 1px solid #4a4b65;
-            border-radius: 8px;
-            background-color: #3e3f5b;
-            color: #d8dee9;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            color: #333;
             transition: all 0.3s ease;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .input-field:focus {
             outline: none;
-            border-color: #a370f0; /* Purple Focus */
-            background-color: #4a4b65;
+            border-color: #007bff; /* Primary Blue Focus */
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
         }
 
         /* Buttons */
         .btn-base {
             padding: 12px 25px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 700;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
         }
         .btn-primary {
-            background-color: #5d5dff; /* Blue Main */
+            background-color: #007bff; /* Primary Blue */
             color: white;
         }
         .btn-primary:hover {
-            background-color: #4949d8;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
         .btn-secondary {
-            background-color: #2ecc71; /* Green Secondary */
+            background-color: #28a745; /* Secondary Green */
             color: white;
         }
         .btn-secondary:hover {
-            background-color: #27ae60;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.4);
-        }
-        .btn-danger {
-            background-color: #e74c3c;
-            color: white;
+            background-color: #1e7e34;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         /* Navigation */
         .nav-button {
             border-radius: 8px;
             padding: 10px 15px;
-            color: #b0b0d8;
+            color: #666;
             border: none;
+            font-weight: 500;
         }
         .nav-button.active {
-            background-color: #5d5dff;
+            background-color: #007bff;
             color: white;
-            box-shadow: 0 2px 10px rgba(93, 93, 255, 0.5);
+            font-weight: 700;
         }
         .nav-button:hover:not(.active) {
-            color: #a370f0;
+            color: #007bff;
+            background-color: #f0f0f0;
         }
 
         /* Cards & Display */
         .info-card {
-            background-color: #3e3f5b;
-            border-radius: 12px;
+            background-color: #f7f7f7;
+            border-radius: 15px;
             padding: 20px;
-            border: 1px solid #4a4b65;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
         }
         .game-word-display {
-            font-size: 3rem;
+            font-size: 3.5rem;
             font-weight: 800;
-            letter-spacing: 8px;
+            letter-spacing: 10px;
             margin: 30px 0;
             text-align: center;
-            color: #f1c40f; /* Yellow Accent */
-            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            color: #ffc107; /* Yellow Accent */
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
         }
         .message-box {
             padding: 12px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: 700;
+            color: white;
+            text-align: center;
         }
-        .message-box.success { background-color: #27ae60; }
-        .message-box.error { background-color: #e74c3c; }
-        .message-box.info { background-color: #3498db; }
+        .message-box.success { background-color: #28a745; }
+        .message-box.error { background-color: #dc3545; }
+        .message-box.info { background-color: #17a2b8; }
         
         @media (max-width: 400px) {
             .game-word-display {
-                font-size: 2rem;
-                letter-spacing: 4px;
+                font-size: 2.5rem;
+                letter-spacing: 5px;
             }
         }
     </style>
@@ -127,13 +130,13 @@
 <body class="flex flex-col items-center justify-center p-4 min-h-screen">
     <div class="container w-full mx-auto overflow-hidden">
         
-        <header class="bg-[#212233] p-5 rounded-t-xl flex items-center justify-center">
-            <h1 class="text-3xl font-extrabold text-[#a370f0] flex items-center">
-                <i class="fas fa-ghost text-4xl mr-3"></i> Wordly Arena
+        <header class="bg-white p-5 border-b border-gray-200 flex items-center justify-center">
+            <h1 class="text-3xl font-extrabold text-gray-800 flex items-center">
+                <i class="fas fa-ghost text-4xl text-blue-500 mr-3"></i> Wordly Arena
             </h1>
         </header>
 
-        <nav class="bg-[#2f304d] p-3 flex justify-around items-center border-b border-gray-700">
+        <nav class="bg-gray-50 p-3 flex justify-around items-center border-b border-gray-200">
             <button class="nav-button active" onclick="showTab('profile')">
                 <i class="fas fa-user mr-2"></i>پروفایل
             </button>
@@ -150,97 +153,97 @@
 
         <main class="p-5 relative">
             
-            <div id="loadingSpinner" class="hidden absolute inset-0 bg-[#27283b] bg-opacity-95 flex items-center justify-center z-50 rounded-b-xl">
-                <i class="fas fa-sync fa-spin text-white text-4xl"></i>
+            <div id="loadingSpinner" class="hidden absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 rounded-b-xl">
+                <i class="fas fa-sync fa-spin text-blue-500 text-4xl"></i>
             </div>
 
-            <div id="profile-tab" class="page-content block">
-                <h2 class="text-2xl font-bold text-[#f1c40f] mb-5 text-center">👋 خوش آمدید <span id="userNameDisplay" class="text-white"></span>!</h2>
+            <div id="profile-tab" class="page-content block"> 
+                <h2 class="text-2xl font-bold text-gray-700 mb-5 text-center">👋 خوش آمدید <span id="userNameDisplay" class="text-blue-600"></span>!</h2>
                 <div class="info-card text-center">
-                    <h3 class="text-[#a370f0] text-lg font-semibold">امتیاز فعلی شما:</h3>
-                    <p id="userScoreDisplay" class="text-6xl font-extrabold text-green-400 mt-2 mb-4">0</p>
-                    <p class="text-gray-400 mt-4">با برنده شدن در بازی‌ها، امتیاز خود را افزایش دهید.</p>
+                    <h3 class="text-gray-600 text-lg font-semibold">امتیاز شما:</h3>
+                    <p id="userScoreDisplay" class="text-6xl font-extrabold text-green-600 mt-2 mb-4">0</p>
+                    <p class="text-gray-500 mt-4">با حدس صحیح کلمات، امتیاز کسب کنید.</p>
                 </div>
             </div>
 
             <div id="create-game-tab" class="page-content hidden">
-                <h2 class="text-2xl font-bold text-[#a370f0] mb-5 text-center">ساخت اتاق بازی 🎲</h2>
+                <h2 class="text-2xl font-bold text-gray-700 mb-5 text-center">ساخت اتاق بازی 🕹️</h2>
                 <input type="text" id="createWord" class="input-field text-right" placeholder="کلمه یا عبارت اصلی (فقط فارسی)" />
-                <input type="text" id="createCategory" class="input-field text-right" placeholder="دسته‌بندی یا موضوع (مثلاً ورزش، تاریخ)" />
+                <input type="text" id="createCategory" class="input-field text-right" placeholder="دسته‌بندی یا موضوع (مثلاً ورزش، فیلم)" />
                 
                 <select id="createDifficulty" class="input-field">
                     <option value="">دشواری را انتخاب کنید</option>
-                    <option value="آسان">آسان (آسان)</option>
-                    <option value="متوسط">متوسط (Medium)</option>
-                    <option value="سخت">سخت (Hard)</option>
+                    <option value="آسان">آسان</option>
+                    <option value="متوسط">متوسط</option>
+                    <option value="سخت">سخت</option>
                 </select>
                 <button onclick="createGame()" class="btn-base btn-primary w-full mt-4">
-                    <i class="fas fa-plus mr-2"></i>ایجاد و دریافت کد
+                    <i class="fas fa-plus mr-2"></i>ایجاد بازی
                 </button>
-                <div id="createGameMessage" class="message-box mt-4 hidden text-center"></div>
+                <div id="createGameMessage" class="message-box mt-4 hidden"></div>
                 
                 <div id="createdGameInfo" class="info-card mt-6 hidden text-center">
-                    <h3 class="text-green-400 font-bold">بازی آماده است!</h3>
-                    <p class="text-gray-300 text-xl mt-3">کد دعوت: <span id="displayCreatedGameCode" class="font-extrabold text-white text-4xl block my-2"></span></p>
-                    <p class="text-gray-400 text-sm">کلمه شما: <span id="displayCreatedWord" class="font-bold text-yellow-300"></span></p>
-                    <p class="text-gray-400 text-sm">دشواری: <span id="displayCreatedDifficulty" class="font-bold text-[#a370f0]"></span></p>
+                    <h3 class="text-green-600 font-bold">بازی با موفقیت ایجاد شد!</h3>
+                    <p class="text-gray-600 text-xl mt-3">کد دعوت: <span id="displayCreatedGameCode" class="font-extrabold text-blue-600 text-4xl block my-2"></span></p>
+                    <p class="text-gray-500 text-sm">کلمه: <span id="displayCreatedWord" class="font-bold text-orange-400"></span></p>
+                    <p class="text-gray-500 text-sm">دشواری: <span id="displayCreatedDifficulty" class="font-bold text-purple-600"></span></p>
                 </div>
             </div>
 
             <div id="join-game-tab" class="page-content hidden">
-                <h2 class="text-2xl font-bold text-[#a370f0] mb-5 text-center">پیوستن با کد 🔗</h2>
-                <input type="text" id="joinGameCode" class="input-field text-center text-3xl tracking-widest" placeholder="کد 6 رقمی" maxlength="6"/>
+                <h2 class="text-2xl font-bold text-gray-700 mb-5 text-center">پیوستن به بازی 🤝</h2>
+                <input type="text" id="joinGameCode" class="input-field text-center text-3xl tracking-widest" placeholder="کد 6 رقمی بازی" maxlength="6"/>
                 <button onclick="joinGame()" class="btn-base btn-primary w-full mt-4">
-                    <i class="fas fa-sign-in-alt mr-2"></i>شروع بازی
+                    <i class="fas fa-sign-in-alt mr-2"></i>پیوستن
                 </button>
-                <div id="joinGameMessage" class="message-box mt-4 hidden text-center"></div>
+                <div id="joinGameMessage" class="message-box mt-4 hidden"></div>
             </div>
 
             <div id="active-games-tab" class="page-content hidden">
                 <div class="flex justify-between items-center mb-5">
-                    <h2 class="text-2xl font-bold text-[#a370f0]">بازی‌های فعال شما</h2>
+                    <h2 class="text-2xl font-bold text-gray-700">بازی‌های من </h2>
                     <button onclick="loadActiveGames()" class="btn-base btn-secondary text-sm px-3 py-2">
-                        <i class="fas fa-sync-alt mr-1"></i>به‌روزرسانی
+                        <i class="fas fa-sync-alt mr-1"></i>بروزرسانی
                     </button>
                 </div>
                 <div id="activeGamesList" class="space-y-4">
-                    <p class="text-gray-400 text-center" id="noActiveGamesMessage">در حال حاضر هیچ بازی فعال یا منتظری ندارید.</p>
+                    <p class="text-gray-500 text-center" id="noActiveGamesMessage">در حال حاضر هیچ بازی فعال یا منتظری ندارید.</p>
                 </div>
             </div>
 
             <div id="game-board-tab" class="page-content hidden text-center">
-                <h2 class="text-2xl font-bold text-[#f1c40f] mb-5">بازی در جریان! ⏳</h2>
+                <h2 class="text-2xl font-bold text-gray-700 mb-5">بازی در جریان! 🎯</h2>
                 
                 <div class="info-card mb-5 text-sm">
-                    <p class="mb-1 text-base font-bold">کد: <span id="gameBoardCode" class="text-white"></span> | دسته: <span id="gameCategory" class="text-purple-300"></span></p>
-                    <p class="mb-1">سازنده: <span id="gameCreatorName" class="text-yellow-300"></span> | بازیکن: <span id="gamePlayerName" class="text-green-300"></span></p>
-                    <p class="text-gray-400">دشواری: <span id="gameDifficulty"></span></p>
+                    <p class="mb-1 text-base font-bold text-gray-600">کد: <span id="gameBoardCode" class="text-blue-600"></span> | دسته: <span id="gameCategory" class="text-purple-600"></span></p>
+                    <p class="mb-1 text-gray-500">سازنده: <span id="gameCreatorName" class="text-orange-400"></span> | بازیکن: <span id="gamePlayerName" class="text-green-600"></span></p>
+                    <p class="text-gray-500">دشواری: <span id="gameDifficulty"></span></p>
                 </div>
 
                 <div class="game-word-display" id="wordDisplay">_ _ _ _ _</div>
                 
                 <div class="flex justify-around text-xl font-bold mb-5 info-card">
-                    <p class="text-red-400"><i class="fas fa-heart mr-2"></i>فرصت‌ها: <span id="attemptsLeft">10</span></p>
-                    <p class="text-blue-400"><i class="fas fa-clock mr-2"></i>زمان باقی‌مانده: <span id="timeRemaining">120s</span></p>
+                    <p class="text-red-500"><i class="fas fa-heart-broken mr-2"></i>فرصت‌ها: <span id="attemptsLeft">10</span></p>
+                    <p class="text-blue-500"><i class="fas fa-clock mr-2"></i>زمان: <span id="timeRemaining">120s</span></p>
                 </div>
                 
-                <input type="text" id="guessInput" class="input-field text-center text-3xl" placeholder="حرف خود را وارد کنید" maxlength="1"/>
+                <input type="text" id="guessInput" class="input-field text-center text-3xl" placeholder="یک حرف حدس بزنید" maxlength="1"/>
                 <button onclick="makeGuess()" class="btn-base btn-primary w-full mt-4">
                     <i class="fas fa-gavel mr-2"></i>حدس بزن!
                 </button>
 
-                <div id="gameMessage" class="message-box mt-4 hidden text-center"></div>
+                <div id="gameMessage" class="message-box mt-4 hidden"></div>
 
                 <div class="mt-6 info-card">
-                    <p class="text-gray-400 text-lg mb-2"><i class="fas fa-check-circle text-green-400 ml-2"></i>صحیح: <span id="correctLettersDisplay" class="text-green-300 font-bold"></span></p>
-                    <p class="text-gray-400 text-lg"><i class="fas fa-times-circle text-red-400 ml-2"></i>غلط: <span id="incorrectLettersDisplay" class="text-red-300 font-bold"></span></p>
+                    <p class="text-gray-600 text-lg mb-2"><i class="fas fa-check-circle text-green-500 ml-2"></i>صحیح: <span id="correctLettersDisplay" class="text-green-600 font-bold"></span></p>
+                    <p class="text-gray-600 text-lg"><i class="fas fa-times-circle text-red-500 ml-2"></i>غلط: <span id="incorrectLettersDisplay" class="text-red-600 font-bold"></span></p>
                 </div>
                 
                 <div id="gameResultDisplay" class="mt-6 p-4 rounded-lg text-white font-extrabold text-2xl hidden shadow-lg">
                 </div>
                 
                 <button onclick="goToHome()" class="btn-base btn-secondary w-full mt-6">
-                    <i class="fas fa-home mr-2"></i>بازگشت به پروفایل
+                    <i class="fas fa-home mr-2"></i>بازگشت
                 </button>
             </div>
         </main>
@@ -289,17 +292,36 @@
             }, 5000);
         }
 
+        // 🚨 تابع اصلاح شده مدیریت تب‌ها برای رفع مشکل نمایش محتوا زیر هم
         function showTab(tabId) {
-            document.querySelectorAll('.page-content').forEach(tab => tab.classList.add('hidden'));
+            // ۱. پنهان کردن تمام تب‌ها و حذف کلاس block
+            document.querySelectorAll('.page-content').forEach(tab => {
+                tab.classList.add('hidden');
+                tab.classList.remove('block'); 
+            });
+            
+            // ۲. حذف وضعیت فعال از تمام دکمه‌های ناوبری
             document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
             
+            // توقف تایمر در صورت نیاز
             if (gameTimerInterval) {
                 clearInterval(gameTimerInterval);
             }
 
-            document.getElementById(`${tabId}-tab`).classList.remove('hidden');
-            document.querySelector(`.nav-button[onclick="showTab('${tabId}')"]`).classList.add('active');
+            // ۳. نمایش تب جدید با افزودن کلاس block
+            const targetTab = document.getElementById(`${tabId}-tab`);
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+                targetTab.classList.add('block'); 
+            }
             
+            // ۴. فعال کردن دکمه ناوبری
+            const targetButton = document.querySelector(`.nav-button[onclick="showTab('${tabId}')"]`);
+            if (targetButton) {
+                targetButton.classList.add('active');
+            }
+            
+            // ۵. اجرای توابع بارگذاری محتوا
             if (tabId === 'profile') {
                 loadUserProfile();
             } else if (tabId === 'active-games') {
@@ -318,9 +340,11 @@
         async function loadUserProfile() {
             showLoading();
             try {
+                let isTelegramDataAvailable = false;
                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
                     userId = window.Telegram.WebApp.initDataUnsafe.user.id;
                     fullName = window.Telegram.WebApp.initDataUnsafe.user.first_name + (window.Telegram.WebApp.initDataUnsafe.user.last_name ? ' ' + window.Telegram.WebApp.initDataUnsafe.user.last_name : '');
+                    isTelegramDataAvailable = true;
                 } else {
                     userId = 'test_user_123'; 
                     fullName = 'کاربر تست';
@@ -328,6 +352,14 @@
                 
                 document.getElementById('userNameDisplay').textContent = fullName;
 
+                if (!isTelegramDataAvailable && userId === 'test_user_123') {
+                    document.getElementById('userScoreDisplay').textContent = 'N/A';
+                    showMessage('profile-tab', '⚠️ در حالت تست. لطفا از داخل بات تلگرام باز کنید.', 'info');
+                    hideLoading();
+                    return;
+                }
+
+                // API call
                 const response = await fetch(`/api/user/score?userId=${userId}&fullName=${encodeURIComponent(fullName)}`);
                 const data = await response.json();
                 if (data.success) {
@@ -440,29 +472,29 @@
 
                         if (game.status === 'waiting') {
                             statusText = 'منتظر بازیکن';
-                            statusColor = 'text-yellow-400';
+                            statusColor = 'text-orange-500';
                             if (!game.is_creator) {
                                 actionButton = `<button onclick="joinGameFromList('${game.game_code}')" class="btn-base btn-primary text-sm px-3 py-1"><i class="fas fa-handshake ml-2"></i>پیوستن</button>`;
                             } else {
-                                statusText = 'شما سازنده اید';
+                                statusText = 'شما سازنده اید (منتظر بازیکن)';
                             }
                         } else if (game.status === 'active') {
                             statusText = 'در حال انجام';
-                            statusColor = 'text-green-400';
+                            statusColor = 'text-blue-500';
                             actionButton = `<button onclick="viewGameFromList('${game.game_code}')" class="btn-base btn-secondary text-sm px-3 py-1"><i class="fas fa-play ml-2"></i>ادامه</button>`;
                         } else if (game.status === 'won') {
-                            statusText = 'برنده شدید';
+                            statusText = 'پایان: برنده';
                             statusColor = 'text-green-500';
                         } else if (game.status === 'lost') {
-                            statusText = 'بازنده شدید';
+                            statusText = 'پایان: بازنده';
                             statusColor = 'text-red-500';
                         }
                         
                         // Card Content
                         card.innerHTML = `
                             <div>
-                                <h3 class="text-xl font-bold mb-1">کد: <span class="text-white">${game.game_code}</span></h3>
-                                <p class="text-gray-400 text-sm">سازنده: ${game.creator_name} | دشواری: ${game.difficulty}</p>
+                                <h3 class="text-xl font-bold mb-1">کد: <span class="text-blue-600">${game.game_code}</span></h3>
+                                <p class="text-gray-500 text-sm">سازنده: ${game.creator_name} | دشواری: ${game.difficulty}</p>
                                 <p class="text-lg mt-2 ${statusColor} font-semibold">${statusText}</p>
                             </div>
                             ${actionButton}
@@ -546,7 +578,7 @@
 
                 const resultDisplay = document.getElementById('gameResultDisplay');
                 resultDisplay.classList.remove('hidden');
-                resultDisplay.classList.add('p-4', 'rounded-lg', 'mt-4', 'text-white', 'font-extrabold', 'text-2xl', 'text-center', 'shadow-lg'); 
+                resultDisplay.classList.add('p-4', 'rounded-lg', 'mt-4', 'font-extrabold', 'text-2xl', 'text-center', 'shadow-lg', 'text-white'); 
 
                 if (gameData.status === 'won') {
                     resultDisplay.classList.add('bg-green-600');
