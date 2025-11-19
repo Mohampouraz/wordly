@@ -94,9 +94,9 @@
                 <form id="create-game-form" class="p-8 bg-[#161b22] border border-cyan-800 rounded-xl shadow-xl space-y-6">
                     <p class="text-gray-400 border-b border-gray-700 pb-3 mb-4"><i class="fa-solid fa-keyboard ml-1 text-cyan-500"></i> مشخصات کلمه‌ای که دیگران باید حدس بزنند:</p>
                     <div>
-                        <label for="word-input" class="block text-base font-medium text-gray-300">کلمه انتخابی (فارسی، حداقل ۵ حرف):</label>
-                        <input type="text" id="word-input" name="word" required minlength="5" pattern="[\u0600-\u06FF\s]+" placeholder="مثلاً: برنامه نویسی" class="input-modern border-2 border-cyan-500/50" />
-                        <p class="text-sm text-red-500 mt-1 hidden" id="word-error"><i class="fa-solid fa-exclamation-triangle ml-1"></i> کلمه باید حداقل ۵ حرف (بدون احتساب فاصله) و فقط شامل حروف فارسی و فاصله باشد.</p>
+                        <label for="word-input" class="block text-base font-medium text-gray-300">کلمه انتخابی (فارسی):</label>
+                        <input type="text" id="word-input" name="word" required pattern="[\u0600-\u06FF\s]+" placeholder="مثلاً: برنامه نویسی" class="input-modern border-2 border-cyan-500/50" />
+                        <p class="text-sm text-red-500 mt-1 hidden" id="word-error"><i class="fa-solid fa-exclamation-triangle ml-1"></i> کلمه باید فقط شامل حروف فارسی و فاصله باشد.</p>
                     </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -183,9 +183,6 @@
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready(); 
             window.Telegram.WebApp.MainButton.hide(); 
-            console.log("Telegram WebApp Initialized and Ready for /start command.");
-        } else {
-            console.warn("Telegram WebApp object not found. Running in standalone mode.");
         }
         
         let GLOBAL_USER_ID = null;
@@ -246,7 +243,6 @@
                     document.getElementById('user-name').textContent = GLOBAL_FULL_NAME;
                     document.getElementById('user-id').textContent = GLOBAL_USER_ID;
                 } else {
-                    // در حالت توسعه (Local)
                     GLOBAL_USER_ID = '123456789'; 
                     GLOBAL_FULL_NAME = 'کاربر تست محلی';
                     document.getElementById('user-name').textContent = GLOBAL_FULL_NAME;
@@ -289,7 +285,7 @@
             }
         }
         
-        // **۲. اعتبارسنجی قوی‌تر برای حداقل ۵ حرف**
+        // **۲. اعتبارسنجی سمت کلاینت برای حداقل ۵ حرف حذف شد**
         document.getElementById('create-game-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -309,10 +305,10 @@
             const category = form['category'].value.trim();
             const difficulty = form['difficulty'].value.split(' ')[0];
             
-            // اعتبارسنجی حداقل ۵ حرف فارسی بدون احتساب فاصله
-            const sanitizedWordLength = word.trim().replace(/\s/g, '').length;
-            if (sanitizedWordLength < 5 || !/^[\u0600-\u06FF\s]+$/.test(word)) {
+            // اعتبارسنجی فقط برای فرمت حروف فارسی (همانند سمت سرور)
+            if (!/^[\u0600-\u06FF\s]+$/.test(word)) {
                 wordErrorEl.classList.remove('hidden');
+                wordErrorEl.textContent = '⚠️ کلمه فقط باید شامل حروف فارسی و فاصله باشد.';
                 messageElement.textContent = '⚠️ اعتبارسنجی ناموفق';
                 messageElement.className = 'mt-4 text-center font-bold text-red-600';
                 return;
@@ -407,6 +403,8 @@
 
             document.getElementById('modal-game-code').textContent = gameData.gameCode;
             document.getElementById('modal-attempts-left').textContent = gameData.attemptsLeft;
+            // نمایش نام بازیکن در وضعیت سازنده
+            document.getElementById('modal-status-player-name').textContent = gameData.playerName || 'هنوز متصل نشده';
             document.getElementById('modal-creator-word').textContent = gameData.wordToDisplay.replace(/ /g, ''); 
             
             const wordDisplayEl = document.getElementById('modal-word-display');
@@ -517,7 +515,6 @@
                     timerEl.textContent = "زمان تمام شد!";
                 }
                 
-                // هر ۵ ثانیه یک بار وضعیت بازی را از سرور می‌گیرد تا اطلاعات به‌روز شود.
                 if (seconds > 0 && seconds % 5 === 0 && currentGameCode) {
                     fetchGameStatus(currentGameCode);
                 }
