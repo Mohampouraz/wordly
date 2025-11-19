@@ -1,57 +1,40 @@
-const { Client } = require('pg');
-require('dotenv').config();
+// server.js
+const express = require('express');
+const path = require('path');
+const { words } = require('./words'); // برای استفاده در آینده
 
-const DATABASE_URL = process.env.DATABASE_URL;
+const app = express();
+// اطلاعات کانفیگ که شما ارائه دادید
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5";
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlygame.onrender.com";
 
-async function resetDatabase() {
-    const client = new Client({
-        connectionString: DATABASE_URL,
-        ssl: {
-            rejectUnauthorized: false
-        }
-    });
+// پیکربندی پورت
+const PORT = process.env.PORT || 3000;
 
-    try {
-        await client.connect();
-        console.log('Connected to database successfully');
+// ****************************
+// تعریف مسیرها و میدل‌ورها
+// ****************************
 
-        // دریافت لیست تمام جداول
-        const tablesQuery = `
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public'
-            AND table_type = 'BASE TABLE'
-        `;
-        const tablesResult = await client.query(tablesQuery);
-        const tables = tablesResult.rows.map(row => row.table_name);
+// ارائه فایل‌های استاتیک از پوشه فعلی (برای index.html)
+app.use(express.static(path.join(__dirname)));
 
-        if (tables.length === 0) {
-            console.log('No tables found in database');
-            return;
-        }
+// یک نمونه ساده از API برای گرفتن کلمات (اختیاری در این مرحله)
+app.get('/api/words', (req, res) => {
+    res.json(words);
+});
 
-        console.log(`Found ${tables.length} tables:`, tables);
+// مسیر اصلی که index.html را سرویس می‌دهد
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-        // حذف جداول به ترتیب و با CASCADE برای مدیریت وابستگی‌ها
-        for (const table of tables) {
-            try {
-                console.log(`Dropping table: ${table}`);
-                await client.query(`DROP TABLE IF EXISTS "${table}" CASCADE`);
-                console.log(`Table ${table} dropped successfully`);
-            } catch (error) {
-                console.error(`Error dropping table ${table}:`, error.message);
-            }
-        }
+// ****************************
+// راه‌اندازی سرور
+// ****************************
 
-        console.log('Database reset completed successfully!');
-
-    } catch (error) {
-        console.error('Error resetting database:', error);
-    } finally {
-        await client.end();
-        console.log('Database connection closed');
-    }
-}
-
-// اجرای تابع
-resetDatabase();
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+    console.log(`Web App URL: ${WEB_APP_URL}`);
+    console.log(`Configured Database URL: ${DATABASE_URL}`);
+});
