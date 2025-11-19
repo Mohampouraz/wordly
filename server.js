@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000; // تعریف پورت
 
 // Middleware
 app.use(bodyParser.json());
@@ -213,7 +213,7 @@ app.post('/api/game/join', (req, res) => {
     game.playerId = playerId;
     game.status = 'active';
     game.startTime = Date.now(); 
-    game.scoreFinalized = false; // Reset just in case (though shouldn't be set here)
+    game.scoreFinalized = false; 
 
     const gameDataClient = getGameDataForClient(game, playerId);
     res.json({ success: true, message: 'شما با موفقیت به بازی پیوستید.', gameData: gameDataClient });
@@ -263,8 +263,7 @@ app.post('/api/game/guess', (req, res) => {
     }
 
     // **وضعیت را دوباره بررسی کرده و امتیاز را ثبت می‌کنیم**
-    const oldStatus = game.status;
-    const newStatus = checkGameStatus(game); // این تابع، امتیاز را ثبت و game.status را به‌روزرسانی می‌کند.
+    checkGameStatus(game); // این تابع، امتیاز را ثبت و game.status را به‌روزرسانی می‌کند.
 
     const message = isCorrect ? 'حدس شما صحیح است!' : 'متأسفانه حرف غلط است.';
     
@@ -296,6 +295,7 @@ app.get('/api/games/active', (req, res) => {
 
 
 // --- Server Start ---
+// راه‌اندازی سرور با استفاده از متغیر PORT تعریف شده در بالا
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
