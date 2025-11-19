@@ -1,39 +1,49 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { Pool } = require('pg'); // <-- ۱. Import کتابخانه pg
+const { Pool } = require('pg'); 
 const TelegramBot = require('node-telegram-bot-api'); 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- تنظیمات اتصال PostgreSQL (حتما جایگزین شود) ---
-const DATABASE_URL = 'postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5'; 
+// --- 📢 تنظیمات ضروری ---
+const TOKEN = '8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA'; // توکن شما
+// آدرس URL عمومی سرور EXPRESS شما (برای Webhook و Web App)
+const WEB_APP_URL = 'https://wordlygame.onrender.com'; 
+// ------------------------
+
+
+// --- ۱. تنظیمات اتصال PostgreSQL (حل مشکل SSL/TLS required) ---
+// اگر از متغیرهای محیطی استفاده می‌کنید، از process.env.DATABASE_URL استفاده کنید.
+// در غیر این صورت، آن را با رشته اتصال واقعی خود جایگزین کنید.
+const DATABASE_URL = 'postgres://USERNAME:PASSWORD@HOST:PORT/DATABASE_NAME'; 
+
 const pool = new Pool({
     connectionString: DATABASE_URL,
-    // اگر از SSL برای اتصال نیاز دارید (مانند Render یا Heroku):
-    // ssl: { rejectUnauthorized: false }
+    // اضافه کردن تنظیمات SSL برای رفع خطای "SSL/TLS required" در هاستینگ‌های ابری
+    ssl: { 
+        rejectUnauthorized: false 
+    }
 });
-// ----------------------------------------------------
+// ------------------------------------------------------------------
 
-// --- تنظیمات بات تلگرام ---
-const TOKEN = '8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA'; 
-const WEB_APP_URL = 'https://wordlygame.onrender.com'; 
-const bot = new TelegramBot(TOKEN, { polling: true }); 
-// --------------------------
+// --- ۲. راه‌اندازی ربات با متد Webhook (حل مشکل 409 Conflict) ---
+// Polling را حذف کردیم و از Webhook استفاده می‌کنیم
+const bot = new TelegramBot(TOKEN); 
 
+// یک مسیر مخفی برای امنیت Webhook
+const secretPath = `/webhook/${TOKEN}`; 
 
 // --- Utility Functions (توابع کمکی) ---
 function generateGameCode() {
     return Math.floor(100000 + Math.random() * 900000).toString();
-    // توجه: چک کردن تکراری بودن کد در API Create Game انجام خواهد شد.
 }
 
 function maskWord(actualWord, correctGuessedLetters) {
     if (!actualWord) return '';
     return actualWord.split('').map(char => {
         if (char === ' ') return ' ';
-        // correctGuessedLetters در PG یک آرایه است، پس شامل متد includes است.
         return correctGuessedLetters.includes(char) ? char : '_'; 
     }).join(' ');
 }
@@ -42,7 +52,7 @@ function maskWord(actualWord, correctGuessedLetters) {
  * بررسی وضعیت بازی و نهایی کردن امتیاز در دیتابیس
  */
 async function finalizeGameScore(gameCode, gameData, status) {
-    if (gameData.score_finalized) return 0; // قبلاً امتیاز ثبت شده است.
+    if (gameData.score_finalized) return 0; 
 
     const playerId = gameData.player_id;
     if (!playerId) return 0;
@@ -113,11 +123,10 @@ async function checkGameStatus(gameData) {
 
 /**
  * بازیابی داده‌های بازی برای ارسال به فرانت‌اند
- * این تابع داده‌ها را مستقیماً از سطر PG دریافت می‌کند (با نام‌های snake_case)
  */
 async function getGameDataForClient(gameData, userId) {
     const status = await checkGameStatus(gameData);
-    gameData.status = status; // به‌روزرسانی وضعیت برای نمایش صحیح
+    gameData.status = status; 
 
     let timeRemaining = 120; 
     if (gameData.status === 'active' && gameData.start_time) {
@@ -162,28 +171,40 @@ async function getGameDataForClient(gameData, userId) {
 
 
 // ------------------------------------------------------------------
-// --- Express Middleware & Telegram Bot Logic ---
+// --- Express Middleware & Telegram Bot Webhook Handler ---
 // ------------------------------------------------------------------
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// تلگرام بات: هندل کامند /start
+
+// ۳. منطق بات تلگرام: هندل کامند /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
+
     const keyboard = {
         reply_markup: {
             inline_keyboard: [
                 [
                     {
                         text: 'شروع بازی و باز کردن Web App 🎮',
-                        web_app: { url: WEB_APP_URL }
+                        web_app: { 
+                            url: WEB_APP_URL 
+                        }
                     }
                 ]
             ]
         }
     };
+
     bot.sendMessage(chatId, 'برای شروع، دکمه بازی را بزنید:', keyboard);
+    console.log(`Bot received /start from ${msg.chat.id} and sent the Web App button.`);
+});
+
+// ۴. Endpoint Webhook که تلگرام پیام‌ها را به آن ارسال می‌کند (حل مشکل Polling)
+app.post(secretPath, (req, res) => {
+    bot.processUpdate(req.body);
+    res.sendStatus(200); // پاسخ موفقیت‌آمیز به تلگرام
 });
 
 
@@ -195,13 +216,12 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ۲. API مدیریت امتیاز کاربر (Profile Tab)
+// API مدیریت امتیاز کاربر (Profile Tab)
 app.get('/api/user/score', async (req, res) => {
     const { userId, fullName } = req.query;
     if (!userId) return res.status(400).json({ success: false, message: 'userId is required' });
 
     try {
-        // UPSERT: تلاش برای انتخاب. اگر وجود نداشت، درج کن.
         let userResult = await pool.query('SELECT score, full_name FROM users WHERE id = $1', [userId]);
 
         if (userResult.rows.length === 0) {
@@ -222,7 +242,7 @@ app.get('/api/user/score', async (req, res) => {
     }
 });
 
-// ۳. API ایجاد بازی جدید (Create Game Tab)
+// API ایجاد بازی جدید (Create Game Tab)
 app.post('/api/game/create', async (req, res) => {
     const { word, category, difficulty, creatorId } = req.body;
 
@@ -236,7 +256,6 @@ app.post('/api/game/create', async (req, res) => {
     let gameCode;
     let attempts = 0;
     
-    // اطمینان از تولید کد یکتا
     do {
         gameCode = generateGameCode();
         const existingGame = await pool.query('SELECT game_code FROM games WHERE game_code = $1', [gameCode]);
@@ -267,7 +286,7 @@ app.post('/api/game/create', async (req, res) => {
     }
 });
 
-// ۴. API پیوستن به بازی (Join Game)
+// API پیوستن به بازی (Join Game)
 app.post('/api/game/join', async (req, res) => {
     const { gameCode, playerId } = req.body;
 
@@ -296,7 +315,7 @@ app.post('/api/game/join', async (req, res) => {
     }
 });
 
-// ۵. API دریافت وضعیت بازی (Game View)
+// API دریافت وضعیت بازی (Game View)
 app.get('/api/game/status/:gameCode', async (req, res) => {
     const { gameCode } = req.params;
     const { userId } = req.query;
@@ -316,7 +335,7 @@ app.get('/api/game/status/:gameCode', async (req, res) => {
     }
 });
 
-// ۶. API حدس زدن حرف (Guess Endpoint)
+// API حدس زدن حرف (Guess Endpoint)
 app.post('/api/game/guess', async (req, res) => {
     const { gameCode, playerId, guess } = req.body;
     const normalizedGuess = guess.toLowerCase();
@@ -341,7 +360,6 @@ app.post('/api/game/guess', async (req, res) => {
         let message;
 
         if (game.word.includes(normalizedGuess)) {
-            // حدس صحیح: افزودن به آرایه صحیح‌ها در PG
             updateQuery = `
                 UPDATE games 
                 SET correct_guessed_letters = array_append(correct_guessed_letters, $1) 
@@ -351,7 +369,6 @@ app.post('/api/game/guess', async (req, res) => {
             isCorrect = true;
             message = 'حدس شما صحیح است!';
         } else {
-            // حدس غلط: کاهش فرصت‌ها و افزودن به آرایه غلط‌ها در PG
             updateQuery = `
                 UPDATE games 
                 SET attempts_left = attempts_left - 1, 
@@ -364,12 +381,10 @@ app.post('/api/game/guess', async (req, res) => {
         }
 
         gameResult = await pool.query(updateQuery, [normalizedGuess, gameCode]);
-        game = gameResult.rows[0]; // دریافت وضعیت جدید بازی
+        game = gameResult.rows[0]; 
 
-        // بررسی وضعیت (و در صورت اتمام، ثبت امتیاز در PG)
         await checkGameStatus(game);
         
-        // دریافت نهایی داده‌های کلاینت
         const gameDataClient = await getGameDataForClient(game, playerId);
         
         res.json({ success: true, message, isCorrect, gameData: gameDataClient });
@@ -380,7 +395,7 @@ app.post('/api/game/guess', async (req, res) => {
     }
 });
 
-// ۷. API لیست بازی‌های فعال (Active Games Tab)
+// API لیست بازی‌های فعال (Active Games Tab)
 app.get('/api/games/active', async (req, res) => {
     const { userId } = req.query;
 
@@ -416,8 +431,16 @@ app.get('/api/games/active', async (req, res) => {
 // ------------------------------------------------------------------
 // --- Server Start ---
 // ------------------------------------------------------------------
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`✅ Express Server is running on http://localhost:${PORT}`);
+    
+    try {
+        // تنظیم Webhook پس از راه‌اندازی سرور
+        await bot.setWebHook(WEB_APP_URL + secretPath);
+        console.log(`🤖 Telegram Bot Webhook set up on ${WEB_APP_URL + secretPath}`);
+    } catch (error) {
+        console.error("❌ Error setting up Webhook:", error.message);
+    }
+    
     console.log(`📡 Connected to PostgreSQL database.`);
-    console.log(`🚀 Telegram Bot Polling started. Now /start command should work!`);
 });
