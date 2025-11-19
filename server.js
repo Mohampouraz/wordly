@@ -9,19 +9,13 @@ app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Mock Database (State Management) ---
-// در یک پروژه واقعی، این داده‌ها باید در یک پایگاه داده (مانند MongoDB یا PostgreSQL) ذخیره شوند.
-
-// Mock Users Database
 const users = {}; // userId: { fullName, score }
-
-// Mock Games Database
 const games = {}; // gameCode: { ...gameData }
 
 // --- Utility Functions ---
 
 /**
  * ایجاد یک کد بازی تصادفی ۶ رقمی
- * @returns {string} کد بازی
  */
 function generateGameCode() {
     let code;
@@ -33,84 +27,80 @@ function generateGameCode() {
 
 /**
  * ماسک کردن کلمه برای نمایش در فرانت‌اند
- * @param {string} actualWord کلمه واقعی
- * @param {string[]} correctGuessedLetters آرایه حروف درست حدس زده شده
- * @returns {string} کلمه ماسک شده (مثال: "ب _ ر ن ا م ه")
  */
 function maskWord(actualWord, correctGuessedLetters) {
     if (!actualWord) return '';
     return actualWord.split('').map(char => {
         if (char === ' ') return ' ';
+        // حرف را به صورت جداگانه برمی‌گرداند.
         return correctGuessedLetters.includes(char) ? char : '_';
     }).join(' ');
 }
 
 /**
  * بررسی وضعیت بازی (برنده/بازنده/درحال انجام)
- * @param {object} gameData داده‌های فعلی بازی
- * @returns {string} وضعیت جدید ('won', 'lost', 'active')
  */
 function checkGameStatus(gameData) {
     if (gameData.status !== 'active') return gameData.status;
 
-    const masked = maskWord(gameData.word, gameData.correctGuessedLetters);
+    // کلمه ماسک شده را بدون فاصله بین حروف بررسی می‌کنیم
+    const wordWithoutSpaces = gameData.word.replace(/\s/g, '').split('');
+    const isWordGuessed = wordWithoutSpaces.every(char => gameData.correctGuessedLetters.includes(char));
+
     const timeExpired = (Date.now() - gameData.startTime) / 1000 > gameData.totalTimeSeconds;
 
-    // ۱. بررسی برنده شدن (همه حروف درست حدس زده شده‌اند)
-    if (!masked.includes('_')) {
+    if (isWordGuessed) {
         return 'won';
     }
 
-    // ۲. بررسی بازنده شدن (فرصت‌ها یا زمان تمام شده)
     if (gameData.attemptsLeft <= 0 || timeExpired) {
         return 'lost';
     }
 
-    // ۳. در غیر این صورت، فعال است
     return 'active';
 }
 
 /**
  * بازیابی داده‌های بازی برای ارسال به فرانت‌اند
- * @param {object} gameData داده‌های کامل بازی از دیتابیس
- * @param {string} userId آیدی کاربری که درخواست را ارسال کرده است
- * @returns {object} داده‌های فیلتر و به‌روزرسانی شده برای فرانت‌اند
  */
 function getGameDataForClient(gameData, userId) {
     const isCreator = gameData.creatorId === userId;
     const isPlayer = gameData.playerId === userId;
     
-    // وضعیت نهایی را دوباره چک می‌کنیم
+    // ۱. به‌روزرسانی وضعیت نهایی
     gameData.status = checkGameStatus(gameData);
 
+    // ۲. محاسبه زمان باقی مانده
     let timeRemaining = gameData.totalTimeSeconds;
     if (gameData.status === 'active') {
         const elapsedTime = (Date.now() - gameData.startTime) / 1000;
         timeRemaining = Math.max(0, gameData.totalTimeSeconds - Math.floor(elapsedTime));
     }
-
-    const wordToDisplay = maskWord(gameData.word, gameData.correctGuessedLetters);
     
-    // اگر بازی تمام شده یا کاربر سازنده است، کل کلمه را نمایش می‌دهیم
-    const finalWordDisplay = (gameData.status !== 'active' || isCreator) ? gameData.word.split('').join(' ') : wordToDisplay;
+    // ۳. آماده‌سازی کلمه برای نمایش
+    const wordToDisplay = maskWord(gameData.word, gameData.correctGuessedLetters);
+    const finalWordDisplay = (gameData.status !== 'active') ? gameData.word.split('').join(' ') : wordToDisplay;
+
+    // ۴. تعیین کلمه نمایش داده شده:
+    // - اگر بازی فعال است: همیشه کلمه ماسک شده را نشان می‌دهد تا پیشرفت حدس مشخص باشد.
+    // - اگر بازی تمام شده: کلمه کامل را نشان می‌دهد.
+    const displayWord = (gameData.status !== 'active') ? finalWordDisplay : wordToDisplay;
 
     return {
         gameCode: gameData.gameCode,
         isCreator: isCreator,
         isPlayer: isPlayer,
         status: gameData.status,
-        wordLength: gameData.word.replace(/\s/g, '').length, // طول کلمه بدون فاصله
-        wordToDisplay: finalWordDisplay, // کلمه ماسک شده/کامل
+        wordLength: gameData.word.replace(/\s/g, '').length, 
+        wordToDisplay: displayWord, 
         difficulty: gameData.difficulty,
         category: gameData.category,
         creatorName: users[gameData.creatorId] ? users[gameData.creatorId].fullName : 'ناشناس',
+        // **رفع باگ نمایش نام بازیکن برای سازنده**
         playerName: gameData.playerId ? (users[gameData.playerId] ? users[gameData.playerId].fullName : 'ناشناس') : null,
         attemptsLeft: gameData.attemptsLeft,
-        
-        // ** فیلدهای جدید برای جداسازی حروف درست و غلط **
         correctGuessedLetters: gameData.correctGuessedLetters,
         incorrectGuessedLetters: gameData.incorrectGuessedLetters,
-        
         hintsUsed: gameData.hintsUsed,
         hintCost: gameData.hintCost,
         totalTimeSeconds: gameData.totalTimeSeconds,
@@ -132,7 +122,7 @@ app.get('/api/user/score', (req, res) => {
     if (!users[userId]) {
         users[userId] = { 
             fullName: decodeURIComponent(fullName) || `User ${userId}`, 
-            score: 1000 // امتیاز پایه برای کاربر جدید
+            score: 0 // **اصلاح: امتیاز پایه صفر شد.**
         };
     }
 
@@ -146,13 +136,15 @@ app.post('/api/game/create', (req, res) => {
     if (!word || !category || !difficulty || !creatorId) {
         return res.status(400).json({ success: false, message: 'اطلاعات ناقص است.' });
     }
-    if (word.length < 5) {
-         return res.status(400).json({ success: false, message: 'کلمه باید حداقل ۵ حرف داشته باشد.' });
+    
+    // **حذف شرط طول کلمه بر اساس سطح دشواری. فقط حداقل طول ۵ حرف اعمال می‌شود.**
+    if (word.trim().replace(/\s/g, '').length < 5) {
+         return res.status(400).json({ success: false, message: 'کلمه باید حداقل ۵ حرف (بدون احتساب فاصله) داشته باشد.' });
     }
 
     const gameCode = generateGameCode();
     const attemptsLimit = 10;
-    const totalTime = 120; // 2 دقیقه (120 ثانیه)
+    const totalTime = 120; 
 
     const newGame = {
         gameCode,
@@ -160,23 +152,19 @@ app.post('/api/game/create', (req, res) => {
         category,
         difficulty,
         creatorId,
-        playerId: null, // منتظر بازیکن
+        playerId: null, 
         status: 'waiting',
         startTime: null,
         attemptsLeft: attemptsLimit,
         totalTimeSeconds: totalTime,
         hintsUsed: 0,
-        hintCost: 1, // هزینه راهنما
-        
-        // ** فیلدهای جدید برای نگهداری وضعیت حدس‌ها **
+        hintCost: 1, 
         correctGuessedLetters: [],
         incorrectGuessedLetters: [],
-        
         createdAt: new Date().toISOString(),
     };
 
     games[gameCode] = newGame;
-
     res.json({ success: true, gameCode: gameCode, word: newGame.word, difficulty: newGame.difficulty });
 });
 
@@ -196,7 +184,6 @@ app.post('/api/game/join', (req, res) => {
         return res.status(400).json({ success: false, message: 'بازی پر شده یا شروع شده است.' });
     }
 
-    // پیوستن بازیکن و شروع بازی
     game.playerId = playerId;
     game.status = 'active';
     game.startTime = Date.now(); 
@@ -239,26 +226,22 @@ app.post('/api/game/guess', (req, res) => {
     const actualWord = game.word;
     let isCorrect = false;
 
-    // ۱. بررسی تکراری بودن حدس
     if (game.correctGuessedLetters.includes(normalizedGuess) || game.incorrectGuessedLetters.includes(normalizedGuess)) {
         return res.json({ success: false, message: 'این حرف قبلاً حدس زده شده است.', isCorrect: false, gameData: getGameDataForClient(game, playerId) });
     }
 
-    // ۲. بررسی درست یا غلط بودن حدس
     if (actualWord.includes(normalizedGuess)) {
         game.correctGuessedLetters.push(normalizedGuess);
         isCorrect = true;
     } else {
         game.incorrectGuessedLetters.push(normalizedGuess);
-        game.attemptsLeft--; // کاهش فرصت فقط برای حدس‌های غلط
+        game.attemptsLeft--; 
         isCorrect = false;
     }
 
-    // ۳. به‌روزرسانی وضعیت و ارسال پاسخ
     game.status = checkGameStatus(game);
     const message = isCorrect ? 'حدس شما صحیح است!' : 'متأسفانه حرف غلط است.';
     
-    // اگر بازی تمام شده، امتیازات محاسبه و به‌روزرسانی می‌شوند (Mock)
     if (game.status === 'won') {
         if (users[playerId]) users[playerId].score += 50; 
     } else if (game.status === 'lost') {
@@ -274,11 +257,8 @@ app.get('/api/games/active', (req, res) => {
 
     const activeGames = Object.values(games)
         .filter(game => 
-            // بازی‌هایی که کاربر ساخته و در حال انجام/انتظار هستند
-            (game.creatorId === userId && game.status !== 'finished') ||
-            // بازی‌هایی که کاربر بازیکن آن است
+            (game.creatorId === userId) ||
             (game.playerId === userId) ||
-            // بازی‌هایی که منتظر بازیکن هستند و کاربر سازنده آن نیست
             (game.status === 'waiting' && game.creatorId !== userId)
         )
         .map(game => ({
@@ -288,11 +268,12 @@ app.get('/api/games/active', (req, res) => {
             creator_name: users[game.creatorId] ? users[game.creatorId].fullName : 'ناشناس',
             created_at: game.createdAt,
             is_creator: game.creatorId === userId,
-            word: game.word // کلمه برای نمایش به سازنده
+            word: game.word 
         }));
 
     res.json({ success: true, games: activeGames });
 });
+
 
 // --- Server Start ---
 app.listen(PORT, () => {
