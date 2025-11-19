@@ -1,249 +1,212 @@
-// server.js
+// server.js - الگوی بک‌اند برای مدیریت ربات تلگرام و بازی دو نفره
+
 const express = require('express');
 const http = require('http');
-const socketIo = require('socket.io');
-const { Pool } = require('pg');
-const path = require('path');
-const words = require('./words.js');
-require('dotenv').config();
+const WebSocket = require('ws');
+
+// --- تنظیمات (Placeholder) ---
+// در محیط واقعی، این‌ها از طریق متغیرهای محیطی لود می‌شوند
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN || "8217028556:AAFDNQfmRYuUnto4gb2dAUNyWjKanRZldfA";
+const DATABASE_URL = process.env.DATABASE_URL || "postgresql://abolfazl:uADpBikvq08jFXFWHURmINea1L5oz389@dpg-d4bn1mer433s73d1tiug-a.frankfurt-postgres.render.com/wordlygame_yqt5";
+const WEB_APP_URL = process.env.WEB_APP_URL || "https://wordlygame.onrender.com";
+
+const PORT = process.env.PORT || 3000;
+
+// --- Mock Database (شبیه‌سازی دیتابیس برای ذخیره کلمات سفارشی و وضعیت بازی) ---
+const mockDatabase = {
+    customWords: [],
+    activeGames: new Map(), // Map<gameId, gameState>
+    waitingPlayers: [] // Array of { userId, ws }
+};
+
+// --- توابع شبیه‌سازی دیتابیس واقعی (Firestore/MongoDB) ---
+
+/**
+ * ذخیره کلمه جدید پیشنهادی کاربر در دیتابیس
+ * @param {string} word - کلمه پیشنهادی
+ * @param {string} category - دسته بندی
+ * @param {string} userId - شناسه کاربر سازنده
+ */
+async function saveCustomWord(word, category, userId) {
+    console.log(`[DB MOCK] ذخیره کلمه سفارشی: ${word} توسط کاربر ${userId}`);
+    mockDatabase.customWords.push({ text: word, category, level: 3, creator: userId, status: 'pending' });
+    // در واقعیت: اتصال به DB و درج سند
+}
+
+/**
+ * یافتن بازی فعال در انتظار بازیکن دوم
+ * @returns {Object|null}
+ */
+function findWaitingGame() {
+    // در واقعیت: کوئری به دیتابیس برای یافتن بازی با وضعیت 'waiting'
+    const game = Array.from(mockDatabase.activeGames.values()).find(g => g.status === 'waiting' && g.players.length === 1);
+    return game || null;
+}
+
+
+// --- منطق اصلی بازی و WebSocket ---
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
+const wss = new WebSocket.Server({ server });
+
+app.use(express.json());
+
+// --- ۱. Webhook تلگرام ---
+// این endpoint توسط تلگرام برای ارسال به‌روزرسانی‌ها فراخوانی می‌شود
+app.post(`/bot${TELEGRAM_TOKEN}`, (req, res) => {
+    const update = req.body;
+    
+    if (update.message && update.message.text === '/start') {
+        const chatId = update.message.chat.id;
+        console.log(`[Telegram] دریافت /start از چت ${chatId}`);
+
+        // ارسال پیام حاوی دکمه Web App
+        sendWebAppButton(chatId, "برای شروع بازی، اپلیکیشن وب را باز کنید.");
     }
+    
+    // پاسخ موفقیت آمیز به تلگرام
+    res.sendStatus(200);
 });
 
-const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
-const DATABASE_URL = process.env.DATABASE_URL;
-const WEB_APP_URL = process.env.WEB_APP_URL;
-
-const pool = new Pool({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false } // اگر نیاز به SSL باشد، بسته به تنظیمات
-});
-
-async function initDb() {
-    try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS words (
-                id SERIAL PRIMARY KEY,
-                category TEXT NOT NULL,
-                word TEXT UNIQUE NOT NULL,
-                level INTEGER NOT NULL CHECK (level >= 1 AND level <= 5),
-                "addedBy" BIGINT NOT NULL
-            )
-        `);
-        console.log('Table "words" is ready.');
-    } catch (err) {
-        console.error('Error initializing database:', err);
-    }
+/**
+ * تابع شبیه‌سازی ارسال دکمه Web App به تلگرام
+ * @param {number} chatId - شناسه چت
+ * @param {string} text - متن پیام
+ */
+function sendWebAppButton(chatId, text) {
+    console.log(`[Telegram MOCK] ارسال دکمه Web App به چت ${chatId}. URL: ${WEB_APP_URL}`);
+    // در واقعیت از کتابخانه node-telegram-bot-api استفاده می‌شود
+    // مثال: bot.sendMessage(chatId, text, { reply_markup: { keyboard: [[{ text: 'شروع بازی', web_app: { url: WEB_APP_URL } }]] } });
 }
 
-initDb();
 
-app.use(express.static(path.join(__dirname, 'public')));
+// --- ۲. WebSocket Server برای ارتباط Real-time ---
+wss.on('connection', (ws) => {
+    let userId = null;
+    let gameId = null;
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-let waitingPlayers = [];
-let games = {};
-let userSockets = {}; // Map userId to socket.id for better management
-
-io.on('connection', (socket) => {
-    socket.on('joinGame', async ({ userId }) => {
-        userSockets[userId] = socket.id;
-        if (waitingPlayers.length > 0) {
-            const opponentId = waitingPlayers.shift();
-            const gameId = `${userId}-${opponentId}-${Date.now()}`;
-            games[gameId] = {
-                players: [userId, opponentId],
-                scores: { [userId]: 0, [opponentId]: 0 },
-                currentWordIndex: 0,
-                words: await getRandomWords(10, userId, opponentId),
-                timers: { [userId]: null, [opponentId]: null },
-                displayed: { [userId]: '', [opponentId]: '' },
-                completed: { [userId]: 0, [opponentId]: 0 },
-                hintsUsed: { [userId]: 0, [opponentId]: 0 }
-            };
-            const wordData = games[gameId].words[0];
-            const time = calculateTime(wordData);
-            const maxHints = calculateMaxHints(wordData.word);
-            socket.emit('gameStarted', { gameId, word: wordData.word, time, maxHints });
-            io.to(userSockets[opponentId]).emit('gameStarted', { gameId, word: wordData.word, time, maxHints });
-        } else {
-            waitingPlayers.push(userId);
-        }
-    });
-
-    socket.on('guess', ({ gameId, userId, guess }) => {
-        const game = games[gameId];
-        if (!game) return;
-        const word = game.words[game.currentWordIndex].word.toLowerCase();
-        let updated = false;
-        let newDisplayed = game.displayed[userId] || word.replace(/[^ ]/g, '_').replace(/ /g, ' ');
-        for (let i = 0; i < word.length; i++) {
-            if (word[i] === guess && newDisplayed[i] === '_') {
-                newDisplayed = newDisplayed.slice(0, i) + guess + newDisplayed.slice(i + 1);
-                updated = true;
-            }
-        }
-        game.displayed[userId] = newDisplayed;
-        socket.emit('updateWord', { displayed: newDisplayed });
-        if (updated) {
-            game.scores[userId] += 20; // Improved scoring
-            const oppId = game.players.find(p => p !== userId);
-            io.to(userSockets[oppId]).emit('opponentScoreUpdate', game.scores[userId]);
-        }
-        checkWordCompletion(gameId, userId);
-    });
-
-    socket.on('hint', ({ gameId, userId }) => {
-        const game = games[gameId];
-        if (!game || game.hintsUsed[userId] >= calculateMaxHints(game.words[game.currentWordIndex].word)) return;
-        const word = game.words[game.currentWordIndex].word.toLowerCase();
-        let newDisplayed = game.displayed[userId] || word.replace(/[^ ]/g, '_').replace(/ /g, ' ');
-        const hiddenIndices = [];
-        for (let i = 0; i < word.length; i++) {
-            if (newDisplayed[i] === '_' && word[i] !== ' ') hiddenIndices.push(i);
-        }
-        if (hiddenIndices.length > 0) {
-            const randIdx = hiddenIndices[Math.floor(Math.random() * hiddenIndices.length)];
-            newDisplayed = newDisplayed.slice(0, randIdx) + word[randIdx] + newDisplayed.slice(randIdx + 1);
-            game.displayed[userId] = newDisplayed;
-            game.scores[userId] -= 50;
-            game.hintsUsed[userId]++;
-            socket.emit('updateWord', { displayed: newDisplayed, hint: true });
-            const oppId = game.players.find(p => p !== userId);
-            io.to(userSockets[oppId]).emit('opponentScoreUpdate', game.scores[userId]);
-        }
-    });
-
-    socket.on('timeTick', ({ gameId, userId }) => {
-        const game = games[gameId];
-        if (game && game.timers[userId] > 0) {
-            game.timers[userId]--;
-            socket.emit('timeUpdate', game.timers[userId]);
-        }
-    });
-
-    socket.on('timeUp', ({ gameId, userId }) => {
-        const game = games[gameId];
-        if (game) {
-            game.scores[userId] -= 100;
-            checkWordCompletion(gameId, userId, true);
-        }
-    });
-
-    socket.on('wordCompleted', ({ gameId, userId, timeUsed }) => {
-        const game = games[gameId];
-        if (game) {
-            game.completed[userId]++;
-            game.scores[userId] += Math.max(0, 100 - timeUsed * 2); // Better scoring based on time
-            checkBothCompleted(gameId);
-        }
-    });
-
-    socket.on('addWord', async (data) => {
-        try {
-            const existing = await pool.query('SELECT 1 FROM words WHERE word = $1', [data.word]);
-            if (existing.rowCount === 0) {
-                await pool.query(
-                    'INSERT INTO words (category, word, level, "addedBy") VALUES ($1, $2, $3, $4)',
-                    [data.category, data.word, data.level, data.addedBy]
-                );
-            }
-        } catch (err) {
-            console.error('Error adding word:', err);
-        }
-    });
-
-    socket.on('disconnect', () => {
-        // Handle disconnect: remove from waiting, end games if necessary
-        for (let uid in userSockets) {
-            if (userSockets[uid] === socket.id) {
-                waitingPlayers = waitingPlayers.filter(p => p !== uid);
-                // End active games
-                for (let gid in games) {
-                    if (games[gid].players.includes(uid)) {
-                        const oppId = games[gid].players.find(p => p !== uid);
-                        io.to(userSockets[oppId]).emit('gameOver', { winner: oppId }); // Opponent wins by default
-                        delete games[gid];
-                    }
-                }
-                delete userSockets[uid];
+    ws.on('message', (message) => {
+        const data = JSON.parse(message);
+        
+        // تشخیص نوع پیام
+        switch (data.type) {
+            case 'REGISTER':
+                // ثبت کاربر و اتصال آن به یک بازی
+                userId = data.userId;
+                handlePlayerRegistration(userId, ws);
                 break;
-            }
+
+            case 'GUESS':
+                // هندل کردن حدس حرف/کلمه
+                gameId = data.gameId;
+                handleGuess(gameId, userId, data.guess);
+                break;
+            
+            case 'HINT':
+                // درخواست راهنمایی
+                gameId = data.gameId;
+                handleHintRequest(gameId, userId);
+                break;
+
+            case 'SUBMIT_WORD':
+                // ساخت کلمه جدید
+                saveCustomWord(data.word, data.category, userId);
+                break;
+        }
+    });
+
+    ws.on('close', () => {
+        console.log(`[WS] اتصال کاربر ${userId} بسته شد.`);
+        // حذف کاربر از لیست بازیکنان منتظر
+        mockDatabase.waitingPlayers = mockDatabase.waitingPlayers.filter(p => p.userId !== userId);
+
+        // اگر کاربر در یک بازی فعال بود، بازی را نامعتبر کن
+        if (gameId && mockDatabase.activeGames.has(gameId)) {
+            const game = mockDatabase.activeGames.get(gameId);
+            game.status = 'interrupted';
+            broadcast(gameId, { type: 'GAME_INTERRUPTED', message: 'بازیکن مقابل قطع اتصال کرد.' });
+            mockDatabase.activeGames.delete(gameId);
         }
     });
 });
 
-async function getRandomWords(count, ...excludedUsers) {
-    try {
-        const res = await pool.query(
-            'SELECT category, word, level FROM words WHERE "addedBy" NOT IN ($1, $2)',
-            [excludedUsers[0], excludedUsers[1]]
-        );
-        const dbWords = res.rows;
-        const allWords = [...words, ...dbWords];
-        const selected = [];
-        for (let i = 0; i < count; i++) {
-            selected.push(allWords[Math.floor(Math.random() * allWords.length)]);
-        }
-        return selected;
-    } catch (err) {
-        console.error('Error getting random words:', err);
-        return words.slice(0, count); // Fallback to static words
+// --- ۳. منطق مدیریت بازی (شبیه‌سازی) ---
+
+function handlePlayerRegistration(userId, ws) {
+    const waitingGame = findWaitingGame();
+    
+    if (waitingGame) {
+        // پیوستن به بازی موجود
+        waitingGame.players.push({ userId, ws, score: 0 });
+        waitingGame.status = 'in_progress';
+        waitingGame.currentWordIndex = 0;
+        
+        console.log(`[Game Manager] کاربر ${userId} به بازی ${waitingGame.id} پیوست.`);
+        
+        // شروع بازی و ارسال وضعیت اولیه به هر دو بازیکن
+        startGame(waitingGame);
+
+    } else {
+        // ایجاد بازی جدید و انتظار برای بازیکن دوم
+        const newGameId = `game_${Date.now()}`;
+        mockDatabase.activeGames.set(newGameId, { 
+            id: newGameId, 
+            status: 'waiting',
+            players: [{ userId, ws, score: 0 }],
+            words: [], // بعدا لود می شود
+        });
+        
+        console.log(`[Game Manager] بازی جدید ${newGameId} توسط کاربر ${userId} ایجاد شد.`);
+        ws.send(JSON.stringify({ type: 'WAITING', gameId: newGameId, message: 'در انتظار بازیکن دوم...' }));
     }
 }
 
-function calculateTime(wordObj) {
-    return wordObj.word.length * 15 + wordObj.level * 30; // Adjusted for better timing
+function startGame(game) {
+    // در محیط واقعی، کلمات از words.js لود و برای هر دو بازیکن یکسان تنظیم می‌شود.
+    // اینجا به دلیل نبود words.js در Node، از یک Mock استفاده می‌کنیم.
+    const mockWords = [
+        { text: "آبشار", category: "اشیاء", level: 2 },
+        { text: "انگور", category: "میوه", level: 1 }
+    ];
+    game.words = mockWords;
+
+    const initialWord = game.words[0];
+    const initialMask = initialWord.text.split('').map(char => (char === ' ' ? ' ' : '_')).join('');
+    
+    // ارسال وضعیت اولیه بازی
+    game.players.forEach(p => {
+        p.ws.send(JSON.stringify({
+            type: 'GAME_STARTED',
+            gameId: game.id,
+            players: game.players.map(pl => ({ userId: pl.userId, score: pl.score })),
+            currentWord: initialWord.text,
+            currentMask: initialMask,
+            category: initialWord.category,
+            timeLimit: 30, // Mock time
+            maxHints: 3, // Mock hints
+        }));
+    });
+    console.log(`[Game Manager] بازی ${game.id} شروع شد.`);
 }
 
-function calculateMaxHints(word) {
-    const len = word.length;
-    if (len <= 5) return 2;
-    if (len <= 10) return 3;
-    return 4;
-}
-
-function checkWordCompletion(gameId, userId, timeUp = false) {
-    const game = games[gameId];
-    const displayed = game.displayed[userId];
-    if (!displayed.includes('_') || timeUp) {
-        game.completed[userId]++;
-        checkBothCompleted(gameId);
+/**
+ * ارسال پیام به همه بازیکنان یک بازی
+ */
+function broadcast(gameId, data) {
+    const game = mockDatabase.activeGames.get(gameId);
+    if (game) {
+        game.players.forEach(p => p.ws.send(JSON.stringify(data)));
     }
 }
 
-function checkBothCompleted(gameId) {
-    const game = games[gameId];
-    if (Object.values(game.completed).every(c => c > game.currentWordIndex)) {
-        game.currentWordIndex++;
-        if (game.currentWordIndex >= 10) {
-            let winner = 'tie';
-            const [p1, p2] = game.players;
-            if (game.scores[p1] > game.scores[p2]) winner = p1;
-            else if (game.scores[p2] > game.scores[p1]) winner = p2;
-            game.players.forEach(p => io.to(userSockets[p]).emit('gameOver', { winner }));
-            delete games[gameId];
-        } else {
-            const nextW = game.words[game.currentWordIndex];
-            const time = calculateTime(nextW);
-            const maxHints = calculateMaxHints(nextW.word);
-            game.players.forEach(p => {
-                game.displayed[p] = '';
-                game.timers[p] = time;
-                game.hintsUsed[p] = 0;
-                io.to(userSockets[p]).emit('nextWord', { word: nextW.word, time, maxHints });
-            });
-        }
-    }
-}
 
-server.listen(3000, () => console.log('Server running on port 3000'));
+// --- ۴. تنظیم سرور HTTP و گوش دادن ---
+app.get('/', (req, res) => {
+    res.send('Word Guessing Game Backend Running...');
+});
+
+server.listen(PORT, () => {
+    console.log(`سرور Node.js بر روی پورت ${PORT} اجرا شد.`);
+    console.log(`Webhook URL: /bot${TELEGRAM_TOKEN}`);
+});
