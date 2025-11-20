@@ -7,64 +7,132 @@
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
-      --bg-gradient: linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+      --bg-gradient: radial-gradient(1200px 600px at 20% -10%, #eaf3ff 0%, #f8fbff 30%, #ffffff 60%);
       --muted: #6b7280;
-      --border: rgba(15,23,42,0.06);
+      --border: rgba(20, 30, 60, 0.12);
       --accent: #4f46e5;
       --accent-2: #06b6d4;
-      --success: #059669;
+      --success: #10b981;
       --danger: #ef4444;
-      --radius: 12px;
-      --glass-blur: 10px;
-      --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
+      --radius: 14px;
+      --glass-blur: 14px;
+      --shadow-1: 0 12px 40px rgba(16,24,40,0.10);
+      --shadow-2: 0 22px 60px rgba(16,24,40,0.14);
     }
 
     *{box-sizing:border-box;font-family:'Vazirmatn',system-ui,Segoe UI,Roboto,-apple-system}
-    html,body{height:100%;margin:0;background:var(--bg-gradient);color:#081124;-webkit-text-size-adjust:100%}
-    .shell{max-width:1100px;margin:12px auto;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);box-shadow:var(--shadow-1);border:1px solid var(--border);overflow:hidden; -webkit-overflow-scrolling: touch}
-    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);backdrop-filter:blur(8px)}
+    html,body{height:100%;margin:0}
+    body{min-height:100svh;background:var(--bg-gradient);color:#081124;-webkit-text-size-adjust:100%}
+
+    .shell{
+      max-width:1100px;margin:12px auto;
+      height:100svh; max-height:100svh; overflow:auto;
+      border-radius:16px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
+      backdrop-filter: blur(14px) saturate(1.15);
+      -webkit-backdrop-filter: blur(14px) saturate(1.15);
+      box-shadow:0 24px 60px rgba(16,24,40,0.12);
+      border:1px solid rgba(79,70,229,0.14);
+    }
+
+    header.appbar{
+      display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
+      border-bottom:1px solid rgba(79,70,229,0.12);
+      backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.15);
+      background: linear-gradient(180deg, rgba(255,255,255,0.40), rgba(255,255,255,0.25));
+    }
     .brand{display:flex;gap:10px;align-items:center}
-    .badge{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+    .badge{
+      width:44px;height:44px;border-radius:10px;
+      background:
+        conic-gradient(from 180deg, rgba(255,255,255,0.6), rgba(255,255,255,0) 30%),
+        linear-gradient(135deg,var(--accent),var(--accent-2));
+      color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 10px 24px rgba(79,70,229,0.25);
+      transition: transform .2s ease, box-shadow .3s ease;
+    }
+    .badge:hover{ transform: translateY(-1px); box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 16px 36px rgba(79,70,229,0.35); }
     .title{font-weight:800;font-size:16px}
     .subtitle{font-size:12px;color:var(--muted)}
     .controls{display:flex;gap:8px;align-items:center}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent)}
-    .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.06);color:var(--muted)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent);
+      transition: transform .15s ease, box-shadow .25s ease, background .25s ease, border-color .25s ease;
+    }
+    .btn:hover{ transform: translateY(-1px); }
+    .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.10);color:var(--muted)}
+    .btn.primary{
+      background:
+        linear-gradient(120deg, rgba(255,255,255,0.4), rgba(255,255,255,0) 30%),
+        linear-gradient(90deg,var(--accent),var(--accent-2));
+      color:#fff;border:none;
+      box-shadow:0 10px 28px rgba(79,70,229,0.28);
+    }
+    .btn.primary:active{ transform: translateY(0); box-shadow: 0 6px 20px rgba(79,70,229,0.22); }
+
     nav.mini-tabs{display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border)}
-    .tab{padding:8px 10px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700}
-    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border:1px solid rgba(79,70,229,0.04)}
+    .tab{padding:8px 10px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;transition: background .25s ease, color .2s ease, transform .2s ease;}
+    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.10), rgba(6,182,212,0.08));border:1px solid rgba(79,70,229,0.12);box-shadow:0 6px 18px rgba(79,70,229,0.14)}
 
     main.content{display:grid;grid-template-columns:1fr minmax(220px, 32%);gap:12px;padding:12px}
     @media (max-width:980px){ main.content{grid-template-columns:1fr} }
 
-    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.96), #fff);border-radius:12px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow-1)}
+    .panel{
+      background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.25));
+      backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
+      border: 1px solid rgba(79,70,229,0.12);
+      box-shadow: var(--shadow-1);
+      border-radius: var(--radius);
+      padding:12px;
+    }
     .hero{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;border-radius:10px}
 
     .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    .slot{min-width:36px;min-height:44px;height:auto;padding:8px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff}
+    .slot{
+      min-width:36px;min-height:44px;height:auto;padding:8px;border-radius:10px;border:1px solid rgba(20,30,60,0.10);
+      display:flex;align-items:center;justify-content:center;font-size:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.55));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 4px 12px rgba(16,24,40,0.08);
+      transition: transform .12s ease, box-shadow .25s ease, background .25s ease;
+    }
     .slot.gap{width:18px;border:0;background:transparent}
-    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));font-weight:800}
-    .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12)}
-    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12)}
+    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.12),rgba(6,182,212,0.10))}
+    .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.22);box-shadow:0 6px 18px rgba(16,185,129,0.16)}
+    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.20);box-shadow:0 6px 18px rgba(239,68,68,0.14)}
 
-    .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
-    input.letter{flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:#fff}
+    .controls-row{
+      display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;
+      position: sticky; bottom: env(safe-area-inset-bottom); background: transparent; padding-top: 6px;
+    }
+    input.letter{
+      flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:#fff;
+    }
+
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
-    .chip-letter.correct{background:rgba(5,150,105,0.08);color:var(--success)}
-    .chip-letter.wrong{background:rgba(239,68,68,0.08);color:var(--danger)}
+    .chip-letter{
+      padding:6px 10px;border-radius:999px;border:1px solid rgba(79,70,229,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.45));
+      font-weight:700; box-shadow:0 6px 16px rgba(16,24,40,0.08);
+    }
+    .chip-letter.correct{background:linear-gradient(180deg, rgba(16,185,129,0.12), rgba(16,185,129,0.08));color:var(--success)}
+    .chip-letter.wrong{background:linear-gradient(180deg, rgba(239,68,68,0.14), rgba(239,68,68,0.10));color:var(--danger)}
 
     aside.right{display:flex;flex-direction:column;gap:10px}
     .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
     .muted{color:var(--muted)}
     .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700;white-space:nowrap}
-    .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:56px;text-align:center}
+    .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:56px;text-align:center;position:relative;text-shadow:0 1px 0 rgba(255,255,255,0.6)}
+    .timer::after{
+      content:'';position:absolute;inset:-6px -10px;border-radius:12px;
+      background: radial-gradient(140px 60px at 50% 50%, rgba(79,70,229,0.18), transparent 60%);
+      pointer-events:none;opacity:.6;
+    }
 
     /* keyboard helpers */
-    html, body { height:100%;}
-    .shell { -webkit-overflow-scrolling: touch; }
-    input, textarea { scroll-margin-top: 12vh; outline:none; }
+    input, textarea { scroll-margin-top: 18vh; outline:none; }
 
     @media (max-width:760px){
       html,body{padding:8px}
@@ -75,6 +143,14 @@
       .slot{min-width:28px;height:44px;font-size:16px;padding:6px}
       .timer{font-size:16px}
     }
+
+    @keyframes shake {
+      10%, 90% { transform: translateX(-1px); }
+      20%, 80% { transform: translateX(2px); }
+      30%, 50%, 70% { transform: translateX(-4px); }
+      40%, 60% { transform: translateX(4px); }
+    }
+    .letter.shake { animation: shake .28s ease both; }
   </style>
 </head>
 <body>
@@ -128,7 +204,7 @@
           </div>
         </div>
 
-        <div class="panel" style="margin-top:12px">
+        <div id="dashboardPanel" class="panel" style="margin-top:12px">
           <h3 id="roomsTitle">اتاق‌های موجود</h3>
           <div id="roomsList" role="list" aria-live="polite"></div>
         </div>
@@ -150,7 +226,7 @@
           <div id="wordSlots" class="word-slots" aria-live="polite"></div>
 
           <div class="controls-row">
-            <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" />
+            <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" />
             <button id="guessBtn" class="btn primary">حدس</button>
             <button id="hintBtn" class="btn">راهنما</button>
             <button id="leaveBtn" class="btn ghost">خروج</button>
@@ -204,7 +280,7 @@
       </aside>
     </main>
 
-    <footer style="padding:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+    <footer style="padding:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;background:linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.25));backdrop-filter:blur(8px)">
       <div class="muted">وردلی — نسخه وب اپ</div>
       <div class="muted">موبایل اول</div>
     </footer>
@@ -287,6 +363,7 @@
     const roomStatus = document.getElementById('roomStatus');
     const playersCount = document.getElementById('playersCount');
 
+    const dashboardPanel = document.getElementById('dashboardPanel');
     const roomsList = document.getElementById('roomsList');
     const publicRoomsList = document.getElementById('publicRoomsList');
     const myRoomsList = document.getElementById('myRoomsList');
@@ -315,54 +392,30 @@
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
 
-    /* ---------- safeFocus & keyboard helpers ---------- */
-    function safeFocus(inputEl){
-      if (!inputEl) return;
-      try {
-        if (window.visualViewport) {
-          // small delay to let viewport stabilize
-          setTimeout(()=> {
-            try { inputEl.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' }); } catch(e){}
-            try { inputEl.focus({ preventScroll: true }); } catch(e){ inputEl.focus(); }
-          }, 180);
-        } else {
-          try { inputEl.focus({ preventScroll: true }); } catch(e){ inputEl.focus(); }
-        }
-      } catch(e){}
-    }
+    /* ---------- Focus manager: stable, debounced ---------- */
+    const FocusManager = (() => {
+      let focusTimer = null;
+      let lastFocusAt = 0;
+      const MIN_INTERVAL = 800; // prevent rapid focus cycles
+      const STABILIZE_DELAY = 260; // after viewport change settles
 
-    (function setupViewportSync(){
-      const shellEl = document.querySelector('.shell');
-      if (!shellEl) return;
-      const updateShellHeight = () => {
-        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        shellEl.style.maxHeight = vh + 'px';
-        shellEl.style.height = vh + 'px';
-        shellEl.style.overflow = 'auto';
-      };
-      updateShellHeight();
-      if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', () => {
-          updateShellHeight();
-          // if an input is focused, center it instead of letting browser jump
-          const active = document.activeElement;
-          if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
-            try { active.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch(e){}
-          }
-        });
-      } else {
-        window.addEventListener('resize', updateShellHeight);
+      function focusLetterInput() {
+        const now = Date.now();
+        if (now - lastFocusAt < MIN_INTERVAL) return;
+        lastFocusAt = now;
+        if (!letterInput) return;
+        clearTimeout(focusTimer);
+        focusTimer = setTimeout(() => {
+          try { letterInput.focus({ preventScroll: true }); } catch(e){ letterInput.focus(); }
+        }, STABILIZE_DELAY);
       }
-      // prevent body scroll when keyboard likely open
-      let lastH = window.innerHeight;
-      const onResizePreventBodyScroll = () => {
-        const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-        if (h < lastH - 120) document.body.style.overflow = 'hidden';
-        else document.body.style.overflow = '';
-        lastH = h;
-      };
-      if (window.visualViewport) window.visualViewport.addEventListener('resize', onResizePreventBodyScroll);
-      else window.addEventListener('resize', onResizePreventBodyScroll);
+
+      function cancel() {
+        clearTimeout(focusTimer);
+        focusTimer = null;
+      }
+
+      return { focusLetterInput, cancel };
     })();
 
     /* ---------- Tabs and modal ---------- */
@@ -371,7 +424,7 @@
       const tab = t.dataset.tab;
       document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
       playPanel.style.display = (tab === 'play') ? 'block' : 'none';
-      document.querySelector('[aria-labelledby="roomsTitle"]').style.display = (tab === 'dashboard') ? 'block' : 'none';
+      dashboardPanel.style.display = (tab === 'dashboard') ? 'block' : 'none';
     }));
 
     function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); }
@@ -502,7 +555,6 @@
           closeModal();
 
         } catch (err) {
-          console.error('createRoom error', err);
           alert('خطا در ایجاد اتاق');
         } finally {
           createRoomBtn.disabled = false;
@@ -563,7 +615,6 @@
     socket.on('game:started', ({ game_id, deck, reveal_mode, players }) => {
       state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared';
       if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      // short delay then resume (server state will be authoritative)
       setTimeout(() => resumeGame(), 160);
     });
 
@@ -574,7 +625,6 @@
       state.deck = deck || state.deck || [];
       state.timerMs = Number(gs.timer_ms)||0;
       if (reveal_mode) state.revealMode = reveal_mode;
-      // ensure arrays are normalized
       if (typeof state.gameState.correct_letters === 'string') state.gameState.correct_letters = JSON.parse(state.gameState.correct_letters || '[]');
       if (typeof state.gameState.wrong_letters === 'string') state.gameState.wrong_letters = JSON.parse(state.gameState.wrong_letters || '[]');
 
@@ -583,8 +633,8 @@
       document.querySelector('.tab[data-tab="play"]').click();
       playPanel.style.display = 'block';
       updatePlayersList(players || []);
-      // use safeFocus to avoid keyboard jump in some devices
-      safeFocus(letterInput);
+      // Stable, debounced focus (no scrollIntoView or height thrash)
+      FocusManager.focusLetterInput();
     });
 
     socket.on('game:states', ({ game_id, states }) => {
@@ -594,11 +644,8 @@
       if (opp) progressOpp.textContent = `${toFaDigits((opp.current_index||0)+1)} / ${toFaDigits(state.deck.length||10)}`;
     });
 
-    // When a correct letter arrives, update DOM and also merge into local state to avoid flicker when authoritative state lags
     socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta, shared, player }) => {
       const isMe = Number(user_id) === Number(state.myId);
-
-      // Update DOM immediately
       positions.forEach(origIdx => {
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
@@ -607,7 +654,6 @@
         }
       });
 
-      // Merge into local authoritative gameState to prevent later stale game:state from removing it
       if (!state.gameState) state.gameState = {};
       try {
         const cur = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
@@ -615,8 +661,6 @@
       } catch(e){ state.gameState.correct_letters = [letter]; }
 
       if (isMe && player && typeof player.score !== 'undefined') scoreMe.textContent = toFaDigits(player.score || 0);
-
-      // do not request immediate resume here; rely on server to emit authoritative state soon
     });
 
     socket.on('game:letter:wrong', ({ user_id, letter }) => {
@@ -636,7 +680,6 @@
         }
       });
 
-      // merge
       if (!state.gameState) state.gameState = {};
       try {
         const cur = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
@@ -648,7 +691,6 @@
         state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
         scoreMe.textContent = toFaDigits(state.gameState.score);
       }
-      // do not call resume here; wait for server authoritative state
     });
 
     socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) { /* server will send game:state */ } });
@@ -687,7 +729,6 @@
       correct.forEach(l => addChip(correctLetters, l, 'correct'));
       wrong.forEach(l => addChip(wrongLetters, l, 'wrong'));
 
-      // pre-reveal positions
       for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
         const ch = wordNorm[origIdx];
         const dispIdx = state.indexMap[origIdx];
@@ -728,25 +769,23 @@
     }
 
     /* ---------- Input IME handling ---------- */
-    letterInput.addEventListener('compositionstart', () => state.composing = true);
+    letterInput.addEventListener('compositionstart', () => { state.composing = true; });
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
     letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } });
 
     function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
-    /* ---------- Actions (no immediate focus after guess) ---------- */
+    /* ---------- Actions (stable focus) ---------- */
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
-      if (!vRaw || vRaw.length !== 1) { safeFocus(letterInput); return; }
+      if (!vRaw || vRaw.length !== 1) { FocusManager.focusLetterInput(); return; }
       const v = normalizeFaLetter(vRaw);
       if (!/^[\u0600-\u06FF]$/.test(v)) { letterInput.classList.add('shake'); setTimeout(()=> letterInput.classList.remove('shake'),200); return; }
-      // send guess
       socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
-      // clear input but DON'T immediate focus (to avoid keyboard resize race), use safeFocus with small delay
       letterInput.value = '';
-      setTimeout(()=> safeFocus(letterInput), 220);
+      FocusManager.focusLetterInput();
     });
 
     hintBtn.addEventListener('click', ()=> socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }));
@@ -771,6 +810,19 @@
       const m = Math.floor(s/60), r = s%60;
       return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
+
+    /* ---------- Viewport resize: lightweight, no scrollIntoView ---------- */
+    (function setupViewportSync(){
+      let lastH = window.innerHeight;
+      const onResizePreventBodyScroll = () => {
+        const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        if (h < lastH - 120) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = '';
+        lastH = h;
+      };
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', onResizePreventBodyScroll);
+      else window.addEventListener('resize', onResizePreventBodyScroll);
+    })();
 
     /* ---------- Misc ---------- */
     document.getElementById('clearState').addEventListener('click', () => { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
