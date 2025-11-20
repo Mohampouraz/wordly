@@ -191,6 +191,8 @@ app.post('/api/game/join', async (req, res) => {
     
     const { gameCode, playerId, username } = req.body;
     
+    console.log(`پیوستن به بازی: ${gameCode} توسط کاربر: ${playerId}`);
+    
     // پیدا کردن بازی
     const gameResult = await client.query(
       `SELECT id, game_state, creator_id FROM games WHERE game_code = $1 AND game_state IN ('waiting', 'active')`,
@@ -198,6 +200,7 @@ app.post('/api/game/join', async (req, res) => {
     );
     
     if (gameResult.rows.length === 0) {
+      console.log(`بازی با کد ${gameCode} یافت نشد`);
       return res.status(404).json({
         success: false,
         message: 'بازی یافت نشد'
@@ -208,6 +211,8 @@ app.post('/api/game/join', async (req, res) => {
     const gameState = gameResult.rows[0].game_state;
     const creatorId = gameResult.rows[0].creator_id;
     
+    console.log(`بازی پیدا شد: ID=${gameId}, State=${gameState}`);
+    
     // بررسی آیا کاربر قبلا به بازی پیوسته است
     const playerResult = await client.query(
       `SELECT id FROM game_players WHERE game_id = $1 AND telegram_id = $2`,
@@ -215,6 +220,7 @@ app.post('/api/game/join', async (req, res) => {
     );
     
     if (playerResult.rows.length > 0) {
+      console.log(`کاربر ${playerId} قبلا به بازی پیوسته`);
       return res.status(400).json({
         success: false,
         message: 'شما قبلا به این بازی پیوسته‌اید'
@@ -229,6 +235,8 @@ app.post('/api/game/join', async (req, res) => {
     );
     
     await client.query('COMMIT');
+    
+    console.log(`کاربر ${playerId} با موفقیت به بازی پیوست`);
     
     // دریافت اطلاعات کامل بازی برای ارسال به کلاینت
     const gameInfo = await getGameInfo(gameId);
