@@ -91,8 +91,19 @@ function getRandomWords(difficulty, count = 10) {
   return selectedWords;
 }
 
+// تولید کد اتاق تصادفی
+function generateRoomCode() {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < 6; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
+
 // ذخیره وضعیت بازی‌های فعال
 const activeGames = new Map();
+const activeRooms = new Map();
 
 // دیتابیس initialization
 async function initializeDatabase() {
@@ -151,6 +162,32 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// دریافت اتاق‌های فعال
+app.get('/active-rooms', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT room_code, player1_data, player2_data, game_state, created_at 
+      FROM game_rooms 
+      WHERE game_state = 'waiting' 
+      ORDER BY created_at DESC
+      LIMIT 20
+    `);
+    
+    const rooms = result.rows.map(row => ({
+      code: row.room_code,
+      player1: row.player1_data,
+      player2: row.player2_data,
+      status: row.game_state,
+      created: row.created_at
+    }));
+    
+    res.json({ success: true, rooms });
+  } catch (error) {
+    console.error('Error fetching active rooms:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
 // Web App برای تلگرام
 bot.command('start', (ctx) => {
   ctx.reply('به بازی Wordly خوش آمدید!', {
@@ -199,8 +236,41 @@ app.post('/save-user', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // ارسال اتاق‌های فعال به کاربر جدید
+  socket.on('get-active-rooms', async () => {
+    try {
+      const result = await pool.query(`
+        SELECT room_code, player1_data, player2_data, game_state, created_at 
+        FROM game_rooms 
+        WHERE game_state = 'waiting' 
+        ORDER BY created_at DESC
+        LIMIT 20
+      `);
+      
+      const rooms = result.rows.map(row => ({
+        code: row.room_code,
+        player1: row.player1_data,
+        player2: row.player2_data,
+        status: row.game_state,
+        created: row.created_at
+      }));
+      
+      socket.emit('active-rooms', { rooms });
+    } catch (error) {
+      console.error('Error fetching active rooms:', error);
+      socket.emit('error', { message: 'خطا در دریافت اتاق‌های فعال' });
+    }
+  });
+
   socket.on('join-room', async (data) => {
     const { roomCode, userData } = data;
+    console.log(`Joining room: ${roomCode}, User: ${userData.id}`);
+    
+    // بررسی وجود roomCode
+    if (!roomCode || roomCode.trim() === '') {
+      socket.emit('error', { message: 'کد اتاق نامعتبر است' });
+      return;
+    }
     
     try {
       // بررسی وجود اتاق
@@ -211,6 +281,7 @@ io.on('connection', (socket) => {
       
       if (roomResult.rows.length === 0) {
         // ایجاد اتاق جدید
+        console.log(`Creating new room: ${roomCode}`);
         const newRoom = await pool.query(
           `INSERT INTO game_rooms (room_code, player1_id, player1_data) 
            VALUES ($1, $2, $3) RETURNING *`,
@@ -230,45 +301,62 @@ io.on('connection', (socket) => {
         socket.join(roomCode);
         socket.emit('room-joined', { status: 'waiting', roomCode });
         
+        // به روزرسانی لیست اتاق‌های فعال برای همه کاربران
+        updateActiveRooms();
+        
         console.log(`Room ${roomCode} created by user ${userData.id}`);
       } else {
         const room = roomResult.rows[0];
+        console.log(`Room found: ${roomCode}, State: ${room.game_state}, Player1: ${room.player1_id}, Player2: ${room.player2_id}`);
         
         if (room.player2_id === null && room.player1_id !== userData.id) {
           // پیوستن به اتاق به عنوان بازیکن دوم
+          console.log(`User ${userData.id} joining as player 2`);
           await pool.query(
             'UPDATE game_rooms SET player2_id = $1, player2_data = $2, game_state = $3 WHERE room_code = $4',
             [userData.id, userData, 'playing', roomCode]
           );
           
           // به‌روزرسانی در حافظه فعال
-          const game = activeGames.get(roomCode);
-          if (game) {
-            game.player2 = userData;
-            game.gameState = 'playing';
-            
-            // تولید کلمات برای بازی
-            game.words = getRandomWords("متوسط", 10);
-            
-            // ذخیره کلمات در دیتابیس
-            await pool.query(
-              'UPDATE game_rooms SET words = $1 WHERE room_code = $2',
-              [JSON.stringify(game.words), roomCode]
-            );
-          }
+          const game = activeGames.get(roomCode) || {
+            roomId: room.id,
+            player1: room.player1_data || { id: room.player1_id, username: 'بازیکن 1' },
+            player2: null,
+            gameState: 'waiting',
+            words: [],
+            currentWordIndex: 0
+          };
+          
+          game.player2 = userData;
+          game.gameState = 'playing';
+          
+          // تولید کلمات برای بازی
+          game.words = getRandomWords("متوسط", 10);
+          
+          // ذخیره کلمات در دیتابیس
+          await pool.query(
+            'UPDATE game_rooms SET words = $1 WHERE room_code = $2',
+            [JSON.stringify(game.words), roomCode]
+          );
+          
+          activeGames.set(roomCode, game);
           
           socket.join(roomCode);
           
           // شروع بازی - ارسال رویداد به همه کاربران در اتاق
           io.to(roomCode).emit('game-started', {
-            player1: room.player1_data || { id: room.player1_id, username: 'بازیکن 1' },
+            player1: game.player1,
             player2: userData,
             words: game.words
           });
           
+          // به روزرسانی لیست اتاق‌های فعال برای همه کاربران
+          updateActiveRooms();
+          
           console.log(`User ${userData.id} joined room ${roomCode} as player 2`);
         } else if (room.player1_id === userData.id || room.player2_id === userData.id) {
           // بازیکن قبلاً در اتاق است
+          console.log(`User ${userData.id} rejoining room ${roomCode}`);
           socket.join(roomCode);
           
           // اگر بازی در حال انجام است، ارسال وضعیت فعلی
@@ -276,8 +364,8 @@ io.on('connection', (socket) => {
             const game = activeGames.get(roomCode);
             if (game) {
               socket.emit('game-started', {
-                player1: room.player1_data || { id: room.player1_id, username: 'بازیکن 1' },
-                player2: room.player2_data || { id: room.player2_id, username: 'بازیکن 2' },
+                player1: game.player1,
+                player2: game.player2,
                 words: game.words
               });
             }
@@ -286,6 +374,7 @@ io.on('connection', (socket) => {
           }
         } else {
           // اتاق پر است
+          console.log(`Room ${roomCode} is full`);
           socket.emit('room-full', { roomCode });
         }
       }
@@ -348,6 +437,32 @@ io.on('connection', (socket) => {
     console.log('User disconnected:', socket.id);
   });
 });
+
+// تابع برای به روزرسانی لیست اتاق‌های فعال
+async function updateActiveRooms() {
+  try {
+    const result = await pool.query(`
+      SELECT room_code, player1_data, player2_data, game_state, created_at 
+      FROM game_rooms 
+      WHERE game_state = 'waiting' 
+      ORDER BY created_at DESC
+      LIMIT 20
+    `);
+    
+    const rooms = result.rows.map(row => ({
+      code: row.room_code,
+      player1: row.player1_data,
+      player2: row.player2_data,
+      status: row.game_state,
+      created: row.created_at
+    }));
+    
+    // ارسال به همه کاربران متصل
+    io.emit('active-rooms', { rooms });
+  } catch (error) {
+    console.error('Error updating active rooms:', error);
+  }
+}
 
 // تابع کمکی برای دریافت اطلاعات کاربر
 async function getUserData(userId) {
