@@ -193,18 +193,20 @@ app.post('/api/game/join', async (req, res) => {
     
     // پیدا کردن بازی
     const gameResult = await client.query(
-      `SELECT id, game_state FROM games WHERE game_code = $1 AND game_state = 'waiting'`,
+      `SELECT id, game_state, creator_id FROM games WHERE game_code = $1 AND game_state IN ('waiting', 'active')`,
       [gameCode]
     );
     
     if (gameResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'بازی یافت نشد یا قبلا شروع شده است'
+        message: 'بازی یافت نشد'
       });
     }
     
     const gameId = gameResult.rows[0].id;
+    const gameState = gameResult.rows[0].game_state;
+    const creatorId = gameResult.rows[0].creator_id;
     
     // بررسی آیا کاربر قبلا به بازی پیوسته است
     const playerResult = await client.query(
@@ -228,21 +230,26 @@ app.post('/api/game/join', async (req, res) => {
     
     await client.query('COMMIT');
     
+    // دریافت اطلاعات کامل بازی برای ارسال به کلاینت
+    const gameInfo = await getGameInfo(gameId);
+    
     res.json({
       success: true,
-      message: 'با موفقیت به بازی پیوستید'
+      message: 'با موفقیت به بازی پیوستید',
+      game: gameInfo
     });
     
     // اطلاع‌رسانی به سایر بازیکنان
     const playersResult = await client.query(
-      `SELECT telegram_id, username FROM game_players WHERE game_id = $1 AND is_active = true`,
+      `SELECT telegram_id, username, is_active FROM game_players WHERE game_id = $1`,
       [gameId]
     );
     
     io.to(gameCode).emit('playerJoined', {
       playerId,
       username,
-      players: playersResult.rows
+      players: playersResult.rows,
+      gameState: gameState
     });
     
   } catch (error) {
@@ -257,23 +264,16 @@ app.post('/api/game/join', async (req, res) => {
   }
 });
 
-// API برای دریافت اطلاعات بازی
-app.get('/api/game/:gameCode', async (req, res) => {
+// تابع کمکی برای دریافت اطلاعات بازی
+async function getGameInfo(gameId) {
   try {
-    const { gameCode } = req.params;
-    
     // دریافت اطلاعات اصلی بازی
     const gameResult = await pool.query(
-      `SELECT * FROM games WHERE game_code = $1`,
-      [gameCode]
+      `SELECT * FROM games WHERE id = $1`,
+      [gameId]
     );
     
-    if (gameResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'بازی یافت نشد'
-      });
-    }
+    if (gameResult.rows.length === 0) return null;
     
     const game = gameResult.rows[0];
     
@@ -300,6 +300,41 @@ app.get('/api/game/:gameCode', async (req, res) => {
     game.players = playersResult.rows;
     game.guesses = guessesResult.rows;
     game.revealedLetters = revealedResult.rows.map(r => r.position);
+    
+    return game;
+  } catch (error) {
+    console.error('Error getting game info:', error);
+    return null;
+  }
+}
+
+// API برای دریافت اطلاعات بازی
+app.get('/api/game/:gameCode', async (req, res) => {
+  try {
+    const { gameCode } = req.params;
+    
+    // پیدا کردن بازی
+    const gameResult = await pool.query(
+      `SELECT id FROM games WHERE game_code = $1`,
+      [gameCode]
+    );
+    
+    if (gameResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'بازی یافت نشد'
+      });
+    }
+    
+    const gameId = gameResult.rows[0].id;
+    const game = await getGameInfo(gameId);
+    
+    if (!game) {
+      return res.status(404).json({
+        success: false,
+        message: 'خطا در دریافت اطلاعات بازی'
+      });
+    }
     
     res.json({
       success: true,
