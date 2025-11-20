@@ -1,5 +1,5 @@
 // server.js
-// Full, production-ready baseline for a 2-player competitive Telegram Web App game with Socket.IO and PostgreSQL
+// نسخه‌ی کامل با SSL برای PostgreSQL، بازی رقابتی دونفره با Socket.IO و Telegram WebApp
 
 require('dotenv').config();
 
@@ -11,15 +11,16 @@ const { Pool } = require('pg');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
-const TOKEN = process.env.TELEGRAM_BOT_TOKEN; // required for verifying initData hash
+const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEB_APP_URL = process.env.WEB_APP_URL || `https://wordlygame.onrender.com`;
 const HOST_URL = WEB_APP_URL;
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// Ensure env
-if (!TOKEN) {
-  console.warn('Warning: TELEGRAM_BOT_TOKEN is not set. initData verification will be disabled.');
-}
+// اتصال امن PostgreSQL با SSL (سازگار با Render/Heroku)
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -27,28 +28,20 @@ const io = new Server(server, {
   cors: { origin: HOST_URL, methods: ['GET', 'POST'] }
 });
 
-const pool = new Pool({ connectionString: DATABASE_URL });
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Utility: Persian normalization and digits ---
+// --- Utilities ---
 function normalizePersianLetter(ch) {
   if (!ch) return '';
   return ch
     .replace(/[ي]/g, 'ی')
-    .replace(/[ئ]/g, 'ی') // treat hamze on ی as ی (optional)
     .replace(/[ك]/g, 'ک')
     .replace(/[ة]/g, 'ه')
     .trim();
 }
-function toPersianDigits(val) {
-  const map = '۰۱۲۳۴۵۶۷۸۹';
-  return String(val).split('').map(ch => (/\d/.test(ch) ? map[ch] : ch)).join('');
-}
 
-// --- Telegram initData verification (recommended) ---
 function parseInitData(initData) {
   if (!initData || typeof initData !== 'string') return null;
   const params = new URLSearchParams(initData);
@@ -57,7 +50,6 @@ function parseInitData(initData) {
   let user;
   try { user = JSON.parse(userJson); } catch { return null; }
 
-  // Optional but recommended: verify hash
   if (TOKEN) {
     const hash = params.get('hash');
     const dataCheckString = [...params.entries()]
@@ -67,14 +59,12 @@ function parseInitData(initData) {
       .join('\n');
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(TOKEN).digest();
     const checkHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-    if (checkHash !== hash) {
-      return null;
-    }
+    if (checkHash !== hash) return null;
   }
   return user;
 }
 
-// --- Words dataset (9-category groups across levels) ---
+// --- Words dataset (9 دسته در سه سطح) ---
 const wordsByLevel = {
   easy: [
     { category: 'میوه‌ها', words: ['سیب','گلابی','انگور','هلو','آلو','کیوی','خرما','زردآلو','به'] },
@@ -94,29 +84,23 @@ const wordsByLevel = {
 };
 
 function selectTenWordsDeterministic(seedText = 'default-seed') {
-  // Flatten pool
-  const pool = [];
-  ['easy', 'medium', 'hard'].forEach(level => {
-    if (wordsByLevel[level]) {
-      wordsByLevel[level].forEach(group => {
-        group.words.forEach(w => pool.push({ word: w, category: group.category, level }));
-      });
-    }
+  const poolWords = [];
+  ['easy','medium','hard'].forEach(level => {
+    wordsByLevel[level].forEach(group => {
+      group.words.forEach(w => poolWords.push({ word:w, category:group.category, level }));
+    });
   });
-
-  // Deterministic shuffle from seedText
   const seed = crypto.createHash('sha256').update(seedText).digest();
   let idx = 0;
   function rnd() {
-    const val = seed[idx % seed.length];
-    idx++;
-    return val / 255; // 0..1
+    const val = seed[idx % seed.length]; idx++;
+    return val / 255;
   }
-  pool.sort(() => rnd() - 0.5);
-  return pool.slice(0, 10);
+  poolWords.sort(() => rnd() - 0.5);
+  return poolWords.slice(0, 10);
 }
 
-// --- Database bootstrap ---
+// --- DB init ---
 async function initDb() {
   await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
   await pool.query(`
@@ -203,23 +187,22 @@ initDb().catch(err => {
   process.exit(1);
 });
 
-// --- API: upsert user from Telegram initData ---
+// --- API: احراز هویت و ذخیره کاربر ---
 app.post('/api/auth', async (req, res) => {
   const { initData } = req.body || {};
   const tgUser = parseInitData(initData);
   if (!tgUser || !tgUser.id) return res.status(401).json({ error: 'unauthorized' });
-
   const { id, username, first_name, last_name, language_code } = tgUser;
   try {
     await pool.query(`
       INSERT INTO users(id, username, first_name, last_name, language_code)
       VALUES ($1,$2,$3,$4,$5)
       ON CONFLICT (id) DO UPDATE SET
-        username = EXCLUDED.username,
-        first_name = EXCLUDED.first_name,
-        last_name = EXCLUDED.last_name,
-        language_code = EXCLUDED.language_code,
-        updated_at = NOW()
+        username=EXCLUDED.username,
+        first_name=EXCLUDED.first_name,
+        last_name=EXCLUDED.last_name,
+        language_code=EXCLUDED.language_code,
+        updated_at=NOW()
     `, [id, username || null, first_name || null, last_name || null, language_code || null]);
     res.json({ ok: true, user: { id, username, first_name, last_name, language_code } });
   } catch (e) {
@@ -228,10 +211,10 @@ app.post('/api/auth', async (req, res) => {
   }
 });
 
-// --- Socket rooms cache (lightweight) ---
+// --- Socket rooms cache ---
 const roomsCache = new Map(); // roomId -> { status, players: Set<userId>, sockets: Set<socket> }
 
-// --- Socket.IO events ---
+// --- Socket.IO ---
 io.on('connection', (socket) => {
   let session = { userId: null, roomId: null, gameId: null };
 
@@ -247,14 +230,13 @@ io.on('connection', (socket) => {
     if (!roomId) return socket.emit('error', { message: 'invalid_room' });
 
     try {
-      // Create or fetch room
+      // ایجاد یا دریافت اتاق
       let roomRes = await pool.query('SELECT * FROM rooms WHERE id = $1', [roomId]);
       if (roomRes.rowCount === 0) {
         roomRes = await pool.query('INSERT INTO rooms(id, status) VALUES ($1, $2) RETURNING *', [roomId, 'waiting']);
       }
       let room = roomRes.rows[0];
 
-      // Players in room
       const playersRes = await pool.query('SELECT user_id, slot FROM room_players WHERE room_id = $1 ORDER BY slot', [roomId]);
       const players = playersRes.rows.map(r => r.user_id);
 
@@ -266,14 +248,13 @@ io.on('connection', (socket) => {
         await pool.query('INSERT INTO room_players(room_id, user_id, slot) VALUES ($1,$2,$3)', [roomId, session.userId, slot]);
       }
 
-      // Update status if second player joined
       const updatedPlayersRes = await pool.query('SELECT user_id FROM room_players WHERE room_id = $1 ORDER BY slot', [roomId]);
       const updatedPlayers = updatedPlayersRes.rows.map(r => r.user_id);
+
       if (updatedPlayers.length === 2 && room.status === 'waiting') {
         room = (await pool.query('UPDATE rooms SET status = $2 WHERE id = $1 RETURNING *', [roomId, 'locked'])).rows[0];
       }
 
-      // Join socket room
       session.roomId = roomId;
       socket.join(roomId);
 
@@ -283,22 +264,21 @@ io.on('connection', (socket) => {
       cache.players.add(session.userId);
       cache.sockets.add(socket);
 
-      // If two players: start or resume
+      // شروع یا ادامه بازی وقتی دو نفر حاضرند
       if (updatedPlayers.length === 2 && (room.status === 'locked' || room.status === 'in_progress')) {
-        // Load or create game
         let gameRes = await pool.query('SELECT * FROM games WHERE room_id = $1 ORDER BY started_at DESC LIMIT 1', [roomId]);
         if (gameRes.rowCount === 0) {
           const wordsSeed = `room-${roomId}-${Date.now()}`;
-          const started = await pool.query(
-            `INSERT INTO games(room_id, words_seed, total_words, started_at)
-             VALUES ($1,$2,$3,NOW()) RETURNING *`,
+          const started = await pool.query(`
+            INSERT INTO games(room_id, words_seed, total_words, started_at)
+            VALUES ($1,$2,$3,NOW()) RETURNING *`,
             [roomId, wordsSeed, 10]
           );
           const game = started.rows[0];
           session.gameId = game.id;
 
           const selection = selectTenWordsDeterministic(wordsSeed);
-          // Persist exact selection
+
           for (let i = 0; i < selection.length; i++) {
             const w = selection[i];
             await pool.query(
@@ -308,7 +288,6 @@ io.on('connection', (socket) => {
             );
           }
 
-          // Initialize progress for both users
           for (const uid of updatedPlayers) {
             const w0 = selection[0];
             await pool.query(`
@@ -330,22 +309,6 @@ io.on('connection', (socket) => {
           session.gameId = game.id;
           cache.status = 'in_progress';
           const selection = await loadSelectionFromDb(game.id);
-          // Ensure both players have progress rows
-          for (const uid of updatedPlayers) {
-            const progRes = await pool.query('SELECT * FROM game_progress WHERE game_id = $1 AND user_id = $2', [game.id, uid]);
-            if (progRes.rowCount === 0) {
-              const w0 = selection[0];
-              await pool.query(`
-                INSERT INTO game_progress(game_id, user_id, word_index, current_word, category, level, placeholder, correct_letters, wrong_letters, hints_used, allowed_wrongs)
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-              `, [
-                game.id, uid, 0, w0.word, w0.category, w0.level,
-                '_'.repeat(w0.word.length),
-                [], [], 0, Math.floor(1.2 * w0.word.length)
-              ]);
-            }
-          }
-          // Emit resume plus each user’s current state snapshot
           const snapshots = {};
           for (const uid of updatedPlayers) {
             const p = await pool.query('SELECT * FROM game_progress WHERE game_id = $1 AND user_id = $2', [game.id, uid]);
@@ -373,7 +336,6 @@ io.on('connection', (socket) => {
       if (progRes.rowCount === 0) return;
       const prog = progRes.rows[0];
 
-      // Ignore if already tried
       if (prog.correct_letters.includes(ltr) || prog.wrong_letters.includes(ltr)) {
         return socket.emit('guess_result', { ok: false, error: 'already_tried' });
       }
@@ -385,7 +347,6 @@ io.on('connection', (socket) => {
       }
       const isCorrect = positions.length > 0;
 
-      // Update placeholder
       const placeholderArr = prog.placeholder.split('');
       if (isCorrect) positions.forEach(idx => { placeholderArr[idx] = word[idx]; });
 
@@ -490,13 +451,8 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('leave_room', () => {
-    cleanup();
-  });
-
-  socket.on('disconnect', () => {
-    cleanup();
-  });
+  socket.on('leave_room', () => cleanup());
+  socket.on('disconnect', () => cleanup());
 
   function cleanup() {
     if (!session.roomId) return;
@@ -510,7 +466,7 @@ io.on('connection', (socket) => {
   }
 });
 
-// --- Helpers: load selection and advance word ---
+// --- Helpers ---
 async function loadSelectionFromDb(gameId) {
   const res = await pool.query('SELECT idx, word, category, level FROM game_words WHERE game_id = $1 ORDER BY idx', [gameId]);
   return res.rows.map(r => ({ word: r.word, category: r.category, level: r.level }));
@@ -528,12 +484,8 @@ async function advanceWordOrFinish(session) {
 
   const nextIndex = prog.word_index + 1;
   if (nextIndex >= game.total_words) {
-    // Mark user finished; if both finished, mark room finished
     io.to(session.roomId).emit('user_finished', { userId: session.userId });
 
-    // Check both players completion
-    const playersRes = await pool.query('SELECT user_id FROM room_players WHERE room_id = $1', [game.room_id]);
-    const players = playersRes.rows.map(r => r.user_id);
     const progresses = await pool.query('SELECT user_id, word_index FROM game_progress WHERE game_id = $1', [session.gameId]);
     const allDone = progresses.rows.every(r => r.word_index >= game.total_words - 1);
 
@@ -581,7 +533,7 @@ async function advanceWordOrFinish(session) {
   });
 }
 
-// --- Serve index.html ---
+// --- Serve ---
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
