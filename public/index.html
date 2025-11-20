@@ -7,6 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
     <style>
         :root {
             --primary-color: #4361ee;
@@ -254,6 +255,7 @@
 
         .game-code input {
             border-radius: 10px 0 0 10px;
+            flex: 1;
         }
 
         .game-code .btn {
@@ -307,6 +309,7 @@
             justify-content: center;
             gap: 10px;
             margin: 30px 0;
+            flex-wrap: wrap;
         }
 
         .letter-box {
@@ -356,6 +359,7 @@
             text-align: center;
             font-size: 1.2rem;
             text-transform: uppercase;
+            flex: 1;
         }
 
         .guess-input .btn {
@@ -420,10 +424,13 @@
             display: flex;
             justify-content: space-around;
             margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .player {
             text-align: center;
+            min-width: 80px;
         }
 
         .player-avatar {
@@ -441,11 +448,12 @@
 
         .player-name {
             font-weight: 600;
+            font-size: 0.9rem;
         }
 
         .player-score {
             color: #666;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
         }
 
         .modal {
@@ -459,6 +467,7 @@
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            padding: 20px;
         }
 
         .modal.active {
@@ -469,8 +478,10 @@
             background: white;
             border-radius: var(--border-radius);
             padding: 25px;
-            width: 90%;
-            max-width: 400px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
             box-shadow: var(--shadow);
             animation: modalFadeIn 0.3s ease;
         }
@@ -553,6 +564,18 @@
             margin-top: 5px;
         }
 
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            color: #ddd;
+            margin-bottom: 15px;
+        }
+
         @media (max-width: 600px) {
             .stats {
                 grid-template-columns: 1fr;
@@ -565,6 +588,26 @@
             .players-list {
                 flex-direction: column;
                 gap: 15px;
+            }
+            
+            .game-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .game-actions {
+                width: 100%;
+            }
+            
+            .game-actions .btn {
+                flex: 1;
+            }
+            
+            .letter-box {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -675,7 +718,10 @@
             <div class="card">
                 <div class="card-title">بازی‌های فعال شما</div>
                 <div id="active-games-list">
-                    <!-- بازی‌های فعال در اینجا نمایش داده می‌شوند -->
+                    <div class="empty-state">
+                        <i class="fas fa-gamepad"></i>
+                        <p>هنوز بازی فعالی ندارید</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -714,8 +760,12 @@
                 </div>
                 
                 <div class="game-controls">
-                    <button class="btn btn-warning" id="hint-btn">راهنمایی</button>
-                    <button class="btn btn-danger" id="leave-game-btn">ترک بازی</button>
+                    <button class="btn btn-warning" id="hint-btn">
+                        <i class="fas fa-lightbulb"></i> راهنمایی
+                    </button>
+                    <button class="btn btn-danger" id="leave-game-btn">
+                        <i class="fas fa-sign-out-alt"></i> ترک بازی
+                    </button>
                 </div>
                 
                 <div class="guesses-history" id="guesses-history">
@@ -785,7 +835,19 @@
                 // نمایش تاریخ عضویت (تاریخ شمسی)
                 const joinDate = new Date(user.id * 1000); // فرض می‌کنیم شناسه کاربر timestamp است
                 document.getElementById('join-date').textContent = 'عضویت: ' + formatPersianDate(joinDate);
+                
+                // بارگذاری آمار کاربر از سرور
+                loadUserStats(user.id);
             }
+        }
+
+        // بارگذاری آمار کاربر
+        function loadUserStats(telegramId) {
+            // این تابع باید آمار کاربر را از سرور دریافت کند
+            // فعلا مقادیر پیش‌فرض نمایش داده می‌شود
+            document.getElementById('user-score').textContent = '0';
+            document.getElementById('games-played').textContent = '0';
+            document.getElementById('games-won').textContent = '0';
         }
 
         // تنظیم تاریخ شمسی
@@ -854,6 +916,7 @@
             document.getElementById('back-to-dashboard-btn').addEventListener('click', function() {
                 closeGameModal();
                 switchTab('active-games');
+                loadActiveGames();
             });
             
             // ورود حرف با کلید Enter
@@ -1010,27 +1073,75 @@
             const user = tg.initDataUnsafe.user;
             if (!user) return;
             
-            // در اینجا باید API برای دریافت بازی‌های فعال کاربر فراخوانی شود
-            // فعلا برای نمونه از یک لیست خالی استفاده می‌کنیم
             const activeGamesList = document.getElementById('active-games-list');
             activeGamesList.innerHTML = '<p>در حال بارگذاری بازی‌ها...</p>';
             
-            // شبیه‌سازی بارگذاری
-            setTimeout(() => {
-                // این بخش باید با داده‌های واقعی از سرور پر شود
+            // دریافت بازی‌های فعال از سرور
+            fetch(`/api/user/games/${user.id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.games && data.games.length > 0) {
+                        displayActiveGames(data.games);
+                    } else {
+                        activeGamesList.innerHTML = `
+                            <div class="empty-state">
+                                <i class="fas fa-gamepad"></i>
+                                <p>هنوز بازی فعالی ندارید</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    showNotification('خطا در دریافت بازی‌ها', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading games:', error);
                 activeGamesList.innerHTML = `
-                    <div class="game-item">
-                        <div class="game-info">
-                            <h4>کلمه مخفی</h4>
-                            <p>دسته‌بندی: عمومی | سطح: متوسط</p>
-                            <p>کد بازی: ABC123</p>
-                        </div>
-                        <div class="game-actions">
-                            <button class="btn" onclick="viewGame('ABC123')">مشاهده</button>
-                        </div>
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>خطا در بارگذاری بازی‌ها</p>
                     </div>
                 `;
-            }, 1000);
+            });
+        }
+
+        // نمایش بازی‌های فعال
+        function displayActiveGames(games) {
+            const activeGamesList = document.getElementById('active-games-list');
+            activeGamesList.innerHTML = '';
+            
+            games.forEach(game => {
+                const gameItem = document.createElement('div');
+                gameItem.className = 'game-item';
+                
+                const statusText = game.game_state === 'waiting' ? 'در انتظار' : 
+                                 game.game_state === 'active' ? 'در حال بازی' : 'پایان یافته';
+                
+                gameItem.innerHTML = `
+                    <div class="game-info">
+                        <h4>${game.category}</h4>
+                        <p>کلمه: ${'*'.repeat(game.word.length)} | سطح: ${getDifficultyText(game.difficulty)}</p>
+                        <p>کد بازی: ${game.game_code} | وضعیت: ${statusText}</p>
+                        <p>تعداد بازیکنان: ${game.player_count} نفر</p>
+                    </div>
+                    <div class="game-actions">
+                        <button class="btn" onclick="viewGame('${game.game_code}')">مشاهده</button>
+                    </div>
+                `;
+                
+                activeGamesList.appendChild(gameItem);
+            });
+        }
+
+        // دریافت متن سطح دشواری
+        function getDifficultyText(difficulty) {
+            switch(difficulty) {
+                case 'easy': return 'آسان';
+                case 'medium': return 'متوسط';
+                case 'hard': return 'سخت';
+                default: return 'متوسط';
+            }
         }
 
         // مشاهده بازی
@@ -1059,7 +1170,7 @@
             
             // پیوستن به اتاق بازی در WebSocket
             if (socket && currentGame) {
-                socket.emit('joinGame', currentGame.gameCode);
+                socket.emit('joinGame', currentGame.game_code);
             }
         }
 
@@ -1069,7 +1180,7 @@
             
             // ترک اتاق بازی در WebSocket
             if (socket && currentGame) {
-                socket.emit('leaveGame', currentGame.gameCode);
+                socket.emit('leaveGame', currentGame.game_code);
             }
             
             // پاک کردن تایمر
@@ -1086,13 +1197,13 @@
             if (!currentGame) return;
             
             const user = tg.initDataUnsafe.user;
-            const isCreator = user.id === currentGame.creatorId;
+            const isCreator = user.id === currentGame.creator_id;
             
             // تنظیم عنوان مودال
             document.getElementById('game-modal-title').textContent = 
-                `بازی ${currentGame.gameCode} - ${currentGame.category}`;
+                `بازی ${currentGame.game_code} - ${currentGame.category}`;
             
-            if (currentGame.gameState === 'waiting') {
+            if (currentGame.game_state === 'waiting') {
                 // نمایش وضعیت انتظار
                 document.getElementById('game-waiting').style.display = 'block';
                 document.getElementById('game-active').style.display = 'none';
@@ -1105,7 +1216,7 @@
                 // نمایش بازیکنان
                 displayPlayers(currentGame.players, 'waiting-players');
             } 
-            else if (currentGame.gameState === 'active') {
+            else if (currentGame.game_state === 'active') {
                 // نمایش وضعیت فعال
                 document.getElementById('game-waiting').style.display = 'none';
                 document.getElementById('game-active').style.display = 'block';
@@ -1123,7 +1234,7 @@
                 // شروع تایمر
                 startGameTimer();
             }
-            else if (currentGame.gameState === 'finished') {
+            else if (currentGame.game_state === 'finished') {
                 // نمایش وضعیت پایان یافته
                 document.getElementById('game-waiting').style.display = 'none';
                 document.getElementById('game-active').style.display = 'none';
@@ -1148,7 +1259,7 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="player-name">${player.username}</div>
-                    <div class="player-score">${player.isActive ? 'فعال' : 'غیرفعال'}</div>
+                    <div class="player-score">${player.is_active ? 'فعال' : 'غیرفعال'}</div>
                 `;
                 
                 container.appendChild(playerEl);
@@ -1192,15 +1303,15 @@
             const userGuesses = {};
             
             currentGame.guesses.forEach(guess => {
-                if (!userGuesses[guess.playerId]) {
-                    userGuesses[guess.playerId] = [];
+                if (!userGuesses[guess.player_id]) {
+                    userGuesses[guess.player_id] = [];
                 }
-                userGuesses[guess.playerId].push(guess);
+                userGuesses[guess.player_id].push(guess);
             });
             
             // نمایش حدس‌ها
             for (const playerId in userGuesses) {
-                const player = currentGame.players.find(p => p.telegramId == playerId);
+                const player = currentGame.players.find(p => p.telegram_id == playerId);
                 if (!player) continue;
                 
                 const playerHeader = document.createElement('div');
@@ -1211,11 +1322,11 @@
                 
                 userGuesses[playerId].forEach(guess => {
                     const guessItem = document.createElement('div');
-                    guessItem.className = `guess-item ${guess.isCorrect ? 'correct' : 'incorrect'}`;
+                    guessItem.className = `guess-item ${guess.is_correct ? 'correct' : 'incorrect'}`;
                     
                     guessItem.innerHTML = `
                         <div class="guess-letter">${guess.letter}</div>
-                        <span>${guess.isCorrect ? 'صحیح' : 'غلط'}</span>
+                        <span>${guess.is_correct ? 'صحیح' : 'غلط'}</span>
                     `;
                     
                     guessesHistory.appendChild(guessItem);
@@ -1225,9 +1336,9 @@
 
         // شروع تایمر بازی
         function startGameTimer() {
-            if (!currentGame.endTime) return;
+            if (!currentGame.end_time) return;
             
-            const endTime = new Date(currentGame.endTime).getTime();
+            const endTime = new Date(currentGame.end_time).getTime();
             const timerElement = document.getElementById('game-timer');
             
             gameTimer = setInterval(() => {
@@ -1254,7 +1365,7 @@
             if (!currentGame) return;
             
             const user = tg.initDataUnsafe.user;
-            if (user.id !== currentGame.creatorId) {
+            if (user.id !== currentGame.creator_id) {
                 showNotification('فقط سازنده بازی می‌تواند بازی را شروع کند', 'error');
                 return;
             }
@@ -1265,7 +1376,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    gameCode: currentGame.gameCode,
+                    gameCode: currentGame.game_code,
                     playerId: user.id
                 })
             })
@@ -1304,7 +1415,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    gameCode: currentGame.gameCode,
+                    gameCode: currentGame.game_code,
                     playerId: user.id,
                     letter: letter
                 })
@@ -1343,7 +1454,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    gameCode: currentGame.gameCode,
+                    gameCode: currentGame.game_code,
                     playerId: user.id
                 })
             })
@@ -1372,7 +1483,7 @@
         // نمایش نتیجه بازی
         function displayGameResult() {
             const user = tg.initDataUnsafe.user;
-            const isWinner = currentGame.winnerId === user.id;
+            const isWinner = currentGame.winner_id === user.id;
             
             const resultTitle = document.getElementById('game-result-title');
             const resultMessage = document.getElementById('game-result-message');
@@ -1380,8 +1491,8 @@
             if (isWinner) {
                 resultTitle.textContent = 'تبریک! شما برنده شدید!';
                 resultMessage.textContent = `امتیاز کسب شده: ${calculateScore(currentGame, user.id)}`;
-            } else if (currentGame.winnerId) {
-                const winner = currentGame.players.find(p => p.telegramId === currentGame.winnerId);
+            } else if (currentGame.winner_id) {
+                const winner = currentGame.players.find(p => p.telegram_id === currentGame.winner_id);
                 resultTitle.textContent = 'بازی به پایان رسید';
                 resultMessage.textContent = `برنده: ${winner ? winner.username : 'ناشناس'}`;
             } else {
@@ -1413,7 +1524,7 @@
         if (socket) {
             // بازیکن جدید پیوست
             socket.on('playerJoined', (data) => {
-                if (currentGame && currentGame.gameCode === data.gameCode) {
+                if (currentGame && currentGame.game_code === data.gameCode) {
                     // به‌روزرسانی لیست بازیکنان
                     currentGame.players = data.players;
                     displayPlayers(currentGame.players, 'waiting-players');
@@ -1428,9 +1539,9 @@
                     // به‌روزرسانی تاریخچه حدس‌ها
                     if (!currentGame.guesses) currentGame.guesses = [];
                     currentGame.guesses.push({
-                        playerId: data.playerId,
+                        player_id: data.playerId,
                         letter: data.letter,
-                        isCorrect: data.isCorrect,
+                        is_correct: data.isCorrect,
                         timestamp: new Date()
                     });
                     
@@ -1460,9 +1571,9 @@
             // شروع بازی
             socket.on('gameStarted', (data) => {
                 if (currentGame) {
-                    currentGame.gameState = 'active';
-                    currentGame.startTime = data.startTime;
-                    currentGame.endTime = data.endTime;
+                    currentGame.game_state = 'active';
+                    currentGame.start_time = data.startTime;
+                    currentGame.end_time = data.endTime;
                     
                     setupGameView();
                     showNotification('بازی شروع شد!', 'success');
@@ -1472,9 +1583,9 @@
             // پایان بازی
             socket.on('gameFinished', (data) => {
                 if (currentGame) {
-                    currentGame.gameState = 'finished';
-                    currentGame.winnerId = data.winnerId;
-                    currentGame.endTime = data.endTime;
+                    currentGame.game_state = 'finished';
+                    currentGame.winner_id = data.winnerId;
+                    currentGame.end_time = data.endTime;
                     
                     setupGameView();
                     
