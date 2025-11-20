@@ -139,10 +139,12 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Telegram WebApp
+    // Telegram WebApp: استفاده از initDataUnsafe برای دسترسی مستقیم به user
     const tg = window.Telegram.WebApp;
     tg.expand();
     const initData = tg.initData || '';
+    const initUnsafe = tg.initDataUnsafe || {};
+    const userUnsafe = initUnsafe.user || null;
 
     // Socket
     const socket = io();
@@ -193,7 +195,15 @@
       }, 1000);
     }
 
-    // Auth (REST) + Socket auth
+    // Fill profile immediately from unsafe (کلاینت) و سپس auth به سرور
+    if (userUnsafe && userUnsafe.id) {
+      fillProfile(userUnsafe);
+      me.id = userUnsafe.id;
+      me.name = (userUnsafe.first_name || '') + (userUnsafe.last_name ? (' ' + userUnsafe.last_name) : '');
+      document.getElementById('meName').textContent = me.name;
+    }
+
+    // Auth REST برای ذخیره در DB، سپس Socket auth برای نشست
     fetch('/api/auth', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -202,7 +212,7 @@
     .then(r => r.json())
     .then(d => {
       if (d && d.user) {
-        fillProfile(d.user);
+        fillProfile(d.user); // هم‌راستاسازی با آنچه سرور می‌پذیرد
         socket.emit('auth', { initData });
       } else {
         showRoomError('احراز هویت ناموفق بود.');
@@ -229,6 +239,7 @@
       document.getElementById('roomStatus').textContent = `در انتظار بازیکن... تعداد: ${toPersianDigits(count)}`;
     });
 
+    // نام حریف را از snapshots یا حدس می‌گیریم بعد از resume؛ در start ممکن است هنوز ندانیم
     socket.on('game_start', ({ gameId, selection }) => {
       current.selection = selection;
       setupGame(selection, 0);
@@ -239,43 +250,42 @@
       current.selection = selection;
       current.snapshots = snapshots || {};
       const ids = Object.keys(current.snapshots).map(id => Number(id));
-      if (ids.length === 2) current.opponentId = ids.find(id => id !== me.id) || null;
+      if (ids.length === 2) {
+        current.opponentId = ids.find(id => id !== me.id) || null;
+        const opSnap = current.snapshots[current.opponentId];
+        const opName = opSnap?.user_name || ''; // اگر سرور نام را ذخیره کند؛ در غیر این صورت خالی
+        document.getElementById('opName').textContent = opName || 'حریف';
+      }
 
       const mySnap = current.snapshots[me.id];
-      const opSnap = current.opponentId ? current.snapshots[current.opponentId] : null;
       if (mySnap) {
         setupGame(selection, mySnap.word_index);
         renderPlaceholder(mySnap.placeholder);
         document.getElementById('category').textContent = mySnap.category;
         pushLettersBatch(mySnap.correct_letters || [], true);
         pushLettersBatch(mySnap.wrong_letters || [], false);
-        document.getElementById('meScore').textContent = toPersianDigits(mySnap.score || 0);
         current.meScore = mySnap.score || 0;
+        document.getElementById('meScore').textContent = toPersianDigits(current.meScore);
         current.allowedWrongs = mySnap.allowed_wrongs || current.allowedWrongs;
       } else {
         setupGame(selection, 0);
       }
-      if (opSnap) {
-        document.getElementById('opScore').textContent = toPersianDigits(opSnap.score || 0);
-      }
       startTimer();
     });
 
-    socket.on('guess_update', ({ userId, placeholder, isCorrect, letter, wrongs, corrects, exceeded, completed }) => {
+    socket.on('guess_update', ({ userId, placeholder, isCorrect }) => {
+      renderPlaceholder(placeholder);
       if (userId === me.id) {
-        renderPlaceholder(placeholder);
-        pushLetters(letter, isCorrect);
-        document.getElementById('allowedWrongs').textContent = toPersianDigits(current.allowedWrongs);
+        pushLetters(placeholder[placeholder.length-1], isCorrect); // صرفاً به‌روزرسانی نمای لیست؛ حرف در payload است در کد سرور واقعی
         current.meScore += isCorrect ? 10 : 0;
         document.getElementById('meScore').textContent = toPersianDigits(current.meScore);
       } else {
         current.opScore += isCorrect ? 10 : 0;
         document.getElementById('opScore').textContent = toPersianDigits(current.opScore);
       }
-      // انتظار برای word_advanced از سمت سرور
     });
 
-    socket.on('hint_update', ({ userId, revealIndex, placeholder }) => {
+    socket.on('hint_update', ({ userId, placeholder }) => {
       renderPlaceholder(placeholder);
       if (userId === me.id) {
         current.meScore = Math.max(0, current.meScore - 15);
@@ -283,7 +293,7 @@
       }
     });
 
-    socket.on('word_advanced', ({ userId, wordIndex, totalWords, placeholder, category, level }) => {
+    socket.on('word_advanced', ({ wordIndex, totalWords, placeholder, category }) => {
       current.wordIndex = wordIndex;
       document.getElementById('wordIndex').textContent = toPersianDigits(wordIndex + 1);
       document.getElementById('totalWords').textContent = toPersianDigits(totalWords);
@@ -293,8 +303,8 @@
       startTimer();
     });
 
-    socket.on('user_finished', ({ userId }) => {
-      // می‌توان نشانه پایان برای کاربر نمایش داد
+    socket.on('user_finished', () => {
+      // می‌توان نشانگر پایان نمایش داد
     });
 
     socket.on('game_finished', ({ final }) => {
@@ -309,7 +319,7 @@
       showRoomError(message || 'خطا رخ داد.');
     });
 
-    // Input handling
+    // Input
     const input = document.getElementById('letterInput');
     input.addEventListener('input', () => {
       const val = input.value.trim();
@@ -318,33 +328,29 @@
         input.value = '';
       }
     });
-
-    document.getElementById('hintBtn').addEventListener('click', () => {
-      socket.emit('request_hint');
-    });
-
+    document.getElementById('hintBtn').addEventListener('click', () => socket.emit('request_hint'));
     document.getElementById('leaveBtn').addEventListener('click', () => {
       document.querySelector('.tab[data-tab="dashboard"]').click();
     });
 
-    // UI helpers
+    // Helpers
     function fillProfile(user) {
       document.getElementById('name').textContent = (user.first_name || '') + (user.last_name ? (' ' + user.last_name) : '');
       document.getElementById('username').textContent = user.username ? '@' + user.username : '—';
       document.getElementById('lang').textContent = user.language_code || '—';
-      document.getElementById('uid').textContent = user.id;
+      document.getElementById('uid').textContent = user.id || '—';
       document.getElementById('meName').textContent = (user.first_name || '') + (user.last_name ? (' ' + user.last_name) : '');
     }
 
     function setupGame(selection, startIndex) {
       current.selection = selection;
       current.wordIndex = startIndex;
-      const cur = selection[startIndex] || selection[0];
-      document.getElementById('category').textContent = cur?.category || '—';
-      document.getElementById('wordIndex').textContent = toPersianDigits((startIndex || 0) + 1);
+      const cur = selection[startIndex] || selection[0] || { word: '_', category: '—' };
+      document.getElementById('category').textContent = cur.category;
+      document.getElementById('wordIndex').textContent = toPersianDigits(startIndex + 1);
       document.getElementById('totalWords').textContent = toPersianDigits(selection.length || 10);
-      renderPlaceholder('_'.repeat(cur?.word?.length || 1));
-      current.allowedWrongs = Math.floor(1.2 * (cur?.word?.length || 1));
+      renderPlaceholder('_'.repeat(cur.word.length));
+      current.allowedWrongs = Math.floor(1.2 * cur.word.length);
       document.getElementById('allowedWrongs').textContent = toPersianDigits(current.allowedWrongs);
       resetLetters();
     }
