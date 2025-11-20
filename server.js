@@ -63,7 +63,8 @@ async function initDatabase() {
                 id TEXT PRIMARY KEY,
                 full_name TEXT NOT NULL,
                 score INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT NOW()
+                created_at TIMESTAMP DEFAULT NOW(),
+                last_active TIMESTAMP DEFAULT NOW()
             );
 
             CREATE TABLE IF NOT EXISTS games (
@@ -80,17 +81,24 @@ async function initDatabase() {
                 time_limit_seconds INTEGER DEFAULT 120,
                 start_time TIMESTAMP,
                 end_time TIMESTAMP,
-                created_at TIMESTAMP DEFAULT NOW()
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
             );
 
             CREATE TABLE IF NOT EXISTS game_moves (
                 id SERIAL PRIMARY KEY,
-                game_code TEXT REFERENCES games(game_code),
+                game_code TEXT REFERENCES games(game_code) ON DELETE CASCADE,
                 player_id TEXT,
                 guess_letter TEXT,
                 is_correct BOOLEAN,
                 created_at TIMESTAMP DEFAULT NOW()
             );
+
+            CREATE INDEX IF NOT EXISTS idx_games_status ON games(status);
+            CREATE INDEX IF NOT EXISTS idx_games_creator_id ON games(creator_id);
+            CREATE INDEX IF NOT EXISTS idx_games_player_id ON games(player_id);
+            CREATE INDEX IF NOT EXISTS idx_games_updated_at ON games(updated_at);
+            CREATE INDEX IF NOT EXISTS idx_game_moves_game_code ON game_moves(game_code);
         `);
         
         console.log('✅ جداول دیتابیس آماده هستند');
@@ -138,12 +146,20 @@ app.get('/api/user/score', async (req, res) => {
             });
         }
 
+        // به‌روزرسانی آخرین فعالیت کاربر
+        await pool.query(
+            'UPDATE users SET last_active = NOW() WHERE id = $1',
+            [userId]
+        );
+
         // ایجاد یا به‌روزرسانی کاربر
         const result = await pool.query(
             `INSERT INTO users (id, full_name, score) 
              VALUES ($1, $2, 0) 
              ON CONFLICT (id) 
-             DO UPDATE SET full_name = EXCLUDED.full_name
+             DO UPDATE SET 
+                 full_name = EXCLUDED.full_name,
+                 last_active = NOW()
              RETURNING id, full_name, score`,
             [userId, fullName || 'کاربر']
         );
@@ -180,7 +196,7 @@ app.get('/api/games/waiting', async (req, res) => {
     try {
         const { userId } = req.query;
 
-        console.log('📋 دریافت بازی‌های در انتظار');
+        console.log('📋 دریافت بازی‌های در انتظار برای کاربر:', userId);
 
         const result = await pool.query(
             `SELECT g.*, u.full_name as creator_name
@@ -199,7 +215,8 @@ app.get('/api/games/waiting', async (req, res) => {
                 creator_name: game.creator_name,
                 category: game.category,
                 difficulty: game.difficulty,
-                created_at: game.created_at
+                created_at: game.created_at,
+                time_ago: getTimeAgo(game.created_at)
             }))
         });
 
@@ -223,6 +240,14 @@ app.post('/api/game/create', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'همه فیلدها را پر کنید'
+            });
+        }
+
+        // بررسی طول کلمه
+        if (word.length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'کلمه باید حداقل ۲ حرف داشته باشد'
             });
         }
 
@@ -253,7 +278,7 @@ app.post('/api/game/create', async (req, res) => {
         await pool.query(
             `INSERT INTO games (game_code, creator_id, word, category, difficulty, word_to_display) 
              VALUES ($1, $2, $3, $4, $5, $6)`,
-            [gameCode, creatorId, word, category, difficulty, wordToDisplay]
+            [gameCode, creatorId, word.toLowerCase(), category, difficulty, wordToDisplay]
         );
 
         console.log('✅ بازی ایجاد شد با کد:', gameCode);
@@ -332,7 +357,10 @@ app.post('/api/game/join', async (req, res) => {
         // به‌روزرسانی بازی
         const updateResult = await pool.query(
             `UPDATE games 
-             SET player_id = $1, status = 'active', start_time = NOW() 
+             SET player_id = $1, 
+                 status = 'active', 
+                 start_time = NOW(),
+                 updated_at = NOW()
              WHERE game_code = $2 
              RETURNING *`,
             [playerId, gameCode.toUpperCase()]
@@ -358,7 +386,10 @@ app.post('/api/game/join', async (req, res) => {
                 correctGuessedLetters: updatedGame.guessed_letters.filter(l => updatedGame.word.includes(l)),
                 incorrectGuessedLetters: updatedGame.guessed_letters.filter(l => !updatedGame.word.includes(l)),
                 status: updatedGame.status,
-                timeRemainingSeconds: calculateTimeRemaining(updatedGame.start_time, updatedGame.time_limit_seconds)
+                timeRemainingSeconds: calculateTimeRemaining(updatedGame.start_time, updatedGame.time_limit_seconds),
+                isCreator: false,
+                isPlayer: true,
+                lastUpdate: updatedGame.updated_at
             }
         });
 
@@ -386,10 +417,17 @@ app.post('/api/game/guess', async (req, res) => {
             });
         }
 
+        if (!/^[\u0600-\u06FF]$/.test(normalizedGuess)) {
+            return res.status(400).json({
+                success: false,
+                message: 'لطفاً فقط یک حرف فارسی وارد کنید'
+            });
+        }
+
         // پیدا کردن بازی
         const gameResult = await pool.query(
             'SELECT * FROM games WHERE game_code = $1',
-            [gameCode]
+            [gameCode.toUpperCase()]
         );
 
         if (gameResult.rows.length === 0) {
@@ -402,10 +440,10 @@ app.post('/api/game/guess', async (req, res) => {
         let game = gameResult.rows[0];
 
         // بررسی مجوزها
-        if (game.player_id !== playerId && game.creator_id !== playerId) {
+        if (game.player_id !== playerId) {
             return res.status(403).json({
                 success: false,
-                message: 'شما مجاز به بازی در این اتاق نیستید'
+                message: 'شما بازیکن این بازی نیستید'
             });
         }
 
@@ -416,20 +454,16 @@ app.post('/api/game/guess', async (req, res) => {
             });
         }
 
-        // فقط بازیکن می‌تواند حدس بزند
-        if (game.player_id !== playerId) {
-            return res.status(400).json({
-                success: false,
-                message: 'فقط بازیکن می‌تواند حدس بزند'
-            });
-        }
-
         // بررسی زمان
         const timeRemaining = calculateTimeRemaining(game.start_time, game.time_limit_seconds);
         if (timeRemaining <= 0) {
             await pool.query(
-                'UPDATE games SET status = $1, end_time = NOW() WHERE game_code = $2',
-                ['lost', gameCode]
+                `UPDATE games SET 
+                    status = 'lost', 
+                    end_time = NOW(),
+                    updated_at = NOW()
+                 WHERE game_code = $1`,
+                [gameCode]
             );
             return res.status(400).json({
                 success: false,
@@ -478,10 +512,11 @@ app.post('/api/game/guess', async (req, res) => {
                  guessed_letters = $2, 
                  word_to_display = $3, 
                  status = $4,
-                 end_time = CASE WHEN $4 != 'active' THEN NOW() ELSE end_time END
+                 end_time = CASE WHEN $4 != 'active' THEN NOW() ELSE NULL END,
+                 updated_at = NOW()
              WHERE game_code = $5 
              RETURNING *`,
-            [attemptsLeft, guessedLetters, newWordToDisplay, newStatus, gameCode]
+            [attemptsLeft, guessedLetters, newWordToDisplay, newStatus, gameCode.toUpperCase()]
         );
 
         const updatedGame = updateResult.rows[0];
@@ -490,7 +525,7 @@ app.post('/api/game/guess', async (req, res) => {
         await pool.query(
             `INSERT INTO game_moves (game_code, player_id, guess_letter, is_correct)
              VALUES ($1, $2, $3, $4)`,
-            [gameCode, playerId, normalizedGuess, isCorrect]
+            [gameCode.toUpperCase(), playerId, normalizedGuess, isCorrect]
         );
 
         // به‌روزرسانی امتیاز
@@ -507,6 +542,17 @@ app.post('/api/game/guess', async (req, res) => {
         
         const creatorName = creatorResult.rows[0]?.full_name || 'سازنده';
         const playerName = playerResult.rows[0]?.full_name || 'بازیکن';
+
+        // دریافت آخرین حرکات برای real-time
+        const movesResult = await pool.query(
+            `SELECT gm.*, u.full_name as player_name
+             FROM game_moves gm
+             JOIN users u ON gm.player_id = u.id
+             WHERE gm.game_code = $1
+             ORDER BY gm.created_at DESC
+             LIMIT 5`,
+            [gameCode.toUpperCase()]
+        );
 
         res.json({
             success: true,
@@ -525,12 +571,102 @@ app.post('/api/game/guess', async (req, res) => {
                 status: updatedGame.status,
                 timeRemainingSeconds: calculateTimeRemaining(updatedGame.start_time, updatedGame.time_limit_seconds),
                 finalScoreChange: scoreChange,
-                actualWord: newStatus !== 'active' ? game.word : undefined
+                actualWord: newStatus !== 'active' ? game.word : undefined,
+                isCreator: game.creator_id === playerId,
+                isPlayer: game.player_id === playerId,
+                recentMoves: movesResult.rows,
+                lastUpdate: updatedGame.updated_at
             }
         });
 
     } catch (error) {
         console.error('❌ خطا در حدس زدن:', error);
+        res.status(500).json({
+            success: false,
+            message: 'خطای سرور'
+        });
+    }
+});
+
+// دریافت وضعیت بازی - با قابلیت real-time
+app.get('/api/game/status/:gameCode', async (req, res) => {
+    try {
+        const { gameCode } = req.params;
+        const { userId, lastUpdate } = req.query;
+
+        console.log('📊 دریافت وضعیت بازی:', { gameCode, userId, lastUpdate });
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'شناسه کاربری الزامی است'
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT g.*, u1.full_name as creator_name, u2.full_name as player_name
+             FROM games g 
+             JOIN users u1 ON g.creator_id = u1.id
+             LEFT JOIN users u2 ON g.player_id = u2.id
+             WHERE g.game_code = $1 AND (g.creator_id = $2 OR g.player_id = $2)`,
+            [gameCode.toUpperCase(), userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'بازی پیدا نشد یا شما مجاز نیستید'
+            });
+        }
+
+        const game = result.rows[0];
+
+        // بررسی آیا نیاز به بروزرسانی هست
+        if (lastUpdate && new Date(game.updated_at) <= new Date(lastUpdate)) {
+            return res.json({
+                success: true,
+                notModified: true,
+                message: 'داده‌ها تغییر نکرده‌اند'
+            });
+        }
+
+        // دریافت آخرین حرکات
+        const movesResult = await pool.query(
+            `SELECT gm.*, u.full_name as player_name
+             FROM game_moves gm
+             JOIN users u ON gm.player_id = u.id
+             WHERE gm.game_code = $1
+             ORDER BY gm.created_at DESC
+             LIMIT 10`,
+            [gameCode.toUpperCase()]
+        );
+
+        const responseData = {
+            success: true,
+            gameData: {
+                gameCode: game.game_code,
+                creatorName: game.creator_name,
+                playerName: game.player_name || 'منتظر بازیکن',
+                category: game.category,
+                difficulty: game.difficulty,
+                wordToDisplay: game.word_to_display,
+                attemptsLeft: game.attempts_left,
+                correctGuessedLetters: game.guessed_letters.filter(l => game.word.includes(l)),
+                incorrectGuessedLetters: game.guessed_letters.filter(l => !game.word.includes(l)),
+                status: game.status,
+                timeRemainingSeconds: calculateTimeRemaining(game.start_time, game.time_limit_seconds),
+                actualWord: game.status !== 'active' ? game.word : undefined,
+                isCreator: game.creator_id === userId,
+                isPlayer: game.player_id === userId,
+                recentMoves: movesResult.rows.reverse(),
+                lastUpdate: game.updated_at
+            }
+        };
+
+        res.json(responseData);
+
+    } catch (error) {
+        console.error('❌ خطا در دریافت وضعیت بازی:', error);
         res.status(500).json({
             success: false,
             message: 'خطای سرور'
@@ -556,7 +692,7 @@ app.get('/api/game/moves/:gameCode', async (req, res) => {
         // بررسی دسترسی کاربر به بازی
         const gameCheck = await pool.query(
             'SELECT 1 FROM games WHERE game_code = $1 AND (creator_id = $2 OR player_id = $2)',
-            [gameCode, userId]
+            [gameCode.toUpperCase(), userId]
         );
 
         if (gameCheck.rows.length === 0) {
@@ -571,8 +707,9 @@ app.get('/api/game/moves/:gameCode', async (req, res) => {
              FROM game_moves gm
              JOIN users u ON gm.player_id = u.id
              WHERE gm.game_code = $1
-             ORDER BY gm.created_at ASC`,
-            [gameCode]
+             ORDER BY gm.created_at DESC
+             LIMIT 50`,
+            [gameCode.toUpperCase()]
         );
 
         res.json({
@@ -607,8 +744,9 @@ app.get('/api/games/active', async (req, res) => {
             `SELECT g.*, u.full_name as creator_name
              FROM games g 
              JOIN users u ON g.creator_id = u.id
-             WHERE g.creator_id = $1 OR g.player_id = $1
-             ORDER BY g.created_at DESC`,
+             WHERE (g.creator_id = $1 OR g.player_id = $1)
+             AND g.status IN ('waiting', 'active')
+             ORDER BY g.updated_at DESC`,
             [userId]
         );
 
@@ -621,7 +759,9 @@ app.get('/api/games/active', async (req, res) => {
                 status: game.status,
                 is_creator: game.creator_id === userId,
                 category: game.category,
-                player_id: game.player_id
+                player_id: game.player_id,
+                updated_at: game.updated_at,
+                time_ago: getTimeAgo(game.updated_at)
             }))
         });
 
@@ -634,79 +774,20 @@ app.get('/api/games/active', async (req, res) => {
     }
 });
 
-// دریافت وضعیت بازی
-app.get('/api/game/status/:gameCode', async (req, res) => {
-    try {
-        const { gameCode } = req.params;
-        const { userId } = req.query;
+// تابع کمکی برای نمایش زمان گذشته
+function getTimeAgo(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-        console.log('📊 دریافت وضعیت بازی:', { gameCode, userId });
-
-        if (!userId) {
-            return res.status(400).json({
-                success: false,
-                message: 'شناسه کاربری الزامی است'
-            });
-        }
-
-        const result = await pool.query(
-            `SELECT g.*, u1.full_name as creator_name, u2.full_name as player_name
-             FROM games g 
-             JOIN users u1 ON g.creator_id = u1.id
-             LEFT JOIN users u2 ON g.player_id = u2.id
-             WHERE g.game_code = $1 AND (g.creator_id = $2 OR g.player_id = $2)`,
-            [gameCode.toUpperCase(), userId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'بازی پیدا نشد'
-            });
-        }
-
-        const game = result.rows[0];
-
-        // دریافت آخرین حرکات
-        const movesResult = await pool.query(
-            `SELECT gm.*, u.full_name as player_name
-             FROM game_moves gm
-             JOIN users u ON gm.player_id = u.id
-             WHERE gm.game_code = $1
-             ORDER BY gm.created_at DESC
-             LIMIT 10`,
-            [gameCode]
-        );
-
-        res.json({
-            success: true,
-            gameData: {
-                gameCode: game.game_code,
-                creatorName: game.creator_name,
-                playerName: game.player_name || 'منتظر بازیکن',
-                category: game.category,
-                difficulty: game.difficulty,
-                wordToDisplay: game.word_to_display,
-                attemptsLeft: game.attempts_left,
-                correctGuessedLetters: game.guessed_letters.filter(l => game.word.includes(l)),
-                incorrectGuessedLetters: game.guessed_letters.filter(l => !game.word.includes(l)),
-                status: game.status,
-                timeRemainingSeconds: calculateTimeRemaining(game.start_time, game.time_limit_seconds),
-                actualWord: game.status !== 'active' ? game.word : undefined,
-                isPlayer: game.player_id === userId,
-                isCreator: game.creator_id === userId,
-                recentMoves: movesResult.rows.reverse()
-            }
-        });
-
-    } catch (error) {
-        console.error('❌ خطا در دریافت وضعیت بازی:', error);
-        res.status(500).json({
-            success: false,
-            message: 'خطای سرور'
-        });
-    }
-});
+    if (diffMins < 1) return 'همین الان';
+    if (diffMins < 60) return `${diffMins} دقیقه پیش`;
+    if (diffHours < 24) return `${diffHours} ساعت پیش`;
+    return `${diffDays} روز پیش`;
+}
 
 // --- Telegram Bot Routes ---
 
@@ -720,7 +801,8 @@ app.post(`/webhook/${TOKEN}`, (req, res) => {
 app.get(`/webhook/${TOKEN}`, (req, res) => {
     res.json({ 
         status: 'Webhook is active', 
-        timestamp: new Date().toISOString() 
+        timestamp: new Date().toISOString(),
+        url: `${HOST_URL}/webhook/${TOKEN}`
     });
 });
 
@@ -762,7 +844,8 @@ app.get('/health', (req, res) => {
         status: 'OK', 
         service: 'Wordly Arena',
         timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        version: '1.0.0'
     });
 });
 
@@ -786,6 +869,7 @@ async function startServer() {
             console.log(`🚀 سرور روی پورت ${PORT} راه‌اندازی شد`);
             console.log(`🌐 آدرس: ${WEB_APP_URL}`);
             console.log(`❤️  Health check: ${WEB_APP_URL}/health`);
+            console.log('✅ سیستم Real-time Polling فعال است');
         });
         
     } catch (error) {
@@ -800,6 +884,12 @@ startServer();
 // مدیریت graceful shutdown
 process.on('SIGINT', async () => {
     console.log('\n🛑 Shutting down gracefully...');
+    await pool.end();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('\n🛑 Received SIGTERM, shutting down gracefully...');
     await pool.end();
     process.exit(0);
 });
