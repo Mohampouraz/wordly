@@ -1,401 +1,670 @@
+<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>وردلی رقابتی</title>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>وردلی رقابتی — بازی دونفره</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Vazirmatn for elegant Persian typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@200;400;600;800&display=swap" rel="stylesheet">
+
   <style>
-    :root {
-      --bg: #0f1220;
-      --panel: #171b2f;
-      --accent: #7c5cff;
-      --accent2: #ff3d6e;
-      --text: #e6e8ee;
-      --muted: #9aa1b7;
-      --green: #16c79a;
-      --red: #ff4d4f;
-      --yellow: #ffd166;
+    :root{
+      --bg: #0f131a;
+      --glass: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
+      --accent: #71E0CF;
+      --accent2: #B29DFF;
+      --green: #2ECC71;
+      --red: #FF5C5C;
+      --text: #EAEAF2;
+      --muted: #B9C1D1;
+      --shadow: 0 12px 40px rgba(0,0,0,0.35);
+      --blur: blur(18px);
+      --radius: 18px;
     }
-    * { box-sizing: border-box; }
-    body { margin:0; background: linear-gradient(180deg,#0b0f1a 0%,#0f1220 100%); color:var(--text); font-family:'Vazirmatn',sans-serif; }
-    header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid #22263d; position:sticky; top:0; background:rgba(15,18,32,.9); backdrop-filter:blur(8px); }
-    .brand { font-weight:700; letter-spacing:-0.5px; }
-    .tabs { display:flex; gap:8px; }
-    .tab { padding:10px 14px; border-radius:10px; background:#13162a; color:var(--muted); cursor:pointer; transition:all .2s ease; }
-    .tab.active { background:var(--accent); color:#fff; }
-    main { padding:20px; }
-    .panel { background:var(--panel); border:1px solid #22263d; border-radius:16px; padding:16px; }
-    .grid { display:grid; gap:16px; }
-    .two { grid-template-columns:1fr 1fr; }
-    .btn { background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 14px; cursor:pointer; font-weight:600; transition:transform .05s ease; }
-    .btn:active { transform:translateY(1px); }
-    .btn.secondary { background:#2b3050; color:var(--text); }
-    .badge { background:#242a49; padding:4px 8px; border-radius:8px; font-size:12px; color:var(--muted); }
-    .row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
-    .mono { font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, 'Roboto Mono', monospace; }
-    .placeholder { display:flex; gap:8px; justify-content:center; margin-top:12px; flex-wrap:wrap; }
-    .slot { width:36px; height:48px; border-radius:10px; background:#13162a; display:flex; align-items:center; justify-content:center; font-size:22px; border:1px dashed #303654; }
-    .slot.correct { border-style:solid; border-color:var(--green); color:var(--green); }
-    .category { color:var(--yellow); font-weight:700; }
-    .timer { font-weight:700; font-size:18px; }
-    .modal { background:#0e1020d9; backdrop-filter:blur(6px); border:1px solid #22263d; border-radius:16px; padding:12px; }
-    .letters { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    .letter { padding:8px 10px; border-radius:10px; }
-    .letter.good { background:rgba(22,199,154,.15); color:var(--green); }
-    .letter.bad { background:rgba(255,77,79,.15); color:var(--red); }
-    input[type="text"] { width:100%; padding:12px; border-radius:10px; border:1px solid #303654; background:#121528; color:var(--text); font-size:18px; direction:rtl; }
-    .names { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-    .progress { font-size:12px; color:var(--muted); }
-    .waiting { text-align:center; padding:20px; color:var(--muted); }
-    .score { font-weight:700; color:var(--green); }
-    .opponent { color:#a7b0d6; }
-    .footer { margin-top:16px; display:flex; gap:8px; justify-content:flex-end; }
-    .hidden { display:none; }
-    .error { color:var(--red); font-size:13px; margin-top:8px; }
+    *{ box-sizing: border-box }
+    body{
+      margin:0; background: radial-gradient(1000px 600px at 10% 10%, #101521 0%, #0b0e14 60%), var(--bg);
+      font-family: 'Vazirmatn', system-ui, sans-serif;
+      color: var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center;
+    }
+    .container{
+      width: min(1000px, 96vw);
+      padding: 24px;
+      backdrop-filter: var(--blur);
+      background: linear-gradient(180deg, var(--glass), rgba(255,255,255,0.03));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:16px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo{
+      width:42px; height:42px; border-radius:12px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+      box-shadow: 0 10px 24px rgba(113,224,207,0.25);
+    }
+    .brand h1{ margin:0; font-size:20px; font-weight:800; letter-spacing: -0.3px }
+    .user-chip{
+      display:flex; align-items:center; gap:10px; padding:10px 14px; border:1px solid var(--border);
+      background: rgba(255,255,255,0.04); border-radius: 14px;
+    }
+    .tabs{
+      display:flex; gap:8px; margin:16px 0;
+    }
+    .tab{
+      padding:10px 14px; border-radius: 12px; border:1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--muted); cursor:pointer;
+    }
+    .tab.active{ color: var(--text); border-color: rgba(255,255,255,0.18); background: rgba(255,255,255,0.08) }
+    .view{ display:none; }
+    .view.active{ display:block; }
+
+    .grid9{
+      display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:16px;
+    }
+    .card{
+      padding:12px; border:1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.04);
+    }
+    .meta{ color: var(--muted); font-size: 12px; margin-top: 6px }
+
+    .actions{ display:flex; gap:12px; margin-top:16px }
+    .btn{
+      padding:10px 16px; border-radius: 12px; border:1px solid var(--border); cursor:pointer;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      color: var(--text);
+    }
+    .btn.primary{
+      background: linear-gradient(180deg, rgba(113,224,207,0.20), rgba(86,196,178,0.12));
+      border-color: rgba(113,224,207,0.36); color:#062e2a; font-weight:700;
+    }
+    .btn.danger{
+      background: linear-gradient(180deg, rgba(255,92,92,0.18), rgba(255,92,92,0.10));
+      border-color: rgba(255,92,92,0.36); color:#3a0f0f; font-weight:700;
+    }
+
+    .game-wrap{
+      display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; margin-top:12px;
+    }
+    .panel{
+      padding:14px; border:1px solid var(--border); border-radius: 14px; background: rgba(255,255,255,0.04);
+    }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:8px }
+    .pill{
+      padding:8px 10px; border:1px solid var(--border); border-radius: 999px; color: var(--muted);
+      background: rgba(255,255,255,0.05); font-size: 13px;
+    }
+    .timer{
+      font-feature-settings: "tnum"; font-variant-numeric: tabular-nums;
+      font-weight:800; font-size: 28px; letter-spacing: 1px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .placeholder{
+      display:flex; gap:8px; flex-wrap: wrap; margin-top:12px;
+    }
+    .slot{
+      width: 40px; height: 48px; display:flex; align-items:center; justify-content:center;
+      border-radius: 12px; border:1px dashed rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.03); font-size: 20px; font-weight:700; color: var(--muted);
+    }
+    .slot.correct{ border-color: rgba(46,204,113,0.6); color: var(--green) }
+    .slot.wrong{ border-color: rgba(255,92,92,0.6); color: var(--red) }
+
+    .input-row{ display:flex; gap:10px; margin-top:12px }
+    input.letter{
+      flex: 0 0 80px; height:48px; text-align:center; font-size:22px; border-radius: 12px; border:1px solid var(--border);
+      background: rgba(255,255,255,0.05); color: var(--text);
+    }
+
+    .modals{
+      display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:12px;
+    }
+    .modal{
+      padding:12px; border-radius: 12px; border:1px solid var(--border);
+      background: rgba(255,255,255,0.04);
+    }
+    .modal.green{ border-color: rgba(46,204,113,0.5); }
+    .modal.red{ border-color: rgba(255,92,92,0.5); }
+    .letters{ display:flex; gap:8px; flex-wrap: wrap }
+    .chip{
+      padding:6px 10px; border-radius:999px; font-weight:700; font-size:14px;
+      border:1px solid var(--border); background: rgba(255,255,255,0.06);
+    }
+    .chip.green{ color: var(--green); border-color: rgba(46,204,113,0.5) }
+    .chip.red{ color: var(--red); border-color: rgba(255,92,92,0.5) }
+
+    .players{
+      display:flex; gap:8px; flex-wrap: wrap; margin-top:6px;
+    }
+    .player-tag{
+      padding:8px 10px; border:1px solid var(--border); border-radius: 12px; background: rgba(255,255,255,0.03);
+      color: var(--muted);
+    }
+
+    .footer{
+      margin-top: 20px; display:flex; align-items:center; justify-content:space-between; color: var(--muted);
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand">وردلی رقابتی</div>
+  <div class="container">
+    <div class="header">
+      <div class="brand">
+        <div class="logo"></div>
+        <h1>وردلی رقابتی</h1>
+      </div>
+      <div class="user-chip">
+        <div id="userName">کاربر مهمان</div>
+        <div class="pill" id="userId">—</div>
+      </div>
+    </div>
+
     <div class="tabs">
       <div class="tab active" data-tab="dashboard">داشبورد</div>
-      <div class="tab" data-tab="competitive">رقابتی</div>
-      <div class="tab" data-tab="about">درباره</div>
+      <div class="tab" data-tab="play">بازی رقابتی</div>
+      <div class="tab" data-tab="about">درباره بازی</div>
     </div>
-  </header>
 
-  <main>
-    <!-- داشبورد -->
-    <section id="dashboard" class="panel">
-      <div class="grid two">
-        <div>
-          <h3>پروفایل</h3>
-          <div id="profile">
-            <div class="row"><span class="badge">نام</span><span id="name">—</span></div>
-            <div class="row"><span class="badge">نام کاربری</span><span id="username">—</span></div>
-            <div class="row"><span class="badge">زبان</span><span id="lang">—</span></div>
-            <div class="row"><span class="badge">شناسه</span><span class="mono" id="uid">—</span></div>
-          </div>
-        </div>
-        <div>
-          <h3>اتاق‌ها</h3>
-          <div class="row">
-            <input type="text" id="roomId" placeholder="شناسه اتاق (UUID یا نام دلخواه)" />
-            <button class="btn" id="joinRoomBtn">ورود به اتاق</button>
-          </div>
-          <div id="roomStatus" class="waiting">در انتظار...</div>
-          <div id="roomError" class="error hidden"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ویو رقابتی -->
-    <section id="competitive" class="panel hidden">
-      <div class="names">
-        <div><span class="badge">شما:</span> <span id="meName">—</span> <span class="score" id="meScore">۰</span></div>
-        <div class="opponent"><span class="badge">حریف:</span> <span id="opName">—</span> <span class="score" id="opScore">۰</span></div>
-      </div>
-
-      <div class="row">
-        <div class="category">دسته: <span id="category">—</span></div>
-        <div class="timer">زمان: <span id="timer">۰۰:۰۰</span></div>
-        <div class="progress">کلمه: <span id="wordIndex">۰</span> از <span id="totalWords">۱۰</span></div>
-      </div>
-
-      <div id="placeholder" class="placeholder"></div>
-
-      <div class="grid two" style="margin-top:16px;">
-        <div class="modal">
-          <div>حروف صحیح</div>
-          <div id="goodLetters" class="letters"></div>
-        </div>
-        <div class="modal">
-          <div>حروف غلط</div>
-          <div id="badLetters" class="letters"></div>
-        </div>
-      </div>
-
-      <div class="grid" style="margin-top:16px;">
+    <!-- Dashboard View -->
+    <div class="view active" id="view-dashboard">
+      <div class="panel">
         <div class="row">
-          <input type="text" id="letterInput" maxlength="1" placeholder="یک حرف فارسی وارد کنید" />
-          <button class="btn secondary" id="hintBtn">درخواست راهنمایی</button>
-          <button class="btn" id="leaveBtn">خروج از ویو</button>
+          <div class="pill" id="roomStatus">وضعیت اتاق: —</div>
+          <div class="pill" id="playersCount">بازیکنان: —</div>
+        </div>
+        <div class="players" id="playersList"></div>
+        <div class="actions">
+          <select class="btn" id="levelSelect">
+            <option value="easy">آسان</option>
+            <option value="medium" selected>متوسط</option>
+            <option value="hard">سخت</option>
+          </select>
+          <button class="btn primary" id="joinRoomBtn">پیوستن به اتاق</button>
+          <button class="btn" id="resumeBtn">ادامه بازی</button>
         </div>
       </div>
 
-      <div class="footer">
-        <div class="badge">حروف مجاز غلط: <span id="allowedWrongs">۰</span></div>
+      <div class="panel" style="margin-top:12px">
+        <div>دسته‌بندی‌ها (۹تایی):</div>
+        <div class="grid9" id="catGrid"></div>
       </div>
-    </section>
+    </div>
 
-    <!-- درباره -->
-    <section id="about" class="panel hidden">
-      <h3>درباره بازی</h3>
-      <p>بازی حدس کلمه‌ی رقابتی دونفره با کلمات مشترک، تایمر فارسی، امتیازدهی بر اساس زمان و دقت، و ذخیره‌سازی بلادرنگ.</p>
-    </section>
-  </main>
+    <!-- Play View -->
+    <div class="view" id="view-play">
+      <div class="game-wrap">
+        <div class="panel">
+          <div class="row">
+            <div class="pill">کلمه فعلی: <span id="categoryName">—</span></div>
+            <div class="pill">سطح: <span id="levelName">—</span></div>
+            <div class="pill">کلمه شماره: <span id="wordIndex">—</span> از ۱۰</div>
+            <div class="timer" id="timer">۰۰:۰۰</div>
+          </div>
+          <div class="placeholder" id="wordSlots"></div>
+          <div class="input-row">
+            <input class="letter" id="letterInput" maxlength="1" placeholder="یک حرف فارسی" />
+            <button class="btn primary" id="guessBtn">حدس</button>
+            <button class="btn" id="hintBtn">راهنما</button>
+            <button class="btn danger" id="leaveBtn">خروج از ویو</button>
+          </div>
 
+          <div class="modals">
+            <div class="modal green">
+              <div>حروف صحیح:</div>
+              <div class="letters" id="correctLetters"></div>
+            </div>
+            <div class="modal red">
+              <div>حروف غلط:</div>
+              <div class="letters" id="wrongLetters"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="row">
+            <div class="pill">نام‌ها:</div>
+            <div class="pill">امتیاز شما: <span id="scoreMe">۰</span></div>
+          </div>
+          <div class="players" id="namesDisplay"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="row">
+              <div class="pill">پیشرفت شما: <span id="progressMe">—</span></div>
+              <div class="pill">پیشرفت حریف: <span id="progressOpp">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- About View -->
+    <div class="view" id="view-about">
+      <div class="panel">
+        <p>این بازی دونفره برای حدس کلمات فارسی با دسته‌بندی‌های متنوع طراحی شده است. تایمر، امتیازدهی، و راهنمایی‌ها کاملاً بلادرنگ با Socket.io همگام می‌شوند. رابط کاربری روی تایپوگرافی فارسی و زیبایی مینیمال شیشه‌ای تمرکز دارد.</p>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>ساخته شده با عشق به زبان فارسی و بازی‌های منصفانه</div>
+      <div>وردلی رقابتی — نسخه وب اپ تلگرام</div>
+    </div>
+  </div>
+
+  <!-- Telegram WebApp SDK (optional) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    // Telegram WebApp: استفاده از initDataUnsafe برای دسترسی مستقیم به user
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    const initData = tg.initData || '';
-    const initUnsafe = tg.initDataUnsafe || {};
-    const userUnsafe = initUnsafe.user || null;
+    // State
+    const state = {
+      telegramUser: null,
+      initData: null,
+      room: null,
+      players: [],
+      game: null,
+      gameState: null,
+      deck: [],
+      myId: null,
+      timerMs: 0,
+      timerHandle: null,
+      roomId: null,
+      gameId: null,
+      opponentId: null,
+    };
+
+    const persianDigits = (n) => String(n).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d,10)]);
+    const formatTimer = (ms) => {
+      const t = Math.max(0, ms|0);
+      const s = Math.floor(t / 1000);
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return persianDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
+    };
+
+    // Tabs
+    const tabs = document.querySelectorAll('.tab');
+    const views = {
+      dashboard: document.getElementById('view-dashboard'),
+      play: document.getElementById('view-play'),
+      about: document.getElementById('view-about'),
+    };
+    tabs.forEach(t => {
+      t.addEventListener('click', () => {
+        tabs.forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        Object.values(views).forEach(v => v.classList.remove('active'));
+        views[t.dataset.tab].classList.add('active');
+      });
+    });
+
+    // UI refs
+    const userNameEl = document.getElementById('userName');
+    const userIdEl = document.getElementById('userId');
+    const catGrid = document.getElementById('catGrid');
+    const roomStatusEl = document.getElementById('roomStatus');
+    const playersCountEl = document.getElementById('playersCount');
+    const playersListEl = document.getElementById('playersList');
+    const joinRoomBtn = document.getElementById('joinRoomBtn');
+    const levelSelect = document.getElementById('levelSelect');
+    const resumeBtn = document.getElementById('resumeBtn');
+
+    const categoryNameEl = document.getElementById('categoryName');
+    const levelNameEl = document.getElementById('levelName');
+    const wordIndexEl = document.getElementById('wordIndex');
+    const timerEl = document.getElementById('timer');
+    const wordSlotsEl = document.getElementById('wordSlots');
+    const letterInputEl = document.getElementById('letterInput');
+    const guessBtn = document.getElementById('guessBtn');
+    const hintBtn = document.getElementById('hintBtn');
+    const leaveBtn = document.getElementById('leaveBtn');
+    const correctLettersEl = document.getElementById('correctLetters');
+    const wrongLettersEl = document.getElementById('wrongLetters');
+    const namesDisplayEl = document.getElementById('namesDisplay');
+    const scoreMeEl = document.getElementById('scoreMe');
+    const progressMeEl = document.getElementById('progressMe');
+    const progressOppEl = document.getElementById('progressOpp');
 
     // Socket
     const socket = io();
 
-    // Tabs
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        const id = tab.dataset.tab;
-        document.querySelectorAll('section.panel').forEach(s => s.classList.add('hidden'));
-        document.getElementById(id).classList.remove('hidden');
-      });
-    });
+    // Telegram init
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
 
-    // State
-    const me = { id: null, name: null };
-    const current = {
-      selection: [],
-      wordIndex: 0,
-      allowedWrongs: 0,
-      good: new Set(),
-      bad: new Set(),
-      meScore: 0,
-      opScore: 0,
-      opponentId: null,
-      snapshots: {}
+    const bootstrap = async () => {
+      // Read Telegram user when available
+      if (tg) {
+        tg.expand();
+        const initData = tg.initData || '';
+        const user = tg.initDataUnsafe?.user || null;
+        state.initData = initData;
+        state.telegramUser = user;
+        if (user) {
+          state.myId = user.id;
+          userNameEl.textContent = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+          userIdEl.textContent = persianDigits(user.id);
+          await fetch('/auth/telegram', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify({ initData, user }),
+          }).catch(()=>{});
+        }
+      } else {
+        // Fallback guest for dev
+        state.myId = Math.floor(100000 + Math.random()*899999);
+        userNameEl.textContent = 'کاربر مهمان';
+        userIdEl.textContent = persianDigits(state.myId);
+      }
+
+      // Render 9-category grid (client-only showcase)
+      await fetch('/health').catch(()=>{});
+      renderCategories();
+
+      // Events
+      joinRoomBtn.addEventListener('click', joinRoom);
+      resumeBtn.addEventListener('click', resumeGame);
+      guessBtn.addEventListener('click', submitGuess);
+      hintBtn.addEventListener('click', requestHint);
+      leaveBtn.addEventListener('click', leaveView);
+
+      // Socket listeners
+      socket.on('room:presence', ({ count }) => {
+        playersCountEl.textContent = 'بازیکنان: ' + persianDigits(count);
+      });
+
+      socket.on('game:state', ({ state: gs, deck }) => {
+        state.gameState = gs;
+        state.deck = deck;
+        state.timerMs = gs.timer_ms || 0;
+        renderGame();
+        syncTimerUI();
+      });
+
+      socket.on('game:letter:correct', (payload) => {
+        if (!state.gameState) return;
+        // If event belongs to me, update UI. Otherwise update opponent progress.
+        const isMe = payload.user_id === state.myId;
+        if (isMe) {
+          addCorrectLetter(payload.letter, payload.positions);
+          const newScore = (state.gameState.score || 0) + payload.scoreDelta;
+          state.gameState.score = newScore;
+          scoreMeEl.textContent = persianDigits(newScore);
+        } else {
+          updateOpponentProgress();
+        }
+      });
+
+      socket.on('game:letter:wrong', (payload) => {
+        const isMe = payload.user_id === state.myId;
+        if (isMe) addWrongLetter(payload.letter);
+      });
+
+      socket.on('game:hint:reveal', (payload) => {
+        const isMe = payload.user_id === state.myId;
+        if (isMe) {
+          addCorrectLetter(payload.letter, payload.positions);
+          const newScore = Math.max(0, (state.gameState.score||0) - payload.penalty);
+          state.gameState.score = newScore;
+          scoreMeEl.textContent = persianDigits(newScore);
+        }
+      });
+
+      socket.on('game:next', ({ user_id, current_index }) => {
+        const isMe = user_id === state.myId;
+        if (isMe) {
+          state.gameState.current_index = current_index;
+          state.gameState.correct_letters = [];
+          state.gameState.wrong_letters = [];
+          renderGame();
+        } else {
+          updateOpponentProgress(current_index);
+        }
+      });
+
+      socket.on('game:finished', () => {
+        alert('بازی به پایان رسید!');
+      });
     };
 
-    // Persian digits/time
-    function toPersianDigits(str) {
-      const map = '۰۱۲۳۴۵۶۷۸۹';
-      return String(str).split('').map(ch => /\d/.test(ch) ? map[ch] : ch).join('');
-    }
-    let startTs = null;
-    let timerInt = null;
-    function startTimer() {
-      startTs = Date.now();
-      if (timerInt) clearInterval(timerInt);
-      timerInt = setInterval(() => {
-        const elapsed = Date.now() - startTs;
-        const s = Math.floor(elapsed / 1000);
-        const m = Math.floor(s / 60);
-        const ss = s % 60;
-        const pad = (n) => toPersianDigits(n.toString().padStart(2,'0'));
-        document.getElementById('timer').textContent = `${pad(m)}:${pad(ss)}`;
-        socket.emit('sync_time', { elapsedMs: elapsed });
-      }, 1000);
-    }
-
-    // Fill profile immediately from unsafe (کلاینت) و سپس auth به سرور
-    if (userUnsafe && userUnsafe.id) {
-      fillProfile(userUnsafe);
-      me.id = userUnsafe.id;
-      me.name = (userUnsafe.first_name || '') + (userUnsafe.last_name ? (' ' + userUnsafe.last_name) : '');
-      document.getElementById('meName').textContent = me.name;
-    }
-
-    // Auth REST برای ذخیره در DB، سپس Socket auth برای نشست
-    fetch('/api/auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initData })
-    })
-    .then(r => r.json())
-    .then(d => {
-      if (d && d.user) {
-        fillProfile(d.user); // هم‌راستاسازی با آنچه سرور می‌پذیرد
-        socket.emit('auth', { initData });
-      } else {
-        showRoomError('احراز هویت ناموفق بود.');
-      }
-    })
-    .catch(() => showRoomError('اشکال در ارتباط با سرور.'));
-
-    socket.on('auth_ok', ({ user }) => {
-      me.id = user.id;
-      me.name = (user.first_name || '') + (user.last_name ? (' ' + user.last_name) : '');
-      document.getElementById('meName').textContent = me.name;
-    });
-
-    // Join room
-    document.getElementById('joinRoomBtn').addEventListener('click', () => {
-      const roomId = document.getElementById('roomId').value.trim();
-      if (!roomId) return showRoomError('شناسه اتاق را وارد کنید.');
-      hideRoomError();
-      socket.emit('join_room', { roomId });
-      document.querySelector('.tab[data-tab="competitive"]').click();
-    });
-
-    socket.on('waiting', ({ count }) => {
-      document.getElementById('roomStatus').textContent = `در انتظار بازیکن... تعداد: ${toPersianDigits(count)}`;
-    });
-
-    // نام حریف را از snapshots یا حدس می‌گیریم بعد از resume؛ در start ممکن است هنوز ندانیم
-    socket.on('game_start', ({ gameId, selection }) => {
-      current.selection = selection;
-      setupGame(selection, 0);
-      startTimer();
-    });
-
-    socket.on('game_resume', ({ gameId, selection, snapshots }) => {
-      current.selection = selection;
-      current.snapshots = snapshots || {};
-      const ids = Object.keys(current.snapshots).map(id => Number(id));
-      if (ids.length === 2) {
-        current.opponentId = ids.find(id => id !== me.id) || null;
-        const opSnap = current.snapshots[current.opponentId];
-        const opName = opSnap?.user_name || ''; // اگر سرور نام را ذخیره کند؛ در غیر این صورت خالی
-        document.getElementById('opName').textContent = opName || 'حریف';
-      }
-
-      const mySnap = current.snapshots[me.id];
-      if (mySnap) {
-        setupGame(selection, mySnap.word_index);
-        renderPlaceholder(mySnap.placeholder);
-        document.getElementById('category').textContent = mySnap.category;
-        pushLettersBatch(mySnap.correct_letters || [], true);
-        pushLettersBatch(mySnap.wrong_letters || [], false);
-        current.meScore = mySnap.score || 0;
-        document.getElementById('meScore').textContent = toPersianDigits(current.meScore);
-        current.allowedWrongs = mySnap.allowed_wrongs || current.allowedWrongs;
-      } else {
-        setupGame(selection, 0);
-      }
-      startTimer();
-    });
-
-    socket.on('guess_update', ({ userId, placeholder, isCorrect }) => {
-      renderPlaceholder(placeholder);
-      if (userId === me.id) {
-        pushLetters(placeholder[placeholder.length-1], isCorrect); // صرفاً به‌روزرسانی نمای لیست؛ حرف در payload است در کد سرور واقعی
-        current.meScore += isCorrect ? 10 : 0;
-        document.getElementById('meScore').textContent = toPersianDigits(current.meScore);
-      } else {
-        current.opScore += isCorrect ? 10 : 0;
-        document.getElementById('opScore').textContent = toPersianDigits(current.opScore);
-      }
-    });
-
-    socket.on('hint_update', ({ userId, placeholder }) => {
-      renderPlaceholder(placeholder);
-      if (userId === me.id) {
-        current.meScore = Math.max(0, current.meScore - 15);
-        document.getElementById('meScore').textContent = toPersianDigits(current.meScore);
-      }
-    });
-
-    socket.on('word_advanced', ({ wordIndex, totalWords, placeholder, category }) => {
-      current.wordIndex = wordIndex;
-      document.getElementById('wordIndex').textContent = toPersianDigits(wordIndex + 1);
-      document.getElementById('totalWords').textContent = toPersianDigits(totalWords);
-      document.getElementById('category').textContent = category;
-      renderPlaceholder(placeholder);
-      resetLetters();
-      startTimer();
-    });
-
-    socket.on('user_finished', () => {
-      // می‌توان نشانگر پایان نمایش داد
-    });
-
-    socket.on('game_finished', ({ final }) => {
-      clearInterval(timerInt);
-      const meRes = final.find(f => f.user_id === me.id);
-      const opRes = final.find(f => f.user_id !== me.id);
-      const text = `پایان بازی! امتیاز شما: ${toPersianDigits(meRes?.score || 0)} | حریف: ${toPersianDigits(opRes?.score || 0)}`;
-      alert(text);
-    });
-
-    socket.on('error', ({ message }) => {
-      showRoomError(message || 'خطا رخ داد.');
-    });
-
-    // Input
-    const input = document.getElementById('letterInput');
-    input.addEventListener('input', () => {
-      const val = input.value.trim();
-      if (val.length === 1) {
-        socket.emit('guess_letter', { letter: val });
-        input.value = '';
-      }
-    });
-    document.getElementById('hintBtn').addEventListener('click', () => socket.emit('request_hint'));
-    document.getElementById('leaveBtn').addEventListener('click', () => {
-      document.querySelector('.tab[data-tab="dashboard"]').click();
-    });
-
-    // Helpers
-    function fillProfile(user) {
-      document.getElementById('name').textContent = (user.first_name || '') + (user.last_name ? (' ' + user.last_name) : '');
-      document.getElementById('username').textContent = user.username ? '@' + user.username : '—';
-      document.getElementById('lang').textContent = user.language_code || '—';
-      document.getElementById('uid').textContent = user.id || '—';
-      document.getElementById('meName').textContent = (user.first_name || '') + (user.last_name ? (' ' + user.last_name) : '');
-    }
-
-    function setupGame(selection, startIndex) {
-      current.selection = selection;
-      current.wordIndex = startIndex;
-      const cur = selection[startIndex] || selection[0] || { word: '_', category: '—' };
-      document.getElementById('category').textContent = cur.category;
-      document.getElementById('wordIndex').textContent = toPersianDigits(startIndex + 1);
-      document.getElementById('totalWords').textContent = toPersianDigits(selection.length || 10);
-      renderPlaceholder('_'.repeat(cur.word.length));
-      current.allowedWrongs = Math.floor(1.2 * cur.word.length);
-      document.getElementById('allowedWrongs').textContent = toPersianDigits(current.allowedWrongs);
-      resetLetters();
-    }
-
-    function renderPlaceholder(placeholder) {
-      const cont = document.getElementById('placeholder');
-      cont.innerHTML = '';
-      placeholder.split('').forEach(ch => {
-        const div = document.createElement('div');
-        div.className = 'slot' + (ch !== '_' ? ' correct' : '');
-        div.textContent = ch !== '_' ? ch : '_';
-        cont.appendChild(div);
+    // Render categories grid (static preview)
+    const renderCategories = async () => {
+      // Fetch categories from words.js via pre-render? Not exposed by server; we present placeholders:
+      const cats = ['حیوانات','میوه‌ها','شهرها','رنگ‌ها','فصول','اشیا','حرفه‌ها','طبیعت','فن‌آوری'];
+      catGrid.innerHTML = '';
+      cats.forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'card';
+        el.innerHTML = `<div style="font-weight:700">${c}</div><div class="meta">۹ دسته برای تنوع</div>`;
+        catGrid.appendChild(el);
       });
-    }
+    };
 
-    function resetLetters() {
-      current.good.clear();
-      current.bad.clear();
-      document.getElementById('goodLetters').innerHTML = '';
-      document.getElementById('badLetters').innerHTML = '';
-    }
+    // Join room and wait/play
+    const joinRoom = async () => {
+      const res = await fetch('/rooms/join', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({
+          user_id: state.myId,
+          preferred_level: levelSelect.value,
+        }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        alert('خطا در پیوستن به اتاق');
+        return;
+      }
+      state.roomId = data.room_id;
+      roomStatusEl.textContent = 'وضعیت اتاق: ' + (data.status === 'waiting' ? 'در انتظار' : 'آماده');
+      socket.emit('join-room', { room_id: state.roomId });
 
-    function pushLetters(letter, isCorrect) {
-      const cont = isCorrect ? document.getElementById('goodLetters') : document.getElementById('badLetters');
-      const set = isCorrect ? current.good : current.bad;
-      if (set.has(letter)) return;
-      set.add(letter);
-      const span = document.createElement('span');
-      span.className = 'letter ' + (isCorrect ? 'good' : 'bad');
-      span.textContent = letter;
-      cont.appendChild(span);
-    }
+      if (data.status === 'ready') {
+        // Game started
+        state.gameId = data.game_id;
+        await loadRoomState();
+        tabs.forEach(x => x.classList.remove('active'));
+        document.querySelector('.tab[data-tab="play"]').classList.add('active');
+        Object.values(views).forEach(v => v.classList.remove('active'));
+        views.play.classList.add('active');
+        resumeGame();
+      } else {
+        await loadRoomState();
+      }
+    };
 
-    function pushLettersBatch(letters, isCorrect) {
-      (letters || []).forEach(l => pushLetters(l, isCorrect));
-    }
+    const loadRoomState = async () => {
+      const res = await fetch('/rooms/state', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ room_id: state.roomId }),
+      });
+      const data = await res.json();
+      if (!data.ok) return;
+      state.room = data.room;
+      state.players = data.players || [];
+      state.game = data.game || null;
+      playersListEl.innerHTML = '';
+      namesDisplayEl.innerHTML = '';
+      state.players.forEach(p => {
+        const el = document.createElement('div');
+        el.className = 'player-tag';
+        el.textContent = 'بازیکن ' + (p.role === 'p1' ? 'اول' : 'دوم') + ' — ' + persianDigits(p.user_id);
+        playersListEl.appendChild(el);
 
-    function showRoomError(msg) {
-      const el = document.getElementById('roomError');
-      el.textContent = msg;
-      el.classList.remove('hidden');
-    }
-    function hideRoomError() {
-      document.getElementById('roomError').classList.add('hidden');
-    }
+        const el2 = document.createElement('div');
+        el2.className = 'player-tag';
+        el2.textContent = 'بازیکن: ' + persianDigits(p.user_id);
+        namesDisplayEl.appendChild(el2);
+      });
+      if (state.players.length === 2) {
+        state.opponentId = state.players.find(x => x.user_id !== state.myId)?.user_id || null;
+      }
+      roomStatusEl.textContent = 'وضعیت اتاق: ' + (state.room.status === 'playing' ? 'قفل و در حال بازی' : 'در انتظار');
+      playersCountEl.textContent = 'بازیکنان: ' + persianDigits(state.players.length);
+    };
+
+    const resumeGame = async () => {
+      if (!state.game && !state.gameId) {
+        alert('هنوز بازی آغاز نشده است.');
+        return;
+      }
+      const gid = state.game?.id || state.gameId;
+      state.gameId = gid;
+      socket.emit('join-room', { room_id: state.roomId });
+      socket.emit('game:resume', { game_id: gid, user_id: state.myId });
+      startTimer();
+    };
+
+    const renderGame = () => {
+      const gs = state.gameState;
+      const deck = state.deck;
+      if (!gs || !deck || !deck.length) return;
+
+      const idx = gs.current_index;
+      const item = deck[idx];
+      const word = item.word;
+      categoryNameEl.textContent = item.category;
+      levelNameEl.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
+      wordIndexEl.textContent = persianDigits(idx + 1);
+
+      // Render slots
+      wordSlotsEl.innerHTML = '';
+      for (let i = 0; i < word.length; i++) {
+        const s = document.createElement('div');
+        s.className = 'slot';
+        s.dataset.index = i;
+        s.textContent = '_';
+        wordSlotsEl.appendChild(s);
+      }
+
+      // Render guessed letters
+      correctLettersEl.innerHTML = '';
+      wrongLettersEl.innerHTML = '';
+      const correct = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
+      const wrong = Array.isArray(gs.wrong_letters) ? gs.wrong_letters : JSON.parse(gs.wrong_letters || '[]');
+
+      correct.forEach(l => {
+        const chip = document.createElement('div');
+        chip.className = 'chip green';
+        chip.textContent = l;
+        correctLettersEl.appendChild(chip);
+      });
+      wrong.forEach(l => {
+        const chip = document.createElement('div');
+        chip.className = 'chip red';
+        chip.textContent = l;
+        wrongLettersEl.appendChild(chip);
+      });
+
+      // Fill slots for correct letters
+      for (let i = 0; i < word.length; i++) {
+        const letter = word[i];
+        const slot = wordSlotsEl.querySelector(`.slot[data-index="${i}"]`);
+        if (correct.includes(letter)) {
+          slot.textContent = letter;
+          slot.classList.add('correct');
+        }
+      }
+
+      // Progress and score
+      scoreMeEl.textContent = persianDigits(gs.score || 0);
+      progressMeEl.textContent = persianDigits((gs.current_index + 1)) + ' / ' + persianDigits(deck.length);
+      updateOpponentProgress();
+
+      // Focus input
+      letterInputEl.value = '';
+      letterInputEl.focus();
+    };
+
+    const addCorrectLetter = (letter, positions) => {
+      // Update mods panel
+      const chip = document.createElement('div');
+      chip.className = 'chip green';
+      chip.textContent = letter;
+      correctLettersEl.appendChild(chip);
+      // Update slots
+      positions.forEach(pos => {
+        const slot = wordSlotsEl.querySelector(`.slot[data-index="${pos}"]`);
+        if (slot) {
+          slot.textContent = letter;
+          slot.classList.add('correct');
+        }
+      });
+    };
+
+    const addWrongLetter = (letter) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip red';
+      chip.textContent = letter;
+      wrongLettersEl.appendChild(chip);
+    };
+
+    // Submit guess (single Persian letter only)
+    const submitGuess = () => {
+      const val = (letterInputEl.value || '').trim();
+      if (!val || val.length !== 1) {
+        alert('لطفاً تنها یک حرف فارسی وارد کنید.');
+        return;
+      }
+      if (!/^[\u0600-\u06FF]$/.test(val)) {
+        alert('حرف وارد شده باید فارسی باشد.');
+        return;
+      }
+      socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: val });
+      letterInputEl.value = '';
+      letterInputEl.focus();
+    };
+
+    // Request hint (max 2)
+    const requestHint = () => {
+      socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId });
+    };
+
+    // Leave view (but keep game state)
+    const leaveView = () => {
+      tabs.forEach(x => x.classList.remove('active'));
+      document.querySelector('.tab[data-tab="dashboard"]').classList.add('active');
+      Object.values(views).forEach(v => v.classList.remove('active'));
+      views.dashboard.classList.add('active');
+    };
+
+    // Opponent progress display
+    const updateOpponentProgress = (oppIdxOpt) => {
+      if (!state.opponentId || !state.deck) {
+        progressOppEl.textContent = '—';
+        return;
+      }
+      // For demo, approximate opponent progress by room presence and my index parity
+      const oppIdx = typeof oppIdxOpt === 'number' ? oppIdxOpt : Math.max(0, (state.gameState?.current_index || 0) - 1);
+      progressOppEl.textContent = persianDigits(Math.min(oppIdx + 1, state.deck.length)) + ' / ' + persianDigits(state.deck.length);
+    };
+
+    // Timer — client holds and persists to server for resume
+    const startTimer = () => {
+      if (state.timerHandle) clearInterval(state.timerHandle);
+      state.timerHandle = setInterval(() => {
+        state.timerMs += 1000;
+        timerEl.textContent = formatTimer(state.timerMs);
+        socket.emit('game:timer', { game_id: state.gameId, user_id: state.myId, timer_ms: state.timerMs });
+      }, 1000);
+    };
+    const syncTimerUI = () => {
+      timerEl.textContent = formatTimer(state.timerMs);
+    };
+
+    // Keyboard UX
+    letterInputEl.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') submitGuess();
+    });
+
+    // Boot
+    bootstrap();
   </script>
 </body>
 </html>
