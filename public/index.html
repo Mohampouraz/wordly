@@ -3,205 +3,484 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wordly Arena | بازی آنلاین</title>
+    <title>Wordly Arena | بازی آنلاین حرفه‌ای</title>
     
     <!-- اسکریپت تلگرام -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     
     <!-- استایل‌ها -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         * {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
         
         .glass-effect {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: all 0.3s ease;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3);
         }
         
         .btn-secondary {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, var(--secondary) 0%, #eab308 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
         }
         
         .word-display {
             font-size: 2.5rem;
-            letter-spacing: 10px;
+            letter-spacing: 15px;
             font-weight: 800;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
         }
         
         .game-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
-            border-radius: 15px;
+            border-radius: 20px;
             padding: 20px;
             margin-bottom: 15px;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
         .game-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(99, 102, 241, 0.4);
         }
         
         .input-field {
             background: rgba(255, 255, 255, 0.9);
             border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 12px 15px;
+            border-radius: 15px;
+            padding: 15px 20px;
             transition: all 0.3s ease;
+            font-size: 16px;
         }
         
         .input-field:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
             outline: none;
+            transform: translateY(-1px);
+        }
+        
+        .nav-btn {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-weight: 600;
+        }
+        
+        .nav-btn.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(99, 102, 241, 0.3);
+        }
+        
+        .letter-tile {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            margin: 5px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        
+        .letter-tile.correct {
+            background: linear-gradient(135deg, var(--success) 0%, #059669 100%);
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .letter-tile.incorrect {
+            background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .letter-tile.unknown {
+            background: rgba(255, 255, 255, 0.9);
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .letter-tile:hover {
+            transform: scale(1.05);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .bounce-in {
+            animation: bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 10px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+        
+        .floating-action {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 1000;
+        }
+        
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: modalAppear 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes modalAppear {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .move-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+        
+        .move-item.correct {
+            border-left-color: var(--success);
+            background: #f0fdf4;
+        }
+        
+        .move-item.incorrect {
+            border-left-color: var(--danger);
+            background: #fef2f2;
+        }
+        
+        .move-item:hover {
+            transform: translateX(-5px);
+        }
+        
+        .typing-animation {
+            display: inline-block;
+            overflow: hidden;
+            border-right: 2px solid;
+            white-space: nowrap;
+            animation: typing 3s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: var(--primary) }
         }
         
         @media (max-width: 640px) {
             .word-display {
                 font-size: 1.8rem;
-                letter-spacing: 5px;
+                letter-spacing: 8px;
             }
+            
+            .letter-tile {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+            }
+            
+            .modal-content {
+                margin: 10px;
+                padding: 20px;
+            }
+        }
+        
+        .floating-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            animation: slideInRight 0.5s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--success);
+            opacity: 0;
+            z-index: 1002;
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-blue-400 to-purple-600 min-h-screen p-4">
-    <div class="glass-effect rounded-2xl shadow-2xl max-w-2xl mx-auto overflow-hidden">
-        <!-- Header -->
-        <header class="bg-white p-6 text-center border-b border-gray-200">
-            <div class="flex items-center justify-center space-x-3 space-x-reverse">
-                <i class="fas fa-ghost text-4xl text-purple-500"></i>
-                <h1 class="text-3xl font-bold text-gray-800">Wordly Arena</h1>
+<body class="min-h-screen p-4">
+    <!-- Floating Notification -->
+    <div id="floatingNotification" class="floating-notification hidden">
+        <div class="glass-card rounded-2xl p-4 shadow-2xl max-w-sm">
+            <div class="flex items-center space-x-3 space-x-reverse">
+                <i class="fas fa-bell text-yellow-500 text-xl"></i>
+                <div>
+                    <p class="font-bold text-gray-800" id="notificationTitle">اعلان</p>
+                    <p class="text-sm text-gray-600" id="notificationMessage">پیام</p>
+                </div>
             </div>
-            <p class="text-gray-600 mt-2">بازی حدس کلمه آنلاین با دوستان</p>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-8 slide-in">
+            <div class="glass-effect rounded-3xl p-8 mb-6">
+                <div class="flex items-center justify-center space-x-4 space-x-reverse mb-4">
+                    <div class="relative">
+                        <i class="fas fa-ghost text-5xl text-white"></i>
+                        <div class="absolute -top-2 -right-2 w-4 h-4 bg-green-400 rounded-full pulse-animation"></div>
+                    </div>
+                    <h1 class="text-4xl font-black text-white typing-animation">Wordly Arena</h1>
+                </div>
+                <p class="text-white/80 text-lg">🎯 بازی حدس کلمه آنلاین حرفه‌ای</p>
+            </div>
         </header>
 
         <!-- Navigation -->
-        <nav class="bg-gray-50 p-4 flex flex-wrap justify-center gap-2 border-b border-gray-200">
-            <button class="nav-btn px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold" onclick="showTab('profile')">
-                <i class="fas fa-user ml-2"></i>پروفایل
-            </button>
-            <button class="nav-btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold" onclick="showTab('create-game')">
-                <i class="fas fa-plus-circle ml-2"></i>ایجاد بازی
-            </button>
-            <button class="nav-btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold" onclick="showTab('join-game')">
-                <i class="fas fa-link ml-2"></i>پیوستن
-            </button>
-            <button class="nav-btn px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold" onclick="showTab('active-games')">
-                <i class="fas fa-list-ul ml-2"></i>بازی‌های من
-            </button>
+        <nav class="glass-effect rounded-2xl p-4 mb-8">
+            <div class="flex flex-wrap justify-center gap-3">
+                <button class="nav-btn active bg-white text-gray-800" onclick="showTab('dashboard')">
+                    <i class="fas fa-home ml-2"></i>داشبورد
+                </button>
+                <button class="nav-btn bg-white/20 text-white" onclick="showTab('create-game')">
+                    <i class="fas fa-plus-circle ml-2"></i>ایجاد بازی
+                </button>
+                <button class="nav-btn bg-white/20 text-white" onclick="showTab('join-game')">
+                    <i class="fas fa-link ml-2"></i>پیوستن
+                </button>
+                <button class="nav-btn bg-white/20 text-white" onclick="showTab('active-games')">
+                    <i class="fas fa-gamepad ml-2"></i>بازی‌های من
+                </button>
+                <button class="nav-btn bg-white/20 text-white" onclick="showModal('waitingGamesModal')">
+                    <i class="fas fa-users ml-2"></i>بازی‌های عمومی
+                </button>
+            </div>
         </nav>
 
         <!-- Main Content -->
-        <main class="p-6 bg-white min-h-96 relative">
+        <main class="glass-card rounded-3xl p-6 mb-8 relative min-h-96">
             <!-- Loading Spinner -->
-            <div id="loadingSpinner" class="hidden absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 rounded-lg">
+            <div id="loadingSpinner" class="hidden absolute inset-0 bg-white/95 rounded-3xl flex items-center justify-center z-50">
                 <div class="text-center">
-                    <i class="fas fa-spinner fa-spin text-4xl text-blue-500 mb-3"></i>
-                    <p class="text-gray-600">در حال بارگذاری...</p>
+                    <div class="relative">
+                        <i class="fas fa-spinner fa-spin text-5xl text-blue-500 mb-4"></i>
+                        <div class="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-lg opacity-30"></div>
+                    </div>
+                    <p class="text-gray-600 font-semibold">در حال بارگذاری...</p>
                 </div>
             </div>
 
-            <!-- Profile Tab -->
-            <div id="profile-tab" class="tab-content">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
-                    👋 خوش آمدید <span id="userNameDisplay" class="text-blue-600">...</span>!
-                </h2>
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-black text-gray-800 mb-2">
+                        👋 خوش آمدید <span id="userNameDisplay" class="text-blue-600">...</span>!
+                    </h2>
+                    <p class="text-gray-600">آماده برای چالش جدید؟</p>
+                </div>
                 
-                <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-2xl text-center mb-6 border border-blue-200">
-                    <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
-                        <i class="fas fa-user"></i>
+                <!-- Stats Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white text-center transform hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-crown text-3xl mb-3"></i>
+                        <p class="text-2xl font-black" id="userScoreDisplay">0</p>
+                        <p class="text-blue-100">امتیاز کل</p>
                     </div>
-                    <h3 class="text-gray-600 text-lg font-semibold">امتیاز شما</h3>
-                    <p id="userScoreDisplay" class="text-5xl font-bold text-green-500 my-4">0</p>
-                    <p class="text-gray-500 text-sm">با حدس کلمات امتیاز کسب کنید</p>
+                    
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white text-center transform hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-trophy text-3xl mb-3"></i>
+                        <p class="text-2xl font-black" id="wonGamesCount">0</p>
+                        <p class="text-green-100">برد</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white text-center transform hover:scale-105 transition-all duration-300">
+                        <i class="fas fa-gamepad text-3xl mb-3"></i>
+                        <p class="text-2xl font-black" id="activeGamesCount">0</p>
+                        <p class="text-purple-100">بازی فعال</p>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-blue-50 p-4 rounded-2xl text-center">
-                        <i class="fas fa-gamepad text-blue-500 text-xl mb-2"></i>
-                        <p class="text-gray-600 text-sm">بازی‌های فعال</p>
-                        <p id="activeGamesCount" class="text-2xl font-bold text-blue-500">0</p>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-2xl text-center">
-                        <i class="fas fa-trophy text-green-500 text-xl mb-2"></i>
-                        <p class="text-gray-600 text-sm">برنده شده</p>
-                        <p id="wonGamesCount" class="text-2xl font-bold text-green-500">0</p>
-                    </div>
+                <!-- Quick Actions -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <button onclick="showTab('create-game')" class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-2xl text-center transform hover:scale-105 transition-all duration-300 group">
+                        <i class="fas fa-plus-circle text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="text-xl font-black mb-2">ایجاد بازی جدید</h3>
+                        <p class="text-blue-100">یک چالش جدید بسازید</p>
+                    </button>
+                    
+                    <button onclick="showModal('waitingGamesModal')" class="bg-gradient-to-r from-green-500 to-teal-600 text-white p-6 rounded-2xl text-center transform hover:scale-105 transition-all duration-300 group">
+                        <i class="fas fa-users text-4xl mb-3 group-hover:scale-110 transition-transform"></i>
+                        <h3 class="text-xl font-black mb-2">پیوستن به بازی</h3>
+                        <p class="text-green-100">به بازی‌های عمومی بپیوندید</p>
+                    </button>
                 </div>
 
-                <div id="profileMessage" class="hidden p-4 rounded-2xl text-center text-sm"></div>
+                <div id="profileMessage" class="mt-6 p-4 rounded-2xl text-center hidden"></div>
             </div>
 
             <!-- Create Game Tab -->
             <div id="create-game-tab" class="tab-content hidden">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+                <h2 class="text-3xl font-black text-center text-gray-800 mb-8">
                     🕹️ ساخت بازی جدید
                 </h2>
                 
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-gray-700 mb-2 text-right font-semibold">کلمه یا عبارت</label>
+                <div class="max-w-2xl mx-auto space-y-6">
+                    <div class="glass-card rounded-2xl p-6">
+                        <label class="block text-gray-700 mb-3 text-right font-black text-lg">🎯 کلمه یا عبارت</label>
                         <input type="text" id="createWord" class="input-field w-full" 
-                               placeholder="مثال: تهران، برنامه نویسی" />
+                               placeholder="مثال: تهران، برنامه نویسی، فوتبال" />
+                        <p class="text-sm text-gray-500 mt-2">کلمه باید حداقل 3 حرف داشته باشد</p>
                     </div>
                     
-                    <div>
-                        <label class="block text-gray-700 mb-2 text-right font-semibold">دسته‌بندی</label>
+                    <div class="glass-card rounded-2xl p-6">
+                        <label class="block text-gray-700 mb-3 text-right font-black text-lg">📂 دسته‌بندی</label>
                         <input type="text" id="createCategory" class="input-field w-full" 
-                               placeholder="مثلاً ورزش، فیلم، شهر" />
+                               placeholder="مثلاً ورزش، فیلم، شهر، غذا" />
                     </div>
                     
-                    <div>
-                        <label class="block text-gray-700 mb-2 text-right font-semibold">سطح دشواری</label>
+                    <div class="glass-card rounded-2xl p-6">
+                        <label class="block text-gray-700 mb-3 text-right font-black text-lg">🎚️ سطح دشواری</label>
                         <select id="createDifficulty" class="input-field w-full">
-                            <option value="">انتخاب کنید</option>
-                            <option value="آسان">آسان</option>
-                            <option value="متوسط">متوسط</option>
-                            <option value="سخت">سخت</option>
+                            <option value="">سطح را انتخاب کنید</option>
+                            <option value="آسان">🟢 آسان (10 فرصت)</option>
+                            <option value="متوسط">🟡 متوسط (8 فرصت)</option>
+                            <option value="سخت">🔴 سخت (6 فرصت)</option>
                         </select>
                     </div>
                     
-                    <button onclick="createGame()" class="btn-primary w-full py-3 rounded-lg text-white font-bold text-lg">
-                        <i class="fas fa-plus ml-2"></i>ایجاد بازی
+                    <button onclick="createGame()" class="btn-primary w-full py-4 rounded-2xl text-white font-black text-xl transform hover:scale-105 transition-transform">
+                        <i class="fas fa-rocket ml-3"></i>🚀 ایجاد بازی جدید
                     </button>
                 </div>
 
-                <div id="createGameMessage" class="hidden mt-4 p-4 rounded-2xl text-center"></div>
+                <div id="createGameMessage" class="hidden mt-6 p-4 rounded-2xl text-center"></div>
                 
-                <div id="createdGameInfo" class="hidden bg-green-50 p-6 rounded-2xl mt-6 text-center border border-green-200">
-                    <i class="fas fa-check-circle text-4xl text-green-500 mb-3"></i>
-                    <h3 class="text-xl font-bold text-green-600 mb-2">بازی ایجاد شد!</h3>
-                    <p class="text-gray-600 mb-4">کد زیر را به دوستتان بدهید:</p>
-                    <div class="bg-white p-4 rounded-lg mb-4 border">
-                        <p class="text-sm text-gray-500">کد بازی</p>
-                        <p id="displayCreatedGameCode" class="text-3xl font-bold text-purple-600 tracking-widest"></p>
+                <div id="createdGameInfo" class="hidden bg-gradient-to-r from-green-400 to-blue-500 p-8 rounded-2xl mt-8 text-center text-white">
+                    <i class="fas fa-check-circle text-5xl mb-4 bounce-in"></i>
+                    <h3 class="text-2xl font-black mb-2">🎉 بازی با موفقیت ایجاد شد!</h3>
+                    <p class="text-green-100 mb-6">کد زیر را با دوست خود به اشتراک بگذارید</p>
+                    
+                    <div class="bg-white/20 p-6 rounded-2xl mb-6 backdrop-blur-sm">
+                        <p class="text-sm text-green-100 mb-2">کد دعوت بازی</p>
+                        <p id="displayCreatedGameCode" class="text-4xl font-black tracking-widest text-white"></p>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div class="text-right">
-                            <p class="text-gray-500">کلمه:</p>
-                            <p id="displayCreatedWord" class="font-bold text-orange-500"></p>
+                    
+                    <div class="grid grid-cols-2 gap-6 text-sm">
+                        <div class="text-right bg-white/10 p-4 rounded-2xl">
+                            <p class="text-green-100">کلمه:</p>
+                            <p id="displayCreatedWord" class="font-black text-xl text-white"></p>
                         </div>
-                        <div class="text-right">
-                            <p class="text-gray-500">سطح:</p>
-                            <p id="displayCreatedDifficulty" class="font-bold text-blue-500"></p>
+                        <div class="text-right bg-white/10 p-4 rounded-2xl">
+                            <p class="text-green-100">سطح دشواری:</p>
+                            <p id="displayCreatedDifficulty" class="font-black text-xl text-white"></p>
                         </div>
                     </div>
                 </div>
@@ -209,134 +488,226 @@
 
             <!-- Join Game Tab -->
             <div id="join-game-tab" class="tab-content hidden">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
+                <h2 class="text-3xl font-black text-center text-gray-800 mb-8">
                     🤝 پیوستن به بازی
                 </h2>
                 
-                <div class="text-center mb-6">
-                    <i class="fas fa-users text-5xl text-green-400 mb-3"></i>
-                    <p class="text-gray-600">کد بازی را از دوستتان بگیرید و وارد کنید</p>
+                <div class="max-w-md mx-auto text-center">
+                    <div class="glass-card rounded-2xl p-8 mb-8">
+                        <i class="fas fa-users text-6xl text-green-400 mb-4"></i>
+                        <p class="text-gray-600 text-lg">کد بازی را از دوست خود دریافت کرده و وارد کنید</p>
+                    </div>
+                    
+                    <div class="glass-card rounded-2xl p-6 mb-6">
+                        <input type="text" id="joinGameCode" 
+                               class="input-field w-full text-center text-3xl font-mono tracking-widest" 
+                               placeholder="XXXXXX" maxlength="6" />
+                    </div>
+                    
+                    <button onclick="joinGame()" class="btn-primary w-full py-4 rounded-2xl text-white font-black text-xl transform hover:scale-105 transition-transform">
+                        <i class="fas fa-sign-in-alt ml-3"></i>🎯 پیوستن به بازی
+                    </button>
                 </div>
                 
-                <input type="text" id="joinGameCode" 
-                       class="input-field w-full text-center text-2xl font-mono tracking-widest" 
-                       placeholder="XXXXXX" maxlength="6" />
-                
-                <button onclick="joinGame()" class="btn-primary w-full py-3 rounded-lg text-white font-bold text-lg mt-4">
-                    <i class="fas fa-sign-in-alt ml-2"></i>پیوستن به بازی
-                </button>
-                
-                <div id="joinGameMessage" class="hidden mt-4 p-4 rounded-2xl text-center"></div>
+                <div id="joinGameMessage" class="hidden mt-6 p-4 rounded-2xl text-center"></div>
             </div>
 
             <!-- Active Games Tab -->
             <div id="active-games-tab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">بازی‌های من</h2>
-                    <button onclick="loadActiveGames()" class="btn-secondary px-4 py-2 rounded-lg text-white font-semibold">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-3xl font-black text-gray-800">🎮 بازی‌های من</h2>
+                    <button onclick="loadActiveGames()" class="btn-secondary px-6 py-3 rounded-2xl text-white font-black transform hover:scale-105 transition-transform">
                         <i class="fas fa-sync-alt ml-2"></i>بروزرسانی
                     </button>
                 </div>
                 
-                <div id="activeGamesList">
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-inbox text-4xl mb-3"></i>
-                        <p>هیچ بازی فعالی ندارید</p>
-                    </div>
+                <div id="activeGamesList" class="space-y-4">
+                    <!-- Games will be loaded here -->
                 </div>
             </div>
 
             <!-- Game Board Tab -->
             <div id="game-board-tab" class="tab-content hidden">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
-                    🎯 بازی در جریان
-                </h2>
-                
-                <!-- Game Info -->
-                <div class="bg-gray-50 p-4 rounded-2xl mb-6">
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div class="text-right">
-                            <p class="text-gray-500">کد بازی:</p>
-                            <p id="gameBoardCode" class="font-bold text-blue-500"></p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-gray-500">دسته:</p>
-                            <p id="gameCategory" class="font-bold text-purple-500"></p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-gray-500">سازنده:</p>
-                            <p id="gameCreatorName" class="font-bold text-orange-500"></p>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-gray-500">بازیکن:</p>
-                            <p id="gamePlayerName" class="font-bold text-green-500"></p>
-                        </div>
+                <!-- Game Header -->
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <h2 class="text-3xl font-black text-gray-800 mb-2">🎯 بازی در جریان</h2>
+                        <p class="text-gray-600">کد: <span id="gameBoardCode" class="font-mono text-blue-500"></span></p>
                     </div>
-                    <div class="text-center mt-3 pt-3 border-t border-gray-200">
-                        <p class="text-gray-500">سطح دشواری:</p>
-                        <p id="gameDifficulty" class="font-bold text-red-500 text-lg"></p>
+                    <button onclick="showGameHistory()" class="btn-primary px-6 py-3 rounded-2xl text-white font-black">
+                        <i class="fas fa-history ml-2"></i>تاریخچه
+                    </button>
+                </div>
+
+                <!-- Game Info Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="glass-card rounded-2xl p-4 text-center">
+                        <i class="fas fa-user-edit text-blue-500 text-xl mb-2"></i>
+                        <p class="text-gray-600 text-sm">سازنده</p>
+                        <p id="gameCreatorName" class="font-black text-gray-800"></p>
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 text-center">
+                        <i class="fas fa-user text-green-500 text-xl mb-2"></i>
+                        <p class="text-gray-600 text-sm">بازیکن</p>
+                        <p id="gamePlayerName" class="font-black text-gray-800"></p>
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 text-center">
+                        <i class="fas fa-tag text-purple-500 text-xl mb-2"></i>
+                        <p class="text-gray-600 text-sm">دسته‌بندی</p>
+                        <p id="gameCategory" class="font-black text-gray-800"></p>
+                    </div>
+                    <div class="glass-card rounded-2xl p-4 text-center">
+                        <i class="fas fa-fire text-orange-500 text-xl mb-2"></i>
+                        <p class="text-gray-600 text-sm">سطح</p>
+                        <p id="gameDifficulty" class="font-black text-gray-800"></p>
                     </div>
                 </div>
 
                 <!-- Word Display -->
-                <div class="text-center my-8">
-                    <div class="word-display" id="wordDisplay">_ _ _ _ _</div>
+                <div class="text-center my-12">
+                    <div class="word-display mb-4" id="wordDisplay">_ _ _ _ _</div>
+                    <div class="progress-bar max-w-md mx-auto">
+                        <div id="timeProgress" class="progress-fill bg-gradient-to-r from-green-400 to-blue-500" style="width: 100%"></div>
+                    </div>
+                    <p class="text-gray-600 mt-2">زمان باقی‌مانده: <span id="timeRemaining" class="font-black">120s</span></p>
                 </div>
 
                 <!-- Game Stats -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-red-50 p-4 rounded-2xl text-center border border-red-200">
-                        <i class="fas fa-heart text-red-500 text-xl mb-2"></i>
-                        <p class="text-gray-600">فرصت‌ها</p>
-                        <p id="attemptsLeft" class="text-2xl font-bold text-red-500">10</p>
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card rounded-2xl p-6 text-center">
+                        <div class="flex items-center justify-center space-x-3 space-x-reverse mb-3">
+                            <i class="fas fa-heart text-red-500 text-2xl"></i>
+                            <span class="text-3xl font-black text-red-500" id="attemptsLeft">10</span>
+                        </div>
+                        <p class="text-gray-600">فرصت‌های باقی‌مانده</p>
                     </div>
-                    <div class="bg-blue-50 p-4 rounded-2xl text-center border border-blue-200">
-                        <i class="fas fa-clock text-blue-500 text-xl mb-2"></i>
-                        <p class="text-gray-600">زمان</p>
-                        <p id="timeRemaining" class="text-2xl font-bold text-blue-500">120s</p>
+                    <div class="glass-card rounded-2xl p-6 text-center">
+                        <div class="flex items-center justify-center space-x-3 space-x-reverse mb-3">
+                            <i class="fas fa-bolt text-yellow-500 text-2xl"></i>
+                            <span class="text-3xl font-black text-yellow-500" id="scoreChange">0</span>
+                        </div>
+                        <p class="text-gray-600">امتیاز این بازی</p>
                     </div>
                 </div>
 
                 <!-- Guess Input -->
-                <div class="mb-6">
+                <div class="glass-card rounded-2xl p-6 mb-6">
+                    <label class="block text-gray-700 mb-4 text-right font-black text-lg">🔤 حرف مورد نظر را وارد کنید</label>
                     <input type="text" id="guessInput" 
-                           class="input-field w-full text-center text-xl font-bold" 
-                           placeholder="یک حرف فارسی وارد کنید" maxlength="1" />
-                    <button onclick="makeGuess()" class="btn-primary w-full py-3 rounded-lg text-white font-bold text-lg mt-3">
-                        <i class="fas fa-gavel ml-2"></i>حدس بزن!
+                           class="input-field w-full text-center text-2xl font-black" 
+                           placeholder="یک حرف فارسی" maxlength="1" />
+                    <button onclick="makeGuess()" class="btn-primary w-full py-4 rounded-2xl text-white font-black text-xl mt-4 transform hover:scale-105 transition-transform">
+                        <i class="fas fa-gavel ml-3"></i>💥 حدس بزن!
                     </button>
                 </div>
 
-                <!-- Game Message -->
-                <div id="gameMessage" class="hidden p-4 rounded-2xl text-center mb-4"></div>
-
                 <!-- Letters Status -->
-                <div class="grid grid-cols-2 gap-4 mb-6">
-                    <div class="bg-green-50 p-4 rounded-2xl border border-green-200">
-                        <p class="text-green-600 font-bold mb-2">
-                            <i class="fas fa-check-circle ml-2"></i>حروف صحیح
-                        </p>
-                        <p id="correctLettersDisplay" class="text-lg font-mono text-green-700"></p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-lg font-black text-green-600 mb-4">
+                            <i class="fas fa-check-circle ml-2"></i>✅ حروف صحیح
+                        </h3>
+                        <div id="correctLettersDisplay" class="flex flex-wrap gap-2 min-h-12">
+                            <span class="text-gray-400">هنوز حرفی حدس زده نشده</span>
+                        </div>
                     </div>
-                    <div class="bg-red-50 p-4 rounded-2xl border border-red-200">
-                        <p class="text-red-600 font-bold mb-2">
-                            <i class="fas fa-times-circle ml-2"></i>حروف غلط
-                        </p>
-                        <p id="incorrectLettersDisplay" class="text-lg font-mono text-red-700"></p>
+                    <div class="glass-card rounded-2xl p-6">
+                        <h3 class="text-lg font-black text-red-600 mb-4">
+                            <i class="fas fa-times-circle ml-2"></i>❌ حروف غلط
+                        </h3>
+                        <div id="incorrectLettersDisplay" class="flex flex-wrap gap-2 min-h-12">
+                            <span class="text-gray-400">هنوز حرفی حدس زده نشده</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Moves -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-black text-gray-800 mb-4">
+                        <i class="fas fa-list ml-2"></i>📝 آخرین حرکات
+                    </h3>
+                    <div id="recentMoves" class="space-y-2">
+                        <p class="text-gray-400 text-center py-4">هنوز حرکتی ثبت نشده است</p>
                     </div>
                 </div>
 
                 <!-- Game Result -->
-                <div id="gameResultDisplay" class="hidden text-center p-6 rounded-2xl text-white font-bold text-xl mb-4">
+                <div id="gameResultDisplay" class="hidden text-center p-8 rounded-2xl text-white font-black text-2xl mb-6 mt-8">
                 </div>
 
-                <!-- Back Button -->
-                <button onclick="goToHome()" class="w-full py-3 rounded-lg bg-gray-500 text-white font-bold text-lg">
-                    <i class="fas fa-home ml-2"></i>بازگشت به صفحه اصلی
-                </button>
+                <!-- Action Buttons -->
+                <div class="flex gap-4 mt-8">
+                    <button onclick="goToHome()" class="flex-1 py-4 rounded-2xl bg-gray-500 text-white font-black text-lg transform hover:scale-105 transition-transform">
+                        <i class="fas fa-home ml-2"></i>🏠 بازگشت
+                    </button>
+                    <button onclick="shareGame()" class="flex-1 py-4 rounded-2xl bg-blue-500 text-white font-black text-lg transform hover:scale-105 transition-transform">
+                        <i class="fas fa-share ml-2"></i>📤 اشتراک‌گذاری
+                    </button>
+                </div>
             </div>
         </main>
     </div>
+
+    <!-- Floating Action Button -->
+    <div class="floating-action">
+        <button onclick="showTab('dashboard')" class="w-14 h-14 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full text-white flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform">
+            <i class="fas fa-home text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Waiting Games Modal -->
+    <div id="waitingGamesModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black text-gray-800">🎮 بازی‌های در انتظار</h3>
+                <button onclick="hideModal('waitingGamesModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="waitingGamesList" class="space-y-3 max-h-96 overflow-y-auto">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-users text-4xl mb-3"></i>
+                    <p>هیچ بازی عمومی‌ای در انتظار نیست</p>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex gap-3">
+                <button onclick="hideModal('waitingGamesModal')" class="flex-1 py-3 rounded-2xl bg-gray-500 text-white font-black">
+                    بستن
+                </button>
+                <button onclick="loadWaitingGames()" class="flex-1 py-3 rounded-2xl btn-primary text-white font-black">
+                    <i class="fas fa-sync-alt ml-2"></i>بروزرسانی
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game History Modal -->
+    <div id="gameHistoryModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-black text-gray-800">📜 تاریخچه حرکات</h3>
+                <button onclick="hideModal('gameHistoryModal')" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="gameHistoryList" class="space-y-2 max-h-96 overflow-y-auto">
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-history text-4xl mb-3"></i>
+                    <p>هنوز حرکتی ثبت نشده است</p>
+                </div>
+            </div>
+            
+            <button onclick="hideModal('gameHistoryModal')" class="w-full mt-6 py-3 rounded-2xl bg-gray-500 text-white font-black">
+                بستن
+            </button>
+        </div>
+    </div>
+
+    <!-- Confetti Container -->
+    <div id="confettiContainer"></div>
 
     <script>
         // متغیرهای سراسری
@@ -344,6 +715,10 @@
         let fullName = '';
         let currentActiveGameCode = null;
         let gameTimerInterval = null;
+        let gameStatusInterval = null;
+        let currentGameData = null;
+        let isCreator = false;
+        let isPlayer = false;
 
         // تابع برای لاگ کردن
         function debugLog(message, data = null) {
@@ -359,15 +734,10 @@
                 debugLog('✅ Telegram Web App detected');
                 
                 try {
-                    // راه‌اندازی Web App
                     tg.ready();
                     tg.expand();
                     tg.MainButton.hide();
                     
-                    debugLog('📊 Telegram WebApp initData:', tg.initData);
-                    debugLog('👤 Telegram WebApp initDataUnsafe:', tg.initDataUnsafe);
-                    
-                    // دریافت داده‌های کاربر
                     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
                         const user = tg.initDataUnsafe.user;
                         userId = user.id.toString();
@@ -377,12 +747,8 @@
                         }
                         
                         debugLog('✅ کاربر از تلگرام شناسایی شد:', { userId, fullName });
-                        
-                        // نمایش نام کاربر
                         document.getElementById('userNameDisplay').textContent = fullName;
                         document.getElementById('userNameDisplay').classList.add('text-green-600');
-                        
-                        // بارگذاری پروفایل
                         loadUserProfile();
                         
                     } else {
@@ -396,7 +762,7 @@
                 }
                 
             } else {
-                debugLog('❌ Telegram Web App در دسترس نیست - احتمالاً از مرورگر باز شده');
+                debugLog('❌ Telegram Web App در دسترس نیست');
                 setupFallbackUser('مرورگر');
             }
         }
@@ -408,17 +774,8 @@
             
             document.getElementById('userNameDisplay').textContent = fullName;
             
-            let message = '';
-            let colorClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-            
-            if (source === 'مرورگر') {
-                message = '🌐 برای تجربه کامل، از طریق ربات تلگرام باز کنید';
-                colorClass = 'bg-blue-100 text-blue-800 border border-blue-200';
-            } else if (source === 'تلگرام') {
-                message = '⚠️ داده‌های کاربر در تلگرام موجود نیست';
-            } else {
-                message = '⚠️ خطا در دریافت اطلاعات کاربر';
-            }
+            let message = '🌐 برای تجربه کامل، از طریق ربات تلگرام باز کنید';
+            let colorClass = 'bg-blue-100 text-blue-800 border border-blue-200';
             
             showMessage('profileMessage', message, colorClass);
             loadUserProfile();
@@ -446,40 +803,63 @@
             }
         }
 
+        function showNotification(title, message, type = 'info') {
+            const notification = document.getElementById('floatingNotification');
+            const titleEl = document.getElementById('notificationTitle');
+            const messageEl = document.getElementById('notificationMessage');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            
+            // Set color based on type
+            const colors = {
+                info: 'bg-blue-500',
+                success: 'bg-green-500',
+                warning: 'bg-yellow-500',
+                error: 'bg-red-500'
+            };
+            
+            notification.className = `floating-notification ${colors[type] || colors.info} text-white p-4 rounded-2xl shadow-2xl`;
+            notification.classList.remove('hidden');
+            
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
+
         // مدیریت تب‌ها
         function showTab(tabName) {
             debugLog('تغییر تب به:', tabName);
             
-            // پنهان کردن همه تب‌ها
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.add('hidden');
             });
             
-            // به‌روزرسانی دکمه‌های ناوبری
             document.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.className = btn.className.replace('bg-blue-500 text-white', 'bg-gray-200 text-gray-700');
+                btn.className = btn.className.replace('bg-white text-gray-800', 'bg-white/20 text-white');
             });
             
-            // نمایش تب انتخاب شده
             const targetTab = document.getElementById(`${tabName}-tab`);
             if (targetTab) {
                 targetTab.classList.remove('hidden');
             }
             
-            // فعال کردن دکمه مربوطه
             const activeBtn = document.querySelector(`.nav-btn[onclick="showTab('${tabName}')"]`);
             if (activeBtn) {
-                activeBtn.className = activeBtn.className.replace('bg-gray-200 text-gray-700', 'bg-blue-500 text-white');
+                activeBtn.className = activeBtn.className.replace('bg-white/20 text-white', 'bg-white text-gray-800');
             }
             
-            // توقف تایمر اگر وجود دارد
             if (gameTimerInterval) {
                 clearInterval(gameTimerInterval);
                 gameTimerInterval = null;
             }
             
-            // بارگذاری داده‌های خاص تب
-            if (tabName === 'profile') {
+            if (gameStatusInterval) {
+                clearInterval(gameStatusInterval);
+                gameStatusInterval = null;
+            }
+            
+            if (tabName === 'dashboard') {
                 loadUserProfile();
             } else if (tabName === 'active-games') {
                 loadActiveGames();
@@ -492,24 +872,35 @@
                 clearInterval(gameTimerInterval);
                 gameTimerInterval = null;
             }
-            showTab('profile');
+            if (gameStatusInterval) {
+                clearInterval(gameStatusInterval);
+                gameStatusInterval = null;
+            }
+            showTab('dashboard');
+        }
+
+        // مدیریت مودال‌ها
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            if (modalId === 'waitingGamesModal') {
+                loadWaitingGames();
+            }
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
         }
 
         // API Functions
         async function loadUserProfile() {
             showLoading();
             try {
-                debugLog('در حال بارگذاری پروفایل کاربر:', { userId, fullName });
-                
                 const response = await fetch(`/api/user/score?userId=${encodeURIComponent(userId)}&fullName=${encodeURIComponent(fullName)}`);
                 const data = await response.json();
-                
-                debugLog('پاسخ پروفایل:', data);
                 
                 if (data.success) {
                     document.getElementById('userScoreDisplay').textContent = data.score;
                     
-                    // به‌روزرسانی آمار
                     if (data.stats) {
                         document.getElementById('activeGamesCount').textContent = data.stats.active_games || 0;
                         document.getElementById('wonGamesCount').textContent = data.stats.won_games || 0;
@@ -525,49 +916,100 @@
             }
         }
 
+        async function loadWaitingGames() {
+            showLoading();
+            try {
+                const response = await fetch(`/api/games/waiting?userId=${encodeURIComponent(userId)}`);
+                const data = await response.json();
+
+                const gamesList = document.getElementById('waitingGamesList');
+                gamesList.innerHTML = '';
+
+                if (data.success && data.games && data.games.length > 0) {
+                    data.games.forEach(game => {
+                        const gameCard = document.createElement('div');
+                        gameCard.className = 'game-card cursor-pointer transform hover:scale-105 transition-transform';
+                        gameCard.onclick = () => joinWaitingGame(game.game_code);
+                        
+                        gameCard.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <div class="text-right">
+                                    <h3 class="text-xl font-black">${game.game_code}</h3>
+                                    <p class="text-white/80 text-sm mt-1">سازنده: ${game.creator_name}</p>
+                                    <p class="text-white/80 text-sm">دسته: ${game.category}</p>
+                                    <div class="mt-2">
+                                        <span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm">منتظر بازیکن</span>
+                                    </div>
+                                </div>
+                                <div class="text-left">
+                                    <i class="fas fa-arrow-left text-white/60 text-xl"></i>
+                                </div>
+                            </div>
+                        `;
+                        
+                        gamesList.appendChild(gameCard);
+                    });
+                } else {
+                    gamesList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-users text-4xl mb-3"></i>
+                            <p>هیچ بازی عمومی‌ای در انتظار نیست</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('خطا در بارگذاری بازی‌های در انتظار:', error);
+                showNotification('خطا', 'خطا در بارگذاری بازی‌ها', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function joinWaitingGame(gameCode) {
+            document.getElementById('joinGameCode').value = gameCode;
+            hideModal('waitingGamesModal');
+            showTab('join-game');
+            joinGame();
+        }
+
         async function createGame() {
             const word = document.getElementById('createWord').value.trim();
             const category = document.getElementById('createCategory').value.trim();
             const difficulty = document.getElementById('createDifficulty').value;
 
-            if (!word || !category || !difficulty) {
+            if (!word || word.length < 3) {
+                showMessage('createGameMessage', 'کلمه باید حداقل 3 حرف داشته باشد', 'bg-red-100 text-red-800 border border-red-200');
+                return;
+            }
+
+            if (!category || !difficulty) {
                 showMessage('createGameMessage', 'لطفاً همه فیلدها را پر کنید', 'bg-red-100 text-red-800 border border-red-200');
                 return;
             }
 
             showLoading();
             try {
-                debugLog('ایجاد بازی:', { word, category, difficulty, creatorId: userId });
-                
                 const response = await fetch('/api/game/create', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        word,
-                        category,
-                        difficulty,
-                        creatorId: userId
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ word, category, difficulty, creatorId: userId })
                 });
 
                 const data = await response.json();
-                debugLog('پاسخ ایجاد بازی:', data);
 
                 if (data.success) {
                     showMessage('createGameMessage', 'بازی با موفقیت ایجاد شد!', 'bg-green-100 text-green-800 border border-green-200');
                     
-                    // نمایش اطلاعات بازی
                     document.getElementById('displayCreatedGameCode').textContent = data.gameCode;
                     document.getElementById('displayCreatedWord').textContent = data.word;
                     document.getElementById('displayCreatedDifficulty').textContent = data.difficulty;
                     document.getElementById('createdGameInfo').classList.remove('hidden');
                     
-                    // پاک کردن فرم
                     document.getElementById('createWord').value = '';
                     document.getElementById('createCategory').value = '';
                     document.getElementById('createDifficulty').value = '';
+                    
+                    showNotification('موفقیت', 'بازی جدید ایجاد شد!', 'success');
                     
                 } else {
                     showMessage('createGameMessage', data.message || 'خطا در ایجاد بازی', 'bg-red-100 text-red-800 border border-red-200');
@@ -590,21 +1032,13 @@
 
             showLoading();
             try {
-                debugLog('پیوستن به بازی:', { gameCode, playerId: userId });
-                
                 const response = await fetch('/api/game/join', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        gameCode,
-                        playerId: userId
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ gameCode, playerId: userId })
                 });
 
                 const data = await response.json();
-                debugLog('پاسخ پیوستن:', data);
 
                 if (data.success) {
                     showMessage('joinGameMessage', 'با موفقیت به بازی پیوستید!', 'bg-green-100 text-green-800 border border-green-200');
@@ -612,6 +1046,9 @@
                     renderGameBoard(data.gameData);
                     showTab('game-board');
                     document.getElementById('joinGameCode').value = '';
+                    
+                    showNotification('پیوستن موفق', 'به بازی پیوستید!', 'success');
+                    
                 } else {
                     showMessage('joinGameMessage', data.message || 'خطا در پیوستن به بازی', 'bg-red-100 text-red-800 border border-red-200');
                 }
@@ -626,12 +1063,8 @@
         async function loadActiveGames() {
             showLoading();
             try {
-                debugLog('بارگذاری بازی‌های فعال برای:', userId);
-                
                 const response = await fetch(`/api/games/active?userId=${encodeURIComponent(userId)}`);
                 const data = await response.json();
-
-                debugLog('پاسخ بازی‌های فعال:', data);
 
                 const gamesList = document.getElementById('activeGamesList');
                 gamesList.innerHTML = '';
@@ -643,17 +1076,24 @@
                         
                         let statusBadge = '';
                         let actionButton = '';
+                        let roleText = '';
+                        
+                        if (game.is_creator) {
+                            roleText = '<span class="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">سازنده</span>';
+                        } else {
+                            roleText = '<span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">بازیکن</span>';
+                        }
                         
                         switch(game.status) {
                             case 'waiting':
                                 statusBadge = '<span class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm">منتظر بازیکن</span>';
                                 if (!game.is_creator) {
-                                    actionButton = `<button onclick="joinGameFromList('${game.game_code}')" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-100 transition">پیوستن</button>`;
+                                    actionButton = `<button onclick="joinGameFromList('${game.game_code}')" class="bg-white text-purple-600 px-4 py-2 rounded-xl font-black hover:bg-gray-100 transition">پیوستن</button>`;
                                 }
                                 break;
                             case 'active':
                                 statusBadge = '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-sm">در حال انجام</span>';
-                                actionButton = `<button onclick="viewGameFromList('${game.game_code}')" class="bg-white text-green-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-100 transition">ادامه بازی</button>`;
+                                actionButton = `<button onclick="viewGameFromList('${game.game_code}')" class="bg-white text-green-600 px-4 py-2 rounded-xl font-black hover:bg-gray-100 transition">مشاهده</button>`;
                                 break;
                             case 'won':
                                 statusBadge = '<span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm">برنده</span>';
@@ -666,9 +1106,12 @@
                         gameCard.innerHTML = `
                             <div class="flex justify-between items-center">
                                 <div class="text-right">
-                                    <h3 class="text-xl font-bold">کد: ${game.game_code}</h3>
-                                    <p class="text-white/80 mt-1">سازنده: ${game.creator_name}</p>
-                                    <p class="text-white/80">سطح: ${game.difficulty}</p>
+                                    <div class="flex items-center space-x-2 space-x-reverse mb-2">
+                                        <h3 class="text-xl font-black">${game.game_code}</h3>
+                                        ${roleText}
+                                    </div>
+                                    <p class="text-white/80 text-sm">سازنده: ${game.creator_name}</p>
+                                    <p class="text-white/80 text-sm">دسته: ${game.category} | سطح: ${game.difficulty}</p>
                                     <div class="mt-2">${statusBadge}</div>
                                 </div>
                                 <div>
@@ -681,15 +1124,18 @@
                     });
                 } else {
                     gamesList.innerHTML = `
-                        <div class="text-center py-8 text-gray-500">
-                            <i class="fas fa-inbox text-4xl mb-3"></i>
-                            <p>هیچ بازی فعالی ندارید</p>
+                        <div class="text-center py-12">
+                            <i class="fas fa-gamepad text-6xl text-gray-400 mb-4"></i>
+                            <p class="text-gray-500 text-lg">هنوز بازی‌ای ندارید</p>
+                            <button onclick="showTab('create-game')" class="btn-primary mt-4 px-6 py-3 rounded-2xl text-white font-black">
+                                ساخت اولین بازی
+                            </button>
                         </div>
                     `;
                 }
             } catch (error) {
                 console.error('خطا در بارگذاری بازی‌های فعال:', error);
-                showMessage('activeGamesList', 'خطا در بارگذاری بازی‌ها', 'bg-red-100 text-red-800 border border-red-200');
+                showNotification('خطا', 'خطا در بارگذاری بازی‌ها', 'error');
             } finally {
                 hideLoading();
             }
@@ -703,30 +1149,28 @@
         async function viewGameFromList(gameCode) {
             showLoading();
             try {
-                debugLog('مشاهده بازی:', gameCode);
-                
                 const response = await fetch(`/api/game/status/${gameCode}?userId=${encodeURIComponent(userId)}`);
                 const data = await response.json();
-                
-                debugLog('پاسخ وضعیت بازی:', data);
                 
                 if (data.success) {
                     currentActiveGameCode = gameCode;
                     renderGameBoard(data.gameData);
                     showTab('game-board');
                 } else {
-                    showMessage('activeGamesList', data.message || 'خطا در بارگذاری بازی', 'bg-red-100 text-red-800 border border-red-200');
+                    showNotification('خطا', data.message || 'خطا در بارگذاری بازی', 'error');
                 }
             } catch (error) {
                 console.error('خطا در مشاهده بازی:', error);
-                showMessage('activeGamesList', 'خطا در ارتباط با سرور', 'bg-red-100 text-red-800 border border-red-200');
+                showNotification('خطا', 'خطا در ارتباط با سرور', 'error');
             } finally {
                 hideLoading();
             }
         }
 
         function renderGameBoard(gameData) {
-            debugLog('رندر صفحه بازی:', gameData);
+            currentGameData = gameData;
+            isCreator = gameData.isCreator;
+            isPlayer = gameData.isPlayer;
             
             // به‌روزرسانی اطلاعات بازی
             document.getElementById('gameBoardCode').textContent = gameData.gameCode;
@@ -740,63 +1184,189 @@
             
             // به‌روزرسانی آمار
             document.getElementById('attemptsLeft').textContent = gameData.attemptsLeft;
-            document.getElementById('correctLettersDisplay').textContent = gameData.correctGuessedLetters.join(' ') || '-';
-            document.getElementById('incorrectLettersDisplay').textContent = gameData.incorrectGuessedLetters.join(' ') || '-';
+            document.getElementById('scoreChange').textContent = gameData.finalScoreChange || 0;
             
-            // تایمر
-            if (gameTimerInterval) {
-                clearInterval(gameTimerInterval);
-            }
+            // به‌روزرسانی حروف
+            updateLettersDisplay(gameData.correctGuessedLetters, gameData.incorrectGuessedLetters);
             
+            // به‌روزرسانی تاریخچه حرکات
+            updateRecentMoves(gameData.recentMoves);
+            
+            // مدیریت وضعیت بازی
             const guessInput = document.getElementById('guessInput');
             const guessButton = document.querySelector('#game-board-tab button');
             const resultDisplay = document.getElementById('gameResultDisplay');
             
             if (gameData.status === 'active') {
                 // بازی فعال است
-                guessInput.disabled = false;
-                guessButton.disabled = false;
+                guessInput.disabled = !isPlayer;
+                guessButton.disabled = !isPlayer;
                 resultDisplay.classList.add('hidden');
                 
-                // شروع تایمر
-                let timeLeft = gameData.timeRemainingSeconds || 120;
-                document.getElementById('timeRemaining').textContent = timeLeft + 's';
+                if (isPlayer) {
+                    guessInput.placeholder = "یک حرف فارسی وارد کنید";
+                } else {
+                    guessInput.placeholder = "شما ناظر هستید";
+                }
                 
-                gameTimerInterval = setInterval(() => {
-                    timeLeft--;
-                    document.getElementById('timeRemaining').textContent = timeLeft + 's';
-                    
-                    if (timeLeft <= 0) {
-                        clearInterval(gameTimerInterval);
-                        guessInput.disabled = true;
-                        guessButton.disabled = true;
-                        showMessage('gameMessage', '⏰ زمان تمام شد!', 'bg-red-100 text-red-800 border border-red-200');
-                    }
-                }, 1000);
+                // شروع تایمر
+                startGameTimer(gameData.timeRemainingSeconds);
+                
+                // شروع بروزرسانی خودکار وضعیت
+                startGameStatusPolling();
                 
             } else {
                 // بازی تمام شده
                 guessInput.disabled = true;
                 guessButton.disabled = true;
                 document.getElementById('timeRemaining').textContent = '0s';
+                document.getElementById('timeProgress').style.width = '0%';
+                
+                if (gameTimerInterval) {
+                    clearInterval(gameTimerInterval);
+                    gameTimerInterval = null;
+                }
+                if (gameStatusInterval) {
+                    clearInterval(gameStatusInterval);
+                    gameStatusInterval = null;
+                }
                 
                 // نمایش نتیجه
                 resultDisplay.classList.remove('hidden');
                 if (gameData.status === 'won') {
-                    resultDisplay.className = 'bg-gradient-to-r from-green-400 to-blue-500 text-center p-6 rounded-2xl text-white font-bold text-xl mb-4';
+                    resultDisplay.className = 'bg-gradient-to-r from-green-400 to-blue-500 text-center p-8 rounded-2xl text-white font-black text-2xl mb-6 mt-8 bounce-in';
                     resultDisplay.innerHTML = `
-                        <i class="fas fa-trophy text-3xl mb-2"></i>
-                        <div>پیروزی! 🎉</div>
-                        <div class="text-lg">+${gameData.finalScoreChange} امتیاز</div>
+                        <i class="fas fa-trophy text-4xl mb-4"></i>
+                        <div>🎉 پیروزی!</div>
+                        <div class="text-xl mt-2">+${gameData.finalScoreChange} امتیاز</div>
                     `;
+                    createConfetti();
                 } else {
-                    resultDisplay.className = 'bg-gradient-to-r from-red-400 to-pink-500 text-center p-6 rounded-2xl text-white font-bold text-xl mb-4';
+                    resultDisplay.className = 'bg-gradient-to-r from-red-400 to-pink-500 text-center p-8 rounded-2xl text-white font-black text-2xl mb-6 mt-8 bounce-in';
                     resultDisplay.innerHTML = `
-                        <i class="fas fa-times-circle text-3xl mb-2"></i>
-                        <div>باخت!</div>
-                        <div class="text-lg">کلمه: ${gameData.actualWord || ''}</div>
+                        <i class="fas fa-times-circle text-4xl mb-4"></i>
+                        <div>💔 باخت!</div>
+                        <div class="text-xl mt-2">کلمه: ${gameData.actualWord || ''}</div>
                     `;
                 }
+            }
+        }
+
+        function updateLettersDisplay(correctLetters, incorrectLetters) {
+            const correctContainer = document.getElementById('correctLettersDisplay');
+            const incorrectContainer = document.getElementById('incorrectLettersDisplay');
+            
+            correctContainer.innerHTML = '';
+            incorrectContainer.innerHTML = '';
+            
+            if (correctLetters.length === 0 && incorrectLetters.length === 0) {
+                correctContainer.innerHTML = '<span class="text-gray-400">هنوز حرفی حدس زده نشده</span>';
+                incorrectContainer.innerHTML = '<span class="text-gray-400">هنوز حرفی حدس زده نشده</span>';
+                return;
+            }
+            
+            correctLetters.forEach(letter => {
+                const tile = document.createElement('span');
+                tile.className = 'letter-tile correct bounce-in';
+                tile.textContent = letter.toUpperCase();
+                correctContainer.appendChild(tile);
+            });
+            
+            incorrectLetters.forEach(letter => {
+                const tile = document.createElement('span');
+                tile.className = 'letter-tile incorrect bounce-in';
+                tile.textContent = letter.toUpperCase();
+                incorrectContainer.appendChild(tile);
+            });
+        }
+
+        function updateRecentMoves(moves) {
+            const movesContainer = document.getElementById('recentMoves');
+            movesContainer.innerHTML = '';
+            
+            if (moves.length === 0) {
+                movesContainer.innerHTML = '<p class="text-gray-400 text-center py-4">هنوز حرکتی ثبت نشده است</p>';
+                return;
+            }
+            
+            moves.forEach(move => {
+                const moveItem = document.createElement('div');
+                moveItem.className = `move-item ${move.is_correct ? 'correct' : 'incorrect'} slide-in`;
+                
+                const moveTime = new Date(move.created_at).toLocaleTimeString('fa-IR');
+                moveItem.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <span class="font-black text-lg">${move.guess_letter.toUpperCase()}</span>
+                            <span class="text-sm text-gray-600">${move.player_name}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-gray-500">${moveTime}</span>
+                            <i class="fas ${move.is_correct ? 'fa-check text-green-500' : 'fa-times text-red-500'}"></i>
+                        </div>
+                    </div>
+                `;
+                
+                movesContainer.appendChild(moveItem);
+            });
+        }
+
+        function startGameTimer(initialTime) {
+            let timeLeft = initialTime;
+            const timeDisplay = document.getElementById('timeRemaining');
+            const progressBar = document.getElementById('timeProgress');
+            
+            if (gameTimerInterval) {
+                clearInterval(gameTimerInterval);
+            }
+            
+            gameTimerInterval = setInterval(() => {
+                timeLeft--;
+                timeDisplay.textContent = timeLeft + 's';
+                progressBar.style.width = (timeLeft / initialTime * 100) + '%';
+                
+                if (timeLeft <= 0) {
+                    clearInterval(gameTimerInterval);
+                    timeDisplay.textContent = '0s';
+                    progressBar.style.width = '0%';
+                    
+                    // بروزرسانی وضعیت بازی
+                    if (currentActiveGameCode) {
+                        viewGameFromList(currentActiveGameCode);
+                    }
+                }
+            }, 1000);
+        }
+
+        function startGameStatusPolling() {
+            if (gameStatusInterval) {
+                clearInterval(gameStatusInterval);
+            }
+            
+            gameStatusInterval = setInterval(() => {
+                if (currentActiveGameCode) {
+                    updateGameStatus();
+                }
+            }, 3000); // بروزرسانی هر 3 ثانیه
+        }
+
+        async function updateGameStatus() {
+            try {
+                const response = await fetch(`/api/game/status/${currentActiveGameCode}?userId=${encodeURIComponent(userId)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // فقط اگر وضعیت تغییر کرده باشد، صفحه را بروزرسانی کن
+                    if (data.gameData.status !== currentGameData.status || 
+                        data.gameData.wordToDisplay !== currentGameData.wordToDisplay) {
+                        renderGameBoard(data.gameData);
+                    } else {
+                        // فقط تاریخچه حرکات را بروزرسانی کن
+                        updateRecentMoves(data.gameData.recentMoves);
+                    }
+                }
+            } catch (error) {
+                console.error('خطا در بروزرسانی وضعیت بازی:', error);
             }
         }
 
@@ -805,24 +1375,25 @@
             const guess = guessInput.value.trim();
             
             if (!guess || !/^[\u0600-\u06FF]$/.test(guess)) {
-                showMessage('gameMessage', 'لطفاً یک حرف فارسی وارد کنید', 'bg-red-100 text-red-800 border border-red-200');
+                showNotification('خطا', 'لطفاً یک حرف فارسی وارد کنید', 'error');
                 return;
             }
             
             if (!currentActiveGameCode) {
-                showMessage('gameMessage', 'خطا: بازی فعال شناسایی نشد', 'bg-red-100 text-red-800 border border-red-200');
+                showNotification('خطا', 'بازی فعال شناسایی نشد', 'error');
+                return;
+            }
+            
+            if (!isPlayer) {
+                showNotification('توجه', 'شما بازیکن این بازی نیستید', 'warning');
                 return;
             }
             
             showLoading();
             try {
-                debugLog('ارسال حدس:', { gameCode: currentActiveGameCode, playerId: userId, guess });
-                
                 const response = await fetch('/api/game/guess', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         gameCode: currentActiveGameCode,
                         playerId: userId,
@@ -831,36 +1402,131 @@
                 });
 
                 const data = await response.json();
-                debugLog('پاسخ حدس:', data);
 
                 if (data.success) {
                     guessInput.value = '';
                     renderGameBoard(data.gameData);
                     
                     if (data.isCorrect) {
-                        showMessage('gameMessage', '✅ حدس صحیح!', 'bg-green-100 text-green-800 border border-green-200');
+                        showNotification('آفرین', 'حدس صحیح! ✅', 'success');
                     } else {
-                        showMessage('gameMessage', '❌ حدس اشتباه!', 'bg-red-100 text-red-800 border border-red-200');
+                        showNotification('اشتباه', 'حدس غلط! ❌', 'warning');
                     }
                     
-                    // به‌روزرسانی امتیاز اگر بازی تمام شده
-                    if (data.gameData.status !== 'active') {
-                        loadUserProfile();
-                    }
+                    // بروزرسانی پروفایل کاربر
+                    loadUserProfile();
+                    
                 } else {
-                    showMessage('gameMessage', data.message || 'خطا در ثبت حدس', 'bg-red-100 text-red-800 border border-red-200');
+                    showNotification('خطا', data.message || 'خطا در ثبت حدس', 'error');
                 }
             } catch (error) {
                 console.error('خطا در حدس زدن:', error);
-                showMessage('gameMessage', 'خطا در ارتباط با سرور', 'bg-red-100 text-red-800 border border-red-200');
+                showNotification('خطا', 'خطا در ارتباط با سرور', 'error');
             } finally {
                 hideLoading();
             }
         }
 
+        async function showGameHistory() {
+            if (!currentActiveGameCode) return;
+            
+            showLoading();
+            try {
+                const response = await fetch(`/api/game/moves/${currentActiveGameCode}?userId=${encodeURIComponent(userId)}`);
+                const data = await response.json();
+                
+                const historyList = document.getElementById('gameHistoryList');
+                historyList.innerHTML = '';
+                
+                if (data.success && data.moves && data.moves.length > 0) {
+                    data.moves.forEach(move => {
+                        const moveItem = document.createElement('div');
+                        moveItem.className = `move-item ${move.is_correct ? 'correct' : 'incorrect'}`;
+                        
+                        const moveTime = new Date(move.created_at).toLocaleTimeString('fa-IR');
+                        moveItem.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center space-x-2 space-x-reverse">
+                                    <span class="font-black text-lg">${move.guess_letter.toUpperCase()}</span>
+                                    <span class="text-sm text-gray-600">${move.player_name}</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs text-gray-500">${moveTime}</span>
+                                    <i class="fas ${move.is_correct ? 'fa-check text-green-500' : 'fa-times text-red-500'}"></i>
+                                </div>
+                            </div>
+                        `;
+                        
+                        historyList.appendChild(moveItem);
+                    });
+                } else {
+                    historyList.innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-history text-4xl mb-3"></i>
+                            <p>هنوز حرکتی ثبت نشده است</p>
+                        </div>
+                    `;
+                }
+                
+                showModal('gameHistoryModal');
+            } catch (error) {
+                console.error('خطا در دریافت تاریخچه:', error);
+                showNotification('خطا', 'خطا در دریافت تاریخچه', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function shareGame() {
+            if (!currentActiveGameCode) return;
+            
+            const shareText = `🎮 به بازی Wordly Arena بپیوندید!\n\nکد بازی: ${currentActiveGameCode}\n\nبرای پیوستن از طریق ربات تلگرام اقدام کنید: https://t.me/WordlyArenaBot`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Wordly Arena',
+                    text: shareText,
+                    url: window.location.href
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    showNotification('موفقیت', 'کد بازی در کلیپ‌بورد کپی شد', 'success');
+                });
+            }
+        }
+
+        function createConfetti() {
+            const container = document.getElementById('confettiContainer');
+            container.innerHTML = '';
+            
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear forwards`;
+                confetti.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                confetti.style.opacity = '1';
+                
+                container.appendChild(confetti);
+                
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+            
+            // Add CSS for falling animation
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fall {
+                    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+                    100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
         // راه‌اندازی اولیه
         document.addEventListener('DOMContentLoaded', function() {
-            debugLog('صفحه بارگذاری شد');
             initTelegramWebApp();
             
             // پشتیبانی از کلید Enter
