@@ -1,7 +1,6 @@
 // server.js
-// Competitive Two-Player Telegram WebApp Game - Professional Implementation
-// Tech: Node.js, Express, Socket.io, PostgreSQL
-// Author: Abolfazl-friendly build with premium UX focus
+// Competitive Two-Player Telegram WebApp Game (Node.js, Express, Socket.io, PostgreSQL)
+// SSL/TLS enforced for PostgreSQL to fix "error: SSL/TLS required" on Render and similar hosts.
 
 require('dotenv').config();
 
@@ -18,13 +17,41 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const crypto = require('crypto');
 
-// --- PostgreSQL Connection ---
+// ---------- PostgreSQL SSL/TLS Configuration ----------
+/*
+  Fixes FATAL: SSL/TLS required
+  - If DATABASE_URL exists, ensure sslmode=require in the URL and set Pool ssl to { rejectUnauthorized: false }.
+  - If individual PG* env vars are used, build a connection string with sslmode=require.
+  - To disable SSL in local dev, set PGSSL=false explicitly.
+*/
+const buildConnectionString = () => {
+  let cs = process.env.DATABASE_URL;
+  if (cs) {
+    // Append sslmode=require if not present
+    if (!/sslmode=/i.test(cs)) {
+      cs += (cs.includes('?') ? '&' : '?') + 'sslmode=require';
+    }
+    return cs;
+  }
+  const host = process.env.PGHOST;
+  const port = process.env.PGPORT || 5432;
+  const user = process.env.PGUSER;
+  const pass = process.env.PGPASSWORD;
+  const db = process.env.PGDATABASE;
+  if (host && user && pass && db) {
+    return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/${db}?sslmode=require`;
+  }
+  return null;
+};
+
+const connectionString = buildConnectionString();
+const sslEnabled = process.env.PGSSL !== 'false'; // default true
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.PGSSL ? { rejectUnauthorized: false } : undefined,
+  connectionString,
+  ssl: sslEnabled ? { rejectUnauthorized: false } : undefined,
 });
 
-// --- Express App Setup ---
+// ---------- Express / Socket.io ----------
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -35,28 +62,24 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// --- Static Frontend ---
+// ---------- Static Frontend ----------
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Words and Categories (9-category grid) ---
-const wordsData = require('./words'); // Ensure a words.js exporting categories and words
+// ---------- Words (9-category source) ----------
+const wordsData = require('./words'); // Ensure words.js exists at project root
 
-// --- Helpers ---
+// ---------- Helpers ----------
 const toPersianDigits = (n) =>
   String(n).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[parseInt(d, 10)]);
-
 const nowTs = () => Date.now();
 
 const newGameDeck = (level = 'medium') => {
-  // Returns a deterministic set of 10 words (mix of categories, same for both players)
-  // You can adjust selection logic per level.
   const all = [];
   for (const cat of wordsData.categories) {
     for (const w of cat.words.filter((x) => x.level === level)) {
       all.push({ word: w.text, category: cat.name, level: w.level });
     }
   }
-  // Shuffle deterministically by seed
   const rnd = crypto.createHash('sha256').update(String(nowTs())).digest('hex');
   let seed = parseInt(rnd.slice(0, 8), 16);
   const shuffle = (arr) => {
@@ -72,7 +95,7 @@ const newGameDeck = (level = 'medium') => {
   return deck;
 };
 
-// --- Database Migrations (basic) ---
+// ---------- DB Migrations ----------
 const ensureSchema = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -117,7 +140,7 @@ const ensureSchema = async () => {
     CREATE TABLE IF NOT EXISTS game_states (
       game_id TEXT,
       user_id BIGINT,
-      current_index INT DEFAULT 0, -- which of the 10 words
+      current_index INT DEFAULT 0,
       correct_letters JSONB DEFAULT '[]',
       wrong_letters JSONB DEFAULT '[]',
       hints_used INT DEFAULT 0,
@@ -130,16 +153,20 @@ const ensureSchema = async () => {
   `);
 };
 
-// --- Telegram WebApp Auth Placeholder ---
-// In production, verify initData from Telegram WebApp (via HMAC with bot token).
+// ---------- Telegram WebApp Auth (placeholder) ----------
 const verifyTelegramInitData = (initData) => {
-  // For demo: accept anything if provided.
-  // Implement Telegram's recommended check with hash and data_check_string for real security.
   return initData && initData.length > 0;
 };
 
-// --- API Routes ---
-app.get('/health', (req, res) => res.json({ ok: true, ts: nowTs() }));
+// ---------- API Routes ----------
+app.get('/health', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT 1 AS ok');
+    res.json({ ok: true, db: r.rows[0].ok === 1, ts: nowTs(), ssl: !!pool.options.ssl });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: 'db_unreachable', detail: e.message });
+  }
+});
 
 app.post('/auth/telegram', async (req, res) => {
   const { initData, user } = req.body;
@@ -171,7 +198,6 @@ app.post('/auth/telegram', async (req, res) => {
         user.photo_url || null,
       ]
     );
-
     res.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -185,28 +211,19 @@ app.post('/rooms/join', async (req, res) => {
   const level = preferred_level || 'medium';
 
   try {
-    // Find waiting room or create new
     let roomId = null;
-    const waiting = await pool.query(
-      `SELECT id FROM rooms WHERE status = 'waiting' LIMIT 1;`
-    );
+    const waiting = await pool.query(`SELECT id FROM rooms WHERE status = 'waiting' LIMIT 1;`);
     if (waiting.rows.length) {
       roomId = waiting.rows[0].id;
     } else {
       roomId = crypto.randomUUID();
-      await pool.query(
-        `INSERT INTO rooms (id, status) VALUES ($1, 'waiting')`,
-        [roomId]
-      );
+      await pool.query(`INSERT INTO rooms (id, status) VALUES ($1, 'waiting')`, [roomId]);
     }
 
-    const rp = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM room_players WHERE room_id = $1;`,
-      [roomId]
-    );
+    const rp = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id = $1;`, [roomId]);
     const cnt = Number(rp.rows[0].cnt);
-
     const role = cnt === 0 ? 'p1' : 'p2';
+
     await pool.query(
       `
       INSERT INTO room_players (room_id, user_id, role)
@@ -216,14 +233,12 @@ app.post('/rooms/join', async (req, res) => {
       [roomId, user_id, role]
     );
 
-    // If room has two players, start game
     const rp2 = await pool.query(
       `SELECT user_id, role FROM room_players WHERE room_id = $1 ORDER BY joined_at ASC;`,
       [roomId]
     );
     if (rp2.rows.length >= 2) {
       await pool.query(`UPDATE rooms SET status = 'playing' WHERE id = $1;`, [roomId]);
-      // Create shared deck for both players
       const gameId = crypto.randomUUID();
       const deck = newGameDeck(level);
       await pool.query(
@@ -233,7 +248,6 @@ app.post('/rooms/join', async (req, res) => {
         `,
         [gameId, roomId, JSON.stringify(deck), level]
       );
-      // Initialize game state for each player
       for (const player of rp2.rows) {
         const word = deck[0].word;
         const allowedWrong = Math.ceil(word.length * 1.2);
@@ -260,10 +274,7 @@ app.post('/rooms/state', async (req, res) => {
   const { room_id } = req.body;
   if (!room_id) return res.status(400).json({ ok: false, error: 'no_room_id' });
   try {
-    const room = await pool.query(
-      `SELECT id, status FROM rooms WHERE id = $1;`,
-      [room_id]
-    );
+    const room = await pool.query(`SELECT id, status FROM rooms WHERE id = $1;`, [room_id]);
     if (!room.rows.length) return res.status(404).json({ ok: false, error: 'room_not_found' });
 
     const players = await pool.query(
@@ -287,12 +298,11 @@ app.post('/rooms/state', async (req, res) => {
   }
 });
 
-// --- Socket.io: Real-time Game Handling ---
+// ---------- Socket.io: Real-time ----------
 const roomSockets = new Map(); // roomId -> Set(socket.id)
 const userSocketRoom = new Map(); // socket.id -> roomId
 
 io.on('connection', (socket) => {
-  // Join a room channel for updates
   socket.on('join-room', async ({ room_id }) => {
     if (!room_id) return;
     socket.join(room_id);
@@ -300,63 +310,37 @@ io.on('connection', (socket) => {
     if (!roomSockets.has(room_id)) roomSockets.set(room_id, new Set());
     roomSockets.get(room_id).add(socket.id);
 
-    io.to(room_id).emit('room:presence', {
-      count: roomSockets.get(room_id).size,
-    });
+    io.to(room_id).emit('room:presence', { count: roomSockets.get(room_id).size });
   });
 
-  // Player starts or resumes (keep-alive and timer sync)
   socket.on('game:resume', async ({ game_id, user_id }) => {
     try {
-      const gs = await pool.query(
-        `SELECT * FROM game_states WHERE game_id = $1 AND user_id = $2;`,
-        [game_id, user_id]
-      );
-      const g = await pool.query(
-        `SELECT * FROM games WHERE id = $1;`,
-        [game_id]
-      );
+      const gs = await pool.query(`SELECT * FROM game_states WHERE game_id = $1 AND user_id = $2;`, [game_id, user_id]);
+      const g = await pool.query(`SELECT * FROM games WHERE id = $1;`, [game_id]);
       if (!gs.rows.length || !g.rows.length) return;
-      socket.emit('game:state', {
-        state: gs.rows[0],
-        deck: g.rows[0].deck,
-      });
+      socket.emit('game:state', { state: gs.rows[0], deck: g.rows[0].deck });
     } catch (e) {
       console.error(e);
     }
   });
 
-  // Guess a single Persian letter
   socket.on('game:guess', async ({ game_id, user_id, letter }) => {
     try {
-      const gsq = await pool.query(
-        `SELECT * FROM game_states WHERE game_id = $1 AND user_id = $2;`,
-        [game_id, user_id]
-      );
-      const gq = await pool.query(
-        `SELECT * FROM games WHERE id = $1;`,
-        [game_id]
-      );
+      const gsq = await pool.query(`SELECT * FROM game_states WHERE game_id = $1 AND user_id = $2;`, [game_id, user_id]);
+      const gq = await pool.query(`SELECT * FROM games WHERE id = $1;`, [game_id]);
       if (!gsq.rows.length || !gq.rows.length) return;
 
       const gs = gsq.rows[0];
       const deck = gq.rows[0].deck;
       const idx = gs.current_index;
       const currentWord = deck[idx].word;
-
       const normalizedLetter = String(letter).trim();
       if (!normalizedLetter || normalizedLetter.length !== 1) return;
 
-      const correctLetters = Array.isArray(gs.correct_letters)
-        ? gs.correct_letters
-        : JSON.parse(gs.correct_letters || '[]');
+      const correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
+      const wrongLetters = Array.isArray(gs.wrong_letters) ? gs.wrong_letters : JSON.parse(gs.wrong_letters || '[]');
 
-      const wrongLetters = Array.isArray(gs.wrong_letters)
-        ? gs.wrong_letters
-        : JSON.parse(gs.wrong_letters || '[]');
-
-      const alreadyGuessed =
-        correctLetters.includes(normalizedLetter) || wrongLetters.includes(normalizedLetter);
+      const alreadyGuessed = correctLetters.includes(normalizedLetter) || wrongLetters.includes(normalizedLetter);
       if (alreadyGuessed) {
         socket.emit('game:feedback', { type: 'duplicate', letter: normalizedLetter });
         return;
@@ -369,9 +353,7 @@ io.on('connection', (socket) => {
 
       let scoreDelta = 0;
       if (positions.length > 0) {
-        // Correct guess
         correctLetters.push(normalizedLetter);
-        // reward per correct letter and small bonus by remaining time weight handled client-side timer; add base score
         scoreDelta = 10 * positions.length;
         await pool.query(
           `
@@ -382,13 +364,9 @@ io.on('connection', (socket) => {
           [game_id, user_id, JSON.stringify(correctLetters), scoreDelta]
         );
         io.to(userSocketRoom.get(socket.id)).emit('game:letter:correct', {
-          user_id,
-          letter: normalizedLetter,
-          positions,
-          scoreDelta,
+          user_id, letter: normalizedLetter, positions, scoreDelta,
         });
       } else {
-        // Wrong guess
         wrongLetters.push(normalizedLetter);
         const overshoot = wrongLetters.length > gs.allowed_wrong;
         await pool.query(
@@ -400,24 +378,16 @@ io.on('connection', (socket) => {
           [game_id, user_id, JSON.stringify(wrongLetters)]
         );
         io.to(userSocketRoom.get(socket.id)).emit('game:letter:wrong', {
-          user_id,
-          letter: normalizedLetter,
-          wrongCount: wrongLetters.length,
-          overshoot,
+          user_id, letter: normalizedLetter, wrongCount: wrongLetters.length, overshoot,
         });
       }
 
-      // Check if word solved
       const uniqueLetters = new Set(currentWord.split(''));
       const solved = [...uniqueLetters].every((l) => correctLetters.includes(l));
       if (solved) {
-        // advance index, reset tracking for next word
         const nextIndex = idx + 1;
         if (nextIndex >= deck.length) {
-          await pool.query(
-            `UPDATE games SET status = 'finished', finished_at = NOW() WHERE id = $1`,
-            [game_id]
-          );
+          await pool.query(`UPDATE games SET status = 'finished', finished_at = NOW() WHERE id = $1`, [game_id]);
           io.to(userSocketRoom.get(socket.id)).emit('game:finished', { game_id });
         } else {
           const nextWord = deck[nextIndex].word;
@@ -425,20 +395,14 @@ io.on('connection', (socket) => {
           await pool.query(
             `
             UPDATE game_states
-            SET current_index = $3,
-                correct_letters = '[]',
-                wrong_letters = '[]',
-                hints_used = hints_used,
-                allowed_wrong = $4,
-                last_update = NOW()
+            SET current_index = $3, correct_letters = '[]', wrong_letters = '[]',
+                allowed_wrong = $4, last_update = NOW()
             WHERE game_id = $1 AND user_id = $2;
             `,
             [game_id, user_id, nextIndex, allowedWrong]
           );
           io.to(userSocketRoom.get(socket.id)).emit('game:next', {
-            user_id,
-            current_index: nextIndex,
-            nextWordLength: nextWord.length,
+            user_id, current_index: nextIndex, nextWordLength: nextWord.length,
           });
         }
       }
@@ -447,13 +411,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Request hint (max 2)
   socket.on('game:hint', async ({ game_id, user_id }) => {
     try {
-      const gsq = await pool.query(
-        `SELECT * FROM game_states WHERE game_id = $1 AND user_id = $2;`,
-        [game_id, user_id]
-      );
+      const gsq = await pool.query(`SELECT * FROM game_states WHERE game_id = $1 AND user_id = $2;`, [game_id, user_id]);
       const gq = await pool.query(`SELECT * FROM games WHERE id = $1;`, [game_id]);
       if (!gsq.rows.length || !gq.rows.length) return;
 
@@ -468,51 +428,41 @@ io.on('connection', (socket) => {
         return;
       }
 
-      const correctLetters = Array.isArray(gs.correct_letters)
-        ? gs.correct_letters
-        : JSON.parse(gs.correct_letters || '[]');
-
-      // Find a letter not yet guessed
+      const correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
       const candidates = currentWord
         .split('')
         .filter((l, i, arr) => arr.indexOf(l) === i && !correctLetters.includes(l));
-
       if (candidates.length === 0) {
         socket.emit('game:feedback', { type: 'no-hint-needed' });
         return;
       }
 
       const reveal = candidates[Math.floor(Math.random() * candidates.length)];
-
-      // Apply hint: add revealed letter and penalty
       const positions = [];
       for (let i = 0; i < currentWord.length; i++) {
         if (currentWord[i] === reveal) positions.push(i);
       }
-
-      const penalty = Math.max(5, 10 * positions.length); // deduct score
+      const penalty = Math.max(5, 10 * positions.length);
       correctLetters.push(reveal);
+
       await pool.query(
         `
         UPDATE game_states
-        SET correct_letters = $3::jsonb, hints_used = hints_used + 1, score = GREATEST(score - $4, 0), last_update = NOW()
+        SET correct_letters = $3::jsonb, hints_used = hints_used + 1,
+            score = GREATEST(score - $4, 0), last_update = NOW()
         WHERE game_id = $1 AND user_id = $2;
         `,
         [game_id, user_id, JSON.stringify(correctLetters), penalty]
       );
 
       io.to(userSocketRoom.get(socket.id)).emit('game:hint:reveal', {
-        user_id,
-        letter: reveal,
-        positions,
-        penalty,
+        user_id, letter: reveal, positions, penalty,
       });
     } catch (e) {
       console.error(e);
     }
   });
 
-  // Sync timer from client (to persist resume)
   socket.on('game:timer', async ({ game_id, user_id, timer_ms }) => {
     try {
       await pool.query(
@@ -524,24 +474,31 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Disconnect
   socket.on('disconnect', () => {
     const roomId = userSocketRoom.get(socket.id);
     if (roomId && roomSockets.has(roomId)) {
       roomSockets.get(roomId).delete(socket.id);
-      io.to(roomId).emit('room:presence', {
-        count: roomSockets.get(roomId).size,
-      });
+      io.to(roomId).emit('room:presence', { count: roomSockets.get(roomId).size });
     }
     userSocketRoom.delete(socket.id);
   });
 });
 
-// --- Boot ---
+// ---------- Boot ----------
 (async () => {
+  // Proactive DB connectivity check for clearer boot logs
+  try {
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    console.log('PostgreSQL connected. SSL:', !!pool.options.ssl);
+  } catch (e) {
+    console.error('Failed to connect to PostgreSQL:', e.message);
+    process.exit(1);
+  }
+
   await ensureSchema();
 
-  // Serve index.html from public
   app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
