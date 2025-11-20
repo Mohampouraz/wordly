@@ -39,9 +39,10 @@
     .hero{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border);flex-wrap:wrap}
     .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
     .slot{min-width:36px;min-height:48px;height:auto;padding:10px 8px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(180deg,#fff,#fbfcff);line-height:1}
+    .slot.gap{background:transparent;border:0;width:18px}
     .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));font-weight:800;transform:translateY(-2px)}
-    .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12)}
-    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12)}
+    .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12);box-shadow:0 6px 18px rgba(5,150,105,0.04)}
+    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12);box-shadow:0 6px 18px rgba(239,68,68,0.04)}
     .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
     input.letter{flex:0 0 72px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:linear-gradient(180deg,#fff,#fbfcff)}
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -77,6 +78,10 @@
       footer{padding:8px}
     }
     .shell, .panel{word-break:break-word;overflow-wrap:break-word}
+    /* keyboard / scroll helpers */
+    html, body { height: 100%; -webkit-text-size-adjust: 100%; }
+    .shell { -webkit-overflow-scrolling: touch; }
+    input, textarea { scroll-margin-top: 10vh; }
   </style>
 </head>
 <body>
@@ -265,10 +270,37 @@
   <script>
     // ---------- Helpers ----------
     const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    function normalizeFaLetter(ch){ if (!ch) return ''; const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (map[ch] || ch).normalize('NFC'); }
-    function normalizeFaWordKeepSpaces(word){ if (!word) return ''; const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; let w = String(word).replace(removeMarks,''); w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9'); return w.normalize('NFC'); }
-    function normalizeDisplayWord(word){ return String(word).replace(/[\u200c\s]/g,''); }
-    function buildIndexMap(word){ const map = []; let disp = 0; for (let i=0;i<word.length;i++){ const ch = word[i]; if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; } map[i] = disp++; } return map; }
+    function normalizeFaLetter(ch){
+      if (!ch) return '';
+      const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; // ي -> ی ، ك -> ک
+      return (map[ch] || ch).normalize('NFC');
+    }
+    function normalizeFaWordKeepSpaces(word){
+      if (!word) return '';
+      const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+      let w = String(word).replace(removeMarks,'');
+      w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+      return w.normalize('NFC');
+    }
+    function normalizeDisplayWordPreserveSpaces(word){
+      // return array of characters; keep spaces and ZWNJ as ' ' for rendering gap
+      const out = [];
+      for (let ch of String(word)) {
+        if (ch === '\u200c' || ch === ' ') out.push(' ');
+        else out.push(ch);
+      }
+      return out;
+    }
+    function buildIndexMap(word){
+      const map = [];
+      let disp = 0;
+      for (let i=0;i<word.length;i++){
+        const ch = word[i];
+        if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; }
+        map[i] = disp++;
+      }
+      return map;
+    }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     // ---------- State ----------
@@ -319,6 +351,52 @@
     const scoreMe = document.getElementById('scoreMe');
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
+
+    // ---------- safeFocus & keyboard helpers ----------
+    function safeFocus(inputEl){
+      if (!inputEl) return;
+      try {
+        if (window.visualViewport) {
+          setTimeout(()=> {
+            try { inputEl.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' }); } catch(e){}
+            try { inputEl.focus({ preventScroll: true }); } catch(e){ inputEl.focus(); }
+          }, 120);
+        } else {
+          try { inputEl.focus({ preventScroll: true }); } catch(e){ inputEl.focus(); }
+        }
+      } catch(e){}
+    }
+
+    // sync shell height to visualViewport to avoid 100vh jumps
+    (function setupViewportSync(){
+      const shellEl = document.querySelector('.shell');
+      if (!shellEl) return;
+      const updateShellHeight = () => {
+        const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        shellEl.style.maxHeight = vh + 'px';
+        shellEl.style.height = vh + 'px';
+        shellEl.style.overflow = 'auto';
+      };
+      updateShellHeight();
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateShellHeight);
+      } else {
+        window.addEventListener('resize', updateShellHeight);
+      }
+      // prevent background scroll when keyboard is up
+      let lastH = window.innerHeight;
+      const onResizePreventBodyScroll = () => {
+        const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        if (h < lastH - 100) {
+          document.body.style.overflow = 'hidden';
+        } else {
+          document.body.style.overflow = '';
+        }
+        lastH = h;
+      };
+      if (window.visualViewport) window.visualViewport.addEventListener('resize', onResizePreventBodyScroll);
+      else window.addEventListener('resize', onResizePreventBodyScroll);
+    })();
 
     // ---------- Tabs behavior ----------
     tabs.forEach(t => t.addEventListener('click', () => {
@@ -522,7 +600,7 @@
 
     socket.on('game:state', ({ state: gs, deck, reveal_mode, players }) => {
       state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms)||0; if (reveal_mode) state.revealMode = reveal_mode;
-      renderGame(); startTimer(); document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; updatePlayersList(players || []); setTimeout(()=> letterInput.focus(), 50);
+      renderGame(); startTimer(); document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; updatePlayersList(players || []); setTimeout(()=> safeFocus(letterInput), 50);
     });
 
     socket.on('game:states', ({ game_id, states }) => {
@@ -591,11 +669,19 @@
       levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
       wordIndex.textContent = toFaDigits(idx + 1);
 
-      const displayWord = normalizeDisplayWord(item.word);
+      // render display slots preserving spaces/ZWNJ as gaps
+      const charArr = normalizeDisplayWordPreserveSpaces(wordNorm); // array of chars with ' ' for spaces
       wordSlots.innerHTML = '';
-      for (let i=0;i<displayWord.length;i++){
-        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = i; slot.textContent = '_';
+      let dispIdxCounter = 0;
+      for (let i=0;i<charArr.length;i++){
+        const ch = charArr[i];
+        if (ch === ' ') {
+          const gap = document.createElement('div'); gap.className = 'slot gap'; gap.setAttribute('aria-hidden','true'); wordSlots.appendChild(gap);
+          continue;
+        }
+        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = dispIdxCounter; slot.textContent = '_';
         wordSlots.appendChild(slot);
+        dispIdxCounter++;
       }
 
       correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
@@ -604,6 +690,7 @@
       correct.forEach(l => addChip(correctLetters, l, 'correct'));
       wrong.forEach(l => addChip(wrongLetters, l, 'wrong'));
 
+      // pre-reveal positions (original indices)
       for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
         const ch = wordNorm[origIdx];
         const dispIdx = state.indexMap[origIdx];
@@ -645,19 +732,23 @@
     letterInput.addEventListener('compositionstart', () => state.composing = true);
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
-    letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } if (e.key === 'Backspace') setTimeout(()=> letterInput.focus(), 0); });
+    letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } if (e.key === 'Backspace') setTimeout(()=> safeFocus(letterInput), 0); });
 
-    function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
+    function sanitizeInput(){
+      const raw = (letterInput.value || '').trim();
+      const normalized = normalizeFaLetter(raw.replace(/\s/g,''));
+      letterInput.value = normalized.slice(0,1);
+    }
 
     // ---------- Actions ----------
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
-      if (!vRaw || vRaw.length !== 1) { letterInput.focus(); return; }
+      if (!vRaw || vRaw.length !== 1) { safeFocus(letterInput); return; }
       const v = normalizeFaLetter(vRaw);
       if (!/^[\u0600-\u06FF]$/.test(v)) { letterInput.classList.add('shake'); setTimeout(()=> letterInput.classList.remove('shake'),200); return; }
       socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
-      letterInput.value = ''; letterInput.focus();
+      letterInput.value = ''; safeFocus(letterInput);
     });
 
     hintBtn.addEventListener('click', ()=> socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }));
@@ -682,16 +773,6 @@
       const m = Math.floor(s/60), r = s%60;
       return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
-
-    // Reflow helper for old mobile browsers: ensure timer fits and inputs visible
-    function safeReflow(){
-      const shell = document.querySelector('.shell');
-      if (!shell) return;
-      shell.style.display = 'none';
-      setTimeout(()=> { shell.style.display = ''; }, 50);
-    }
-    window.addEventListener('resize', safeReflow);
-    window.addEventListener('orientationchange', () => { setTimeout(safeReflow, 150); });
 
     // ---------- Misc ----------
     document.getElementById('clearState').addEventListener('click', () => { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
