@@ -3,184 +3,146 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>وردلی رقابتی — تجربه موبایل و طراحی حرفه‌ای</title>
-
-  <!-- Vazirmatn + Font Awesome -->
+  <title>وردلی رقابتی — موبایل اول</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-
   <style>
     :root{
-      --bg:#f6f9ff;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --border:rgba(15,23,42,0.06);
-      --accent:#4f46e5;
-      --accent-2:#06b6d4;
-      --glass: rgba(255,255,255,0.62);
-      --success:#059669;
-      --danger:#ef4444;
-      --shadow-lg: 0 12px 40px rgba(16,24,40,0.08);
-      --shadow-sm: 0 8px 24px rgba(16,24,40,0.06);
-      --radius:14px;
-      --smooth: 300ms cubic-bezier(.2,.9,.3,1);
+      --bg-gradient: linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+      --muted: #6b7280;
+      --border: rgba(15,23,42,0.06);
+      --accent: #4f46e5;
+      --accent-2: #06b6d4;
+      --success: #059669;
+      --danger: #ef4444;
+      --radius: 12px;
+      --glass-blur: 10px;
+      --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
     }
 
-    /* Reset & base */
-    *{box-sizing:border-box;font-family:"Vazirmatn",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg) 0%,#ffffff 100%);-webkit-text-size-adjust:100%;color:#07122a}
-    a{color:inherit;text-decoration:none}
-    button{font-family:inherit}
-
-    /* Layout shell */
-    .shell{max-width:1100px;margin:18px auto;border-radius:18px;background:linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.99));box-shadow:var(--shadow-lg);border:1px solid var(--border);overflow:hidden; -webkit-overflow-scrolling:touch}
-    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);backdrop-filter: blur(6px)}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;box-shadow:0 8px 30px rgba(79,70,229,0.12);transition:transform var(--smooth)}
-    .logo:hover{transform:translateY(-4px) rotate(-3deg)}
-    .title{font-weight:800;font-size:17px}
+    *{box-sizing:border-box;font-family:'Vazirmatn',system-ui,Segoe UI,Roboto,-apple-system}
+    html,body{height:100%;margin:0;background:var(--bg-gradient);color:#081124;-webkit-text-size-adjust:100%}
+    .shell{max-width:1100px;margin:12px auto;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);box-shadow:var(--shadow-1);border:1px solid var(--border);overflow:hidden; -webkit-overflow-scrolling: touch}
+    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);backdrop-filter:blur(8px)}
+    .brand{display:flex;gap:10px;align-items:center}
+    .badge{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+    .title{font-weight:800;font-size:16px}
     .subtitle{font-size:12px;color:var(--muted)}
-
-    /* controls */
-    .controls{display:flex;gap:10px;align-items:center}
-    .user-chip{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
-    .user-name{font-weight:700}
-    .small-muted{font-size:12px;color:var(--muted)}
-
-    /* Buttons */
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent);transition:all var(--smooth)}
-    .btn .fa{opacity:0.95}
+    .controls{display:flex;gap:8px;align-items:center}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent)}
     .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.06);color:var(--muted)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;box-shadow:0 12px 40px rgba(79,70,229,0.12)}
-    .btn:hover{transform:translateY(-3px);box-shadow:var(--shadow-sm)}
-    .btn.ghost:hover{background:rgba(13,20,36,0.02);transform:none;box-shadow:none}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none}
+    nav.mini-tabs{display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border)}
+    .tab{padding:8px 10px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700}
+    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border:1px solid rgba(79,70,229,0.04)}
 
-    /* Tabs */
-    nav.mini-tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border)}
-    .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;transition:all var(--smooth)}
-    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border:1px solid rgba(79,70,229,0.04);transform:translateY(-2px)}
+    main.content{display:grid;grid-template-columns:1fr minmax(220px, 32%);gap:12px;padding:12px}
+    @media (max-width:980px){ main.content{grid-template-columns:1fr} }
 
-    /* Main content */
-    main.content{display:grid;grid-template-columns:1fr 320px;gap:18px;padding:18px}
-    @media (max-width:980px){ main.content{grid-template-columns:1fr;padding:12px} .right{order:2} }
-    .panel{background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow-sm);transition:transform var(--smooth),box-shadow var(--smooth)}
-    .panel:hover{transform:translateY(-6px);box-shadow:var(--shadow-lg)}
-    .hero{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.96), #fff);border-radius:12px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow-1)}
+    .hero{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;border-radius:10px}
 
-    /* Word slots */
-    .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
-    .slot{min-width:44px;height:56px;border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff);color:#0b1724;transition:all 220ms cubic-bezier(.2,.9,.3,1)}
+    .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+    .slot{min-width:36px;min-height:44px;height:auto;padding:8px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff}
     .slot.gap{width:18px;border:0;background:transparent}
-    .slot.revealed{background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));font-weight:800;transform:translateY(-6px);box-shadow:0 10px 30px rgba(79,70,229,0.06)}
+    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));font-weight:800}
     .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12)}
     .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12)}
 
-    /* Input & controls */
-    .controls-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center}
-    input.letter{flex:0 0 86px;min-width:64px;height:56px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff);transition:box-shadow var(--smooth)}
-    input.letter:focus{box-shadow:0 8px 24px rgba(79,70,229,0.06);outline:none}
+    .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+    input.letter{flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:#fff}
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:800;transition:transform var(--smooth)}
-    .chip-letter.correct{background:rgba(5,150,105,0.08);color:var(--success);border-color:rgba(5,150,105,0.12)}
-    .chip-letter.wrong{background:rgba(239,68,68,0.08);color:var(--danger);border-color:rgba(239,68,68,0.12)}
-    .chip-letter:hover{transform:translateY(-4px)}
+    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
+    .chip-letter.correct{background:rgba(5,150,105,0.08);color:var(--success)}
+    .chip-letter.wrong{background:rgba(239,68,68,0.08);color:var(--danger)}
 
-    /* Players */
-    .players-list{display:flex;flex-direction:column;gap:10px;margin-top:8px}
-    .player-row{display:flex;justify-content:space-between;gap:8px;padding:10px;border-radius:12px;border:1px solid var(--border);background:linear-gradient(180deg,#fff,#fcfdff);align-items:center;transition:transform var(--smooth)}
-    .player-row:hover{transform:translateY(-4px);box-shadow:var(--shadow-sm)}
-
-    /* Small helpers */
+    aside.right{display:flex;flex-direction:column;gap:10px}
+    .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
     .muted{color:var(--muted)}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:linear-gradient(180deg,#fbfdff,#fff);color:var(--muted);font-weight:800}
-    .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:64px;text-align:center}
-
-    /* micro interactions */
-    .fade-in{animation:fadeIn .28s both}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700;white-space:nowrap}
+    .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:56px;text-align:center}
 
     /* keyboard helpers */
-    html, body { height:100%; }
+    html, body { height:100%;}
     .shell { -webkit-overflow-scrolling: touch; }
     input, textarea { scroll-margin-top: 12vh; outline:none; }
 
     @media (max-width:760px){
-      .logo{width:48px;height:48px;font-size:18px}
-      input.letter{flex:0 0 64px;height:48px;font-size:18px}
-      .slot{min-width:34px;height:46px;font-size:16px}
-      main.content{grid-template-columns:1fr}
+      html,body{padding:8px}
+      .badge{width:40px;height:40px}
+      .title{font-size:15px}
+      main.content{padding:8px}
+      input.letter{flex:0 0 60px;height:44px;font-size:16px}
+      .slot{min-width:28px;height:44px;font-size:16px;padding:6px}
+      .timer{font-size:16px}
     }
   </style>
 </head>
 <body>
-  <div class="shell fade-in" role="application" aria-label="وردلی رقابتی">
+  <div class="shell" role="application" aria-label="وردلی رقابتی">
     <header class="appbar" role="banner">
-      <div class="brand" title="وردلی">
-        <div class="logo" aria-hidden="true"><i class="fa-solid fa-w"></i></div>
+      <div class="brand">
+        <div class="badge" aria-hidden="true">و</div>
         <div>
           <div class="title">وردلی رقابتی</div>
-          <div class="subtitle">دو نفره · بلادرنگ · موبایل اول</div>
+          <div class="subtitle muted">دو نفره · بلادرنگ</div>
         </div>
       </div>
 
-      <div class="controls" role="navigation" aria-label="ابزارها">
-        <div class="user-chip" aria-hidden="false">
-          <div id="userName" class="user-name">کاربر مهمان</div>
-          <div id="userId" class="small-muted">—</div>
+      <div class="controls" role="navigation">
+        <div class="user-chip">
+          <div id="userName">کاربر مهمان</div>
+          <div id="userId" class="muted">—</div>
         </div>
-        <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog"><i class="fa-regular fa-door-open"></i> مدیریت اتاق‌ها</button>
+        <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog">مدیریت اتاق‌ها</button>
       </div>
     </header>
 
-    <nav class="mini-tabs" role="tablist" aria-label="ناوبری">
-      <button class="tab active" data-tab="dashboard" role="tab" aria-selected="true"><i class="fa-solid fa-chart-simple"></i> داشبورد</button>
-      <button class="tab" data-tab="play" role="tab" aria-selected="false"><i class="fa-solid fa-gamepad"></i> بازی</button>
-      <button class="tab" data-tab="about" role="tab" aria-selected="false"><i class="fa-solid fa-circle-info"></i> درباره</button>
+    <nav class="mini-tabs" role="tablist">
+      <button class="tab active" data-tab="dashboard">داشبورد</button>
+      <button class="tab" data-tab="play">بازی</button>
+      <button class="tab" data-tab="about">درباره</button>
     </nav>
 
     <main class="content" role="main">
       <section>
-        <div class="panel hero" aria-labelledby="heroTitle">
+        <div class="panel hero">
           <div>
-            <div class="small-muted">حالت سریع</div>
-            <div id="heroTitle" style="font-weight:800;margin-top:6px">شروع بازی — سریع و جذاب</div>
-
-            <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-              <select id="levelSelect" aria-label="انتخاب سطح" style="padding:10px;border-radius:12px;border:1px solid var(--border);background:#fff">
+            <div class="subtitle muted">حالت سریع</div>
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="levelSelect" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
                 <option value="easy">آسان</option>
                 <option value="medium" selected>متوسط</option>
                 <option value="hard">سخت</option>
               </select>
-              <button id="quickJoin" class="btn primary"><i class="fa-solid fa-bolt"></i> پیوستن سریع</button>
-              <button id="resumeGame" class="btn"><i class="fa-solid fa-rotate-right"></i> ادامه</button>
+              <button id="quickJoin" class="btn primary">پیوستن سریع</button>
+              <button id="resumeGame" class="btn">ادامه</button>
             </div>
           </div>
 
           <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-            <div class="small-muted">وضعیت اتاق</div>
+            <div class="muted">وضعیت اتاق</div>
             <div style="display:flex;gap:8px;align-items:center">
-              <div class="pill" id="roomStatus"><i class="fa-solid fa-signal"></i> —</div>
-              <div class="pill" id="playersCount"><i class="fa-solid fa-user-group"></i> —</div>
+              <div class="pill" id="roomStatus">—</div>
+              <div class="pill" id="playersCount">—</div>
             </div>
           </div>
         </div>
 
-        <div class="panel" style="margin-top:16px" aria-labelledby="roomsTitle">
-          <h3 id="roomsTitle" style="margin:0 0 8px 0">اتاق‌های موجود</h3>
+        <div class="panel" style="margin-top:12px">
+          <h3 id="roomsTitle">اتاق‌های موجود</h3>
           <div id="roomsList" role="list" aria-live="polite"></div>
         </div>
 
-        <div id="playPanel" class="panel" style="margin-top:16px;display:none" aria-live="polite">
+        <div id="playPanel" class="panel" style="margin-top:12px;display:none" aria-live="polite">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
             <div>
               <div style="font-weight:800">بازی رقابتی</div>
-              <div id="playSubtitle" class="small-muted">کلمهٔ فعلی و کنترل‌ها</div>
+              <div id="playSubtitle" class="muted">کلمهٔ فعلی و کنترل‌ها</div>
             </div>
-
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <div class="pill"><i class="fa-solid fa-book"></i> دسته: <span id="categoryName">—</span></div>
-              <div class="pill"><i class="fa-solid fa-filter"></i> سطح: <span id="levelName">—</span></div>
-              <div class="pill"><i class="fa-solid fa-list-ol"></i> کلمه: <span id="wordIndex">—</span>/10</div>
+              <div class="pill">دسته: <span id="categoryName">—</span></div>
+              <div class="pill">سطح: <span id="levelName">—</span></div>
+              <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
               <div class="timer" id="timer">۰۰:۰۰</div>
             </div>
           </div>
@@ -189,12 +151,12 @@
 
           <div class="controls-row">
             <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" />
-            <button id="guessBtn" class="btn primary"><i class="fa-solid fa-check"></i> حدس</button>
-            <button id="hintBtn" class="btn"><i class="fa-solid fa-lightbulb"></i> راهنما</button>
-            <button id="leaveBtn" class="btn ghost"><i class="fa-solid fa-right-from-bracket"></i> خروج</button>
+            <button id="guessBtn" class="btn primary">حدس</button>
+            <button id="hintBtn" class="btn">راهنما</button>
+            <button id="leaveBtn" class="btn ghost">خروج</button>
           </div>
 
-          <div style="display:flex;gap:12px;margin-top:14px;flex-wrap:wrap">
+          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
             <div style="flex:1">
               <div style="font-weight:800">حروف صحیح</div>
               <div id="correctLetters" class="chips" aria-live="polite"></div>
@@ -206,83 +168,81 @@
           </div>
         </div>
 
-        <div id="aboutPanel" class="panel" style="margin-top:16px;display:none">
-          <h3>درباره وردلی</h3>
-          <p class="small-muted">وردلی رقابتی یک بازی دو نفرهٔ سریع است؛ این نسخه تمرکز ویژه بر تجربهٔ موبایل، تایپ فارسی و روان بودن تعامل دارد.</p>
+        <div id="aboutPanel" class="panel" style="margin-top:12px;display:none">
+          <h3>درباره</h3>
+          <p class="muted">وردلی رقابتی — نسخه وب اپ با تاکید روی تجربه موبایل.</p>
         </div>
       </section>
 
-      <aside class="right">
+      <aside class="right" aria-label="ستون جانبی">
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="font-weight:800">بازیکنان</div>
-            <div class="small-muted">وضعیت</div>
+            <div class="muted">وضعیت</div>
           </div>
           <div id="playersList" class="players-list" role="list"></div>
         </div>
 
         <div class="panel">
-          <div style="font-weight:800;display:flex;align-items:center;gap:12px">
-            <div>امتیاز شما</div>
-            <div style="margin-left:auto" class="small-muted"><i class="fa-solid fa-trophy"></i></div>
-          </div>
-          <div id="scoreMe" style="font-size:22px;color:var(--accent);font-weight:900;margin-top:10px">۰</div>
-          <div style="margin-top:12px;font-weight:800">پیشرفت</div>
-          <div id="progressMe" class="small-muted">—</div>
-          <div id="progressOpp" class="small-muted" style="margin-top:6px">—</div>
+          <div style="font-weight:800">امتیاز شما</div>
+          <div id="scoreMe" style="font-size:22px;color:var(--accent);font-weight:800;margin-top:8px">۰</div>
+          <div style="margin-top:10px;font-weight:700">پیشرفت</div>
+          <div id="progressMe" class="muted">—</div>
+          <div id="progressOpp" class="muted" style="margin-top:6px">—</div>
         </div>
 
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="font-weight:800">ابزارها</div>
-            <div class="small-muted">سریع</div>
+            <div class="muted">سریع</div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-            <button id="openRoomsBtn" class="btn"><i class="fa-solid fa-gear"></i> مدیریت اتاق‌ها</button>
-            <button id="clearState" class="btn ghost"><i class="fa-regular fa-trash-can"></i> پاکسازی محلی</button>
+            <button id="openRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
+            <button id="clearState" class="btn ghost">پاکسازی محلی</button>
           </div>
         </div>
       </aside>
     </main>
 
-    <footer style="padding:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
-      <div class="small-muted">ساخته شده برای فارس‌پی — نسخه وب اپ</div>
-      <div class="small-muted">وردلی — طراحی به‌روز</div>
+    <footer style="padding:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+      <div class="muted">وردلی — نسخه وب اپ</div>
+      <div class="muted">موبایل اول</div>
     </footer>
   </div>
 
   <!-- Rooms Modal (simple) -->
-  <div id="roomsModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(13,20,36,0.28);z-index:1400;padding:20px" role="dialog" aria-hidden="true">
-    <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 18px 60px rgba(16,24,40,0.12)">
+  <div id="roomsModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.28);z-index:1400;padding:20px" role="dialog" aria-hidden="true">
+    <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,0.08)">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h3 style="margin:0">مدیریت اتاق‌ها</h3>
         <div style="display:flex;gap:8px">
           <button id="closeRooms" class="btn">بستن</button>
         </div>
       </div>
+
       <div style="margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px">
         <div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-            <select id="filterLevel" style="padding:10px;border-radius:12px;border:1px solid var(--border)">
+            <select id="filterLevel" style="padding:8px;border-radius:10px;border:1px solid var(--border)">
               <option value="">همه سطوح</option>
               <option value="easy">آسان</option>
               <option value="medium">متوسط</option>
               <option value="hard">سخت</option>
             </select>
-            <button id="refreshRooms" class="btn"><i class="fa-solid fa-arrows-rotate"></i> بارگذاری</button>
+            <button id="refreshRooms" class="btn">بارگذاری</button>
           </div>
           <div id="publicRoomsList" style="display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:6px"></div>
         </div>
 
         <div>
           <div style="font-weight:800">ایجاد اتاق</div>
-          <input id="newRoomName" placeholder="نام اتاق" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);margin-top:8px" />
-          <select id="newRoomLevel" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);margin-top:8px">
+          <input id="newRoomName" placeholder="نام اتاق" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
+          <select id="newRoomLevel" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px">
             <option value="easy">آسان</option>
             <option value="medium" selected>متوسط</option>
             <option value="hard">سخت</option>
           </select>
-          <input id="newRoomMax" type="number" min="2" max="8" value="2" style="width:100%;padding:10px;border-radius:12px;border:1px solid var(--border);margin-top:8px" />
+          <input id="newRoomMax" type="number" min="2" max="8" value="2" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
           <div style="display:flex;gap:8px;margin-top:10px">
             <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
             <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
@@ -294,12 +254,11 @@
     </div>
   </div>
 
-  <!-- External scripts (Telegram + socket.io) -->
   <script async src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
-    /* ---------- Helpers (همان منطق قبلی همراه با بهبودهای UI) ---------- */
+    /* ---------- Helpers ---------- */
     const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     function normalizeFaLetter(ch){ if (!ch) return ''; const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (map[ch] || ch).normalize('NFC'); }
     function normalizeFaWordKeepSpaces(word){ if (!word) return ''; const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; let w = String(word).replace(removeMarks,''); w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9'); return w.normalize('NFC'); }
@@ -308,10 +267,10 @@
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     /* ---------- State ---------- */
-    const state = { myId:null, initData:null, roomId:null, gameId:null, deck:[], gameState:null, timerMs:0, indexMap:[], revealMode:'shared', composing:false };
+    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [], revealMode: 'shared', composing:false };
     const socket = io();
 
-    /* DOM refs (همان id ها حفظ شده) */
+    /* ---------- DOM refs ---------- */
     const tabs = document.querySelectorAll('.tab');
     const manageRoomsBtn = document.getElementById('manageRoomsBtn');
     const roomsModal = document.getElementById('roomsModal');
@@ -356,11 +315,12 @@
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
 
-    /* ---------- safeFocus و هماهنگی با visualViewport ---------- */
+    /* ---------- safeFocus & keyboard helpers ---------- */
     function safeFocus(inputEl){
       if (!inputEl) return;
       try {
         if (window.visualViewport) {
+          // small delay to let viewport stabilize
           setTimeout(()=> {
             try { inputEl.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' }); } catch(e){}
             try { inputEl.focus({ preventScroll: true }); } catch(e){ inputEl.focus(); }
@@ -370,6 +330,7 @@
         }
       } catch(e){}
     }
+
     (function setupViewportSync(){
       const shellEl = document.querySelector('.shell');
       if (!shellEl) return;
@@ -383,6 +344,7 @@
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', () => {
           updateShellHeight();
+          // if an input is focused, center it instead of letting browser jump
           const active = document.activeElement;
           if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
             try { active.scrollIntoView({ behavior: 'auto', block: 'center' }); } catch(e){}
@@ -391,6 +353,7 @@
       } else {
         window.addEventListener('resize', updateShellHeight);
       }
+      // prevent body scroll when keyboard likely open
       let lastH = window.innerHeight;
       const onResizePreventBodyScroll = () => {
         const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
@@ -402,7 +365,7 @@
       else window.addEventListener('resize', onResizePreventBodyScroll);
     })();
 
-    /* ---------- UI behaviors: tabs & modal ---------- */
+    /* ---------- Tabs and modal ---------- */
     tabs.forEach(t => t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
       const tab = t.dataset.tab;
@@ -410,6 +373,7 @@
       playPanel.style.display = (tab === 'play') ? 'block' : 'none';
       document.querySelector('[aria-labelledby="roomsTitle"]').style.display = (tab === 'dashboard') ? 'block' : 'none';
     }));
+
     function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); }
     function closeModal(){ roomsModal.style.display = 'none'; roomsModal.setAttribute('aria-hidden','true'); document.body.style.overflow='auto'; }
     manageRoomsBtn.addEventListener('click', openModal);
@@ -446,9 +410,10 @@
       } else fallbackGuest();
       loadSuggestedRooms();
     })();
+
     function fallbackGuest(){ if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999); userNameEl.textContent = 'کاربر مهمان'; userIdEl.textContent = toFaDigits(state.myId); }
 
-    /* ---------- Rooms loading (unchanged logic) ---------- */
+    /* ---------- Rooms loading ---------- */
     levelSelect.addEventListener('change', loadSuggestedRooms);
     if (refreshRooms) refreshRooms.addEventListener('click', loadPublicRooms);
     if (filterLevel) filterLevel.addEventListener('change', loadPublicRooms);
@@ -459,15 +424,15 @@
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         roomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="small-muted">اتاقی برای نمایش نیست</div>'; return; }
+        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className = 'panel'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='10px';
-          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||'اتاق')}</div><div class="small-muted" style="font-size:12px;margin-top:2px">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
-          const btn = document.createElement('button'); btn.className='btn'; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> پیوستن';
+          const el = document.createElement('div'); el.className = 'room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
+          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
+          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
         });
-      } catch (e) { roomsList.innerHTML = '<div class="small-muted">خطا در بارگذاری</div>'; }
+      } catch (e) { roomsList.innerHTML = '<div class="muted">خطا در بارگذاری</div>'; }
     }
 
     async function loadPublicRooms(){
@@ -476,15 +441,15 @@
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         publicRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="small-muted">هیچ اتاقی یافت نشد</div>'; return; }
+        if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='panel'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='10px';
-          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||'اتاق')}</div><div class="small-muted" style="font-size:12px;margin-top:2px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
-          const btn = document.createElement('button'); btn.className='btn'; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> پیوستن';
+          const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
+          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
         });
-      } catch (e) { publicRoomsList.innerHTML = '<div class="small-muted">خطا</div>'; }
+      } catch (e) { publicRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
     }
 
     async function loadMyRooms(){
@@ -492,20 +457,20 @@
         const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId })});
         const d = await res.json();
         myRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="small-muted">شما اتاقی ندارید</div>'; return; }
+        if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='panel'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='10px';
-          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||r.id)}</div><div class="small-muted" style="font-size:12px;margin-top:2px">${escapeHtml(r.level||'')}</div></div>`;
-          const open = document.createElement('button'); open.className='btn'; open.innerHTML = '<i class="fa-solid fa-folder-open"></i> باز کردن';
+          const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
+          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||r.id)}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'')}</div></div>`;
+          const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
-          const leave = document.createElement('button'); leave.className='btn ghost'; leave.innerHTML = '<i class="fa-regular fa-circle-xmark"></i> خروج';
+          const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
           leave.addEventListener('click', async () => { await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })}); loadMyRooms(); loadPublicRooms(); });
           el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
         });
-      } catch (e) { myRoomsList.innerHTML = '<div class="small-muted">خطا</div>'; }
+      } catch (e) { myRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
     }
 
-    /* ---------- Create / Join flows (همان منطق) ---------- */
+    /* ---------- Create / Join flows ---------- */
     if (createRoomBtn) {
       createRoomBtn.addEventListener('click', async () => {
         try {
@@ -564,7 +529,7 @@
         state.roomId = d.room_id;
         socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
         if (d.status === 'ready' && d.game_id){ state.gameId = d.game_id; setTimeout(() => resumeGame(), 160); }
-        else { document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; categoryName.textContent = 'در انتظار حریف'; wordSlots.innerHTML = '<div class="small-muted" style="padding:12px">در انتظار...</div>'; }
+        else { document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; categoryName.textContent = 'در انتظار حریف'; wordSlots.innerHTML = '<div class="muted" style="padding:12px">در انتظار...</div>'; }
         loadMyRooms(); loadPublicRooms();
       } catch (e) { alert('خطا'); }
     }
@@ -575,7 +540,7 @@
         const d = await res.json();
         if (!d.ok) return;
         if (d.game && d.game.id) { state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); }
-        else { categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="small-muted" style="padding:12px">در انتظار...</div>'; }
+        else { categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted" style="padding:12px">در انتظار...</div>'; }
       } catch (e) {}
     }
 
@@ -588,7 +553,7 @@
       playPanel.style.display = 'block';
     }
 
-    /* ---------- Socket events with robust merge و جلوگیری از flicker ---------- */
+    /* ---------- Socket events (client-side resilient handling) ---------- */
     socket.on('room:presence', ({ room_id, count, players }) => {
       playersCount.textContent = toFaDigits(count || 0);
       roomStatus.textContent = 'فعال';
@@ -598,22 +563,27 @@
     socket.on('game:started', ({ game_id, deck, reveal_mode, players }) => {
       state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared';
       if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+      // short delay then resume (server state will be authoritative)
       setTimeout(() => resumeGame(), 160);
     });
 
+    // authoritative state from server
     socket.on('game:state', ({ state: gs, deck, reveal_mode, players }) => {
       if (!gs) return;
       state.gameState = gs;
       state.deck = deck || state.deck || [];
       state.timerMs = Number(gs.timer_ms)||0;
       if (reveal_mode) state.revealMode = reveal_mode;
+      // ensure arrays are normalized
       if (typeof state.gameState.correct_letters === 'string') state.gameState.correct_letters = JSON.parse(state.gameState.correct_letters || '[]');
       if (typeof state.gameState.wrong_letters === 'string') state.gameState.wrong_letters = JSON.parse(state.gameState.wrong_letters || '[]');
+
       renderGame();
       startTimer();
       document.querySelector('.tab[data-tab="play"]').click();
       playPanel.style.display = 'block';
       updatePlayersList(players || []);
+      // use safeFocus to avoid keyboard jump in some devices
       safeFocus(letterInput);
     });
 
@@ -624,8 +594,11 @@
       if (opp) progressOpp.textContent = `${toFaDigits((opp.current_index||0)+1)} / ${toFaDigits(state.deck.length||10)}`;
     });
 
+    // When a correct letter arrives, update DOM and also merge into local state to avoid flicker when authoritative state lags
     socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta, shared, player }) => {
       const isMe = Number(user_id) === Number(state.myId);
+
+      // Update DOM immediately
       positions.forEach(origIdx => {
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
@@ -633,12 +606,17 @@
           if (s){ s.textContent = letter; s.classList.add('revealed','correct'); s.classList.remove('wrong'); if (!isMe) s.classList.add('opponent'); }
         }
       });
+
+      // Merge into local authoritative gameState to prevent later stale game:state from removing it
       if (!state.gameState) state.gameState = {};
       try {
         const cur = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
         if (!cur.includes(letter)) { cur.push(letter); state.gameState.correct_letters = cur; }
       } catch(e){ state.gameState.correct_letters = [letter]; }
+
       if (isMe && player && typeof player.score !== 'undefined') scoreMe.textContent = toFaDigits(player.score || 0);
+
+      // do not request immediate resume here; rely on server to emit authoritative state soon
     });
 
     socket.on('game:letter:wrong', ({ user_id, letter }) => {
@@ -657,19 +635,23 @@
           if (s){ s.textContent = letter; s.classList.add('revealed','correct'); s.classList.remove('wrong'); if (!isMe) s.classList.add('opponent'); }
         }
       });
+
+      // merge
       if (!state.gameState) state.gameState = {};
       try {
         const cur = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
         if (!cur.includes(letter)) { cur.push(letter); state.gameState.correct_letters = cur; }
       } catch(e){ state.gameState.correct_letters = [letter]; }
+
       if (isMe) {
         addChip(correctLetters, letter, 'correct');
         state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
         scoreMe.textContent = toFaDigits(state.gameState.score);
       }
+      // do not call resume here; wait for server authoritative state
     });
 
-    socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) { /* server will send authoritative state */ } });
+    socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) { /* server will send game:state */ } });
 
     socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); } });
 
@@ -705,6 +687,7 @@
       correct.forEach(l => addChip(correctLetters, l, 'correct'));
       wrong.forEach(l => addChip(wrongLetters, l, 'wrong'));
 
+      // pre-reveal positions
       for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
         const ch = wordNorm[origIdx];
         const dispIdx = state.indexMap[origIdx];
@@ -733,37 +716,35 @@
       (list || []).forEach(p => {
         const row = document.createElement('div'); row.className='player-row';
         const name = document.createElement('div'); name.style.fontWeight='800'; name.textContent = p.fullname || ('#' + toFaDigits(p.user_id));
-        const meta = document.createElement('div'); meta.className='small-muted'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
+        const meta = document.createElement('div'); meta.className='muted'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
         row.appendChild(name); row.appendChild(meta); playersList.appendChild(row);
       });
     }
 
     function flashMessage(s){
-      const el = document.createElement('div'); el.className='panel small-muted'; el.style.marginTop='8px'; el.textContent = s;
+      const el = document.createElement('div'); el.className='panel muted'; el.style.marginTop='8px'; el.textContent = s;
       document.querySelector('.shell').insertBefore(el, document.querySelector('.shell').children[1]);
-      setTimeout(()=> el.remove(), 1600);
+      setTimeout(()=> el.remove(), 1400);
     }
 
-    /* ---------- Input IME handling (unchanged) ---------- */
+    /* ---------- Input IME handling ---------- */
     letterInput.addEventListener('compositionstart', () => state.composing = true);
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
     letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } });
 
-    function sanitizeInput(){
-      const raw = (letterInput.value || '').trim();
-      const normalized = normalizeFaLetter(raw.replace(/\s/g,''));
-      letterInput.value = normalized.slice(0,1);
-    }
+    function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
-    /* ---------- Actions (avoid immediate autofocus that triggers resize) ---------- */
+    /* ---------- Actions (no immediate focus after guess) ---------- */
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
       if (!vRaw || vRaw.length !== 1) { safeFocus(letterInput); return; }
       const v = normalizeFaLetter(vRaw);
       if (!/^[\u0600-\u06FF]$/.test(v)) { letterInput.classList.add('shake'); setTimeout(()=> letterInput.classList.remove('shake'),200); return; }
+      // send guess
       socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
+      // clear input but DON'T immediate focus (to avoid keyboard resize race), use safeFocus with small delay
       letterInput.value = '';
       setTimeout(()=> safeFocus(letterInput), 220);
     });
@@ -775,7 +756,7 @@
       document.querySelector('.tab[data-tab="dashboard"]').click();
     });
 
-    /* ---------- Timer (unchanged) ---------- */
+    /* ---------- Timer ---------- */
     let timerHandle = null;
     function startTimer(){
       if (timerHandle) clearInterval(timerHandle);
@@ -793,9 +774,8 @@
 
     /* ---------- Misc ---------- */
     document.getElementById('clearState').addEventListener('click', () => { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
-    letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
 
-    // initial loads
+    // initial load
     loadSuggestedRooms();
   </script>
 </body>
