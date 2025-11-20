@@ -1,5 +1,5 @@
 // server.js
-// Competitive two-player Telegram WebApp game (multi-room, robust, Postgres + Socket.io)
+// Competitive two-player Telegram WebApp game — multi-room, Postgres + Socket.io
 // Save as server.js
 
 require('dotenv').config();
@@ -12,6 +12,7 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const crypto = require('crypto');
 
+// ---------- Config ----------
 const PORT = process.env.PORT || 3000;
 const WEB_APP_URL = process.env.WEB_APP_URL || `https://localhost:${PORT}`;
 
@@ -43,7 +44,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---------- Words pack ----------
-const wordsData = require('./words');
+const wordsData = require('./words'); // دیکشنری را با فاصله‌ معمولی (space) نگه دارید نه نیم‌فاصله
 
 // ---------- Helpers ----------
 const nowTs = () => Date.now();
@@ -53,14 +54,30 @@ const safeBigInt = (v, fallback = 0) => {
   if (!Number.isFinite(n)) return fallback;
   return Math.trunc(Math.max(0, n));
 };
-const persianDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 
-// deterministic deck seeded by roomId (ensures both players same deck)
+// تبدیل ي/ك به ی/ک و حذف علائم ترکیبی عربی؛ فاصله‌ها باقی می‌مانند
+function normalizeFaLetter(ch){
+  if (!ch) return '';
+  const map = { '\u064A':'\u06CC', '\u0643':'\u06A9' };
+  return (map[ch] || ch).normalize('NFC');
+}
+function normalizeFaWordKeepSpaces(word){
+  if (!word) return '';
+  const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; // Tatweel + Arabic diacritics
+  let w = String(word).replace(removeMarks, '');
+  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+  return w.normalize('NFC');
+}
+// طول نمایشی بدون فاصله
+function displayLenNoSpaces(s){ return String(s).replace(/\s/g,'').length; }
+
+// deterministic deck seeded by roomId
 const newGameDeckForRoom = (roomId, level = 'medium') => {
   const all = [];
   for (const cat of wordsData.categories) {
     for (const w of cat.words.filter(x => (level ? x.level === level : true))) {
-      all.push({ word: String(w.text), category: cat.name, level: w.level });
+      // کلمه‌ها را همان‌جا نرمال کن تا ی/ک سازگار شوند و اعراب حذف شود؛ فاصله‌ها حفظ شوند
+      all.push({ word: normalizeFaWordKeepSpaces(String(w.text)), category: cat.name, level: w.level });
     }
   }
   if (!all.length) return [];
@@ -75,7 +92,7 @@ const newGameDeckForRoom = (roomId, level = 'medium') => {
   return a.slice(0, Math.min(10, a.length));
 };
 
-// ---------- DB migrations (idempotent) ----------
+// ---------- DB migrations ----------
 const ensureSchema = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -141,7 +158,7 @@ const ensureSchema = async () => {
   `);
 };
 
-// ---------- Simple Telegram init placeholder ----------
+// ---------- Telegram init placeholder ----------
 const verifyTelegramInitData = (initData) => !!initData;
 
 // ---------- API: health ----------
@@ -154,7 +171,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-// ---------- API: auth (Telegram WebApp sends initData and user) ----------
+// ---------- API: auth ----------
 app.post('/auth/telegram', async (req, res) => {
   const { initData, user } = req.body;
   try {
@@ -179,7 +196,7 @@ app.post('/auth/telegram', async (req, res) => {
   }
 });
 
-// ---------- Rooms: list (public) ----------
+// ---------- Rooms: list ----------
 app.get('/rooms/list', async (req, res) => {
   const level = req.query.level || null;
   try {
@@ -203,8 +220,14 @@ app.post('/rooms/create', async (req, res) => {
   if (!user_id) return res.status(400).json({ ok: false, error: 'no_user' });
   try {
     const roomId = crypto.randomUUID();
-    await pool.query(`INSERT INTO rooms (id, name, status, level, max_players, created_by) VALUES ($1,$2,'waiting',$3,$4,$5);`, [roomId, name || 'اتاق خصوصی', level || 'medium', Number(max_players) || 2, user_id]);
-    await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`, [roomId, user_id, 'host']);
+    await pool.query(
+      `INSERT INTO rooms (id, name, status, level, max_players, created_by) VALUES ($1,$2,'waiting',$3,$4,$5);`,
+      [roomId, name || 'اتاق خصوصی', level || 'medium', Number(max_players) || 2, user_id]
+    );
+    await pool.query(
+      `INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`,
+      [roomId, user_id, 'host']
+    );
     res.json({ ok: true, room_id: roomId });
   } catch (e) {
     console.error('rooms/create', e);
@@ -212,7 +235,7 @@ app.post('/rooms/create', async (req, res) => {
   }
 });
 
-// ---------- Rooms: join by id ----------
+// ---------- Rooms: join ----------
 app.post('/rooms/join', async (req, res) => {
   const { room_id, user_id } = req.body;
   if (!room_id || !user_id) return res.status(400).json({ ok: false, error: 'missing' });
@@ -224,17 +247,29 @@ app.post('/rooms/join', async (req, res) => {
     if (Number(count.rows[0].cnt) >= (rn.max_players || 2)) return res.status(400).json({ ok: false, error: 'full' });
 
     await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`, [room_id, user_id, 'player']);
+
     // check players to start
     const players = await pool.query(`SELECT user_id FROM room_players WHERE room_id=$1 ORDER BY joined_at ASC;`, [room_id]);
     if (players.rows.length >= 2 && rn.status === 'waiting') {
       const gameId = crypto.randomUUID();
       const deck = newGameDeckForRoom(room_id, rn.level || 'medium');
-      await pool.query(`INSERT INTO games (id, room_id, deck, level, status, started_at) VALUES ($1,$2,$3::jsonb,$4,'active',NOW());`, [gameId, room_id, JSON.stringify(deck), rn.level || 'medium']);
+
+      await pool.query(`INSERT INTO games (id, room_id, deck, level, status, started_at) VALUES ($1,$2,$3::jsonb,$4,'active',NOW());`,
+        [gameId, room_id, JSON.stringify(deck), rn.level || 'medium']
+      );
+
+      // init state for each player
       for (const p of players.rows) {
-        const firstWord = deck[0]?.word || '';
-        const allowedWrong = Math.max(1, Math.ceil(String(firstWord).length * 1.2));
-        await pool.query(`INSERT INTO game_states (game_id,user_id,current_index,correct_letters,wrong_letters,hints_used,score,allowed_wrong,timer_ms) VALUES ($1,$2,0,'[]','[]',0,0,$3,0) ON CONFLICT DO NOTHING;`, [gameId, p.user_id, allowedWrong]);
+        const firstWord = normalizeFaWordKeepSpaces(deck[0]?.word || '');
+        const allowedWrong = Math.max(1, Math.ceil(displayLenNoSpaces(firstWord) * 1.2));
+        await pool.query(
+          `INSERT INTO game_states (game_id,user_id,current_index,correct_letters,wrong_letters,hints_used,score,allowed_wrong,timer_ms)
+           VALUES ($1,$2,0,'[]','[]',0,0,$3,0)
+           ON CONFLICT DO NOTHING;`,
+          [gameId, p.user_id, allowedWrong]
+        );
       }
+
       await pool.query(`UPDATE rooms SET status='playing' WHERE id=$1;`, [room_id]);
       io.to(room_id).emit('game:started', { game_id: gameId, deck });
       return res.json({ ok: true, room_id, status: 'ready', game_id: gameId });
@@ -273,7 +308,12 @@ app.post('/rooms/myrooms', async (req, res) => {
   const { user_id } = req.body;
   if (!user_id) return res.status(400).json({ ok: false, error: 'no_user' });
   try {
-    const r = await pool.query(`SELECT r.id, r.name, r.level, r.status, r.max_players, rp.joined_at FROM rooms r JOIN room_players rp ON r.id = rp.room_id WHERE rp.user_id = $1 ORDER BY rp.joined_at DESC;`, [user_id]);
+    const r = await pool.query(`
+      SELECT r.id, r.name, r.level, r.status, r.max_players, rp.joined_at
+      FROM rooms r JOIN room_players rp ON r.id = rp.room_id
+      WHERE rp.user_id = $1
+      ORDER BY rp.joined_at DESC;`, [user_id]
+    );
     res.json({ ok: true, rooms: r.rows });
   } catch (e) {
     console.error('rooms/myrooms', e);
@@ -326,61 +366,79 @@ io.on('connection', (socket) => {
     }
   });
 
-  // guess
+  // ---------- Guess ----------
   socket.on('game:guess', async ({ game_id, user_id, letter }) => {
     try {
       if (!game_id || !user_id || !letter) return;
+
       const gsq = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id]);
-      const gq = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
+      const gq  = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
       if (!gsq.rows.length || !gq.rows.length) return;
-      const gs = gsq.rows[0];
+
+      const gs   = gsq.rows[0];
       const deck = gq.rows[0].deck;
-      const idx = Number(gs.current_index) || 0;
-      const currentWord = String(deck[idx]?.word || '');
-      const normalized = String(letter).trim();
+      const idx  = Number(gs.current_index) || 0;
+
+      const currentWordOrig = String(deck[idx]?.word || '');
+      const currentWord     = normalizeFaWordKeepSpaces(currentWordOrig);
+      const normalized      = normalizeFaLetter(String(letter).trim());
       if (!normalized || normalized.length !== 1) return;
+      if (normalized === ' ') return; // فاصله حدس‌زدنی نیست
 
       const correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
-      const wrongLetters = Array.isArray(gs.wrong_letters) ? gs.wrong_letters : JSON.parse(gs.wrong_letters || '[]');
+      const wrongLetters   = Array.isArray(gs.wrong_letters) ? gs.wrong_letters   : JSON.parse(gs.wrong_letters   || '[]');
 
       if (correctLetters.includes(normalized) || wrongLetters.includes(normalized)) {
         socket.emit('game:feedback', { type: 'duplicate', letter: normalized });
         return;
       }
 
+      // positions بر اساس ایندکس‌های رشتهٔ نرمال‌شده با فاصله
       const positions = [];
       for (let i = 0; i < currentWord.length; i++) if (currentWord[i] === normalized) positions.push(i);
 
-      // find any room that contains this game (games linked to a room)
+      // find room
       const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [game_id]);
-      const roomId = gameRow.rows[0]?.room_id;
+      const roomId  = gameRow.rows[0]?.room_id;
 
       if (positions.length > 0) {
         correctLetters.push(normalized);
         const scoreDelta = 10 * positions.length;
-        await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, score=score+$4, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, JSON.stringify(correctLetters), scoreDelta]);
+        await pool.query(
+          `UPDATE game_states SET correct_letters=$3::jsonb, score=score+$4, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`,
+          [game_id, user_id, JSON.stringify(correctLetters), scoreDelta]
+        );
         if (roomId) io.to(roomId).emit('game:letter:correct', { user_id, letter: normalized, positions, scoreDelta });
       } else {
         wrongLetters.push(normalized);
-        await pool.query(`UPDATE game_states SET wrong_letters=$3::jsonb, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, JSON.stringify(wrongLetters)]);
+        await pool.query(
+          `UPDATE game_states SET wrong_letters=$3::jsonb, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`,
+          [game_id, user_id, JSON.stringify(wrongLetters)]
+        );
         if (roomId) io.to(roomId).emit('game:letter:wrong', { user_id, letter: normalized, wrongCount: wrongLetters.length });
       }
 
-      // solved?
-      const uniqueLetters = new Set(currentWord.split(''));
+      // solved? (فاصله‌ها را از مجموعهٔ حروف حذف کن)
+      const uniqueLetters = new Set(currentWord.split('').filter(ch => ch !== ' '));
       const solved = [...uniqueLetters].every(l => correctLetters.includes(l));
+
       if (solved) {
         const nextIndex = idx + 1;
         const deckLen = Array.isArray(deck) ? deck.length : 0;
+
         if (nextIndex >= deckLen) {
           await pool.query(`UPDATE games SET status='finished', finished_at=NOW() WHERE id=$1;`, [game_id]);
           if (roomId) io.to(roomId).emit('game:finished', { game_id });
         } else {
-          const nextWord = String(deck[nextIndex].word || '');
-          const allowedWrong = Math.max(1, Math.ceil(nextWord.length * 1.2));
-          await pool.query(`UPDATE game_states SET current_index=$3, correct_letters='[]', wrong_letters='[]', allowed_wrong=$4, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, nextIndex, allowedWrong]);
+          const nextWord = normalizeFaWordKeepSpaces(String(deck[nextIndex]?.word || ''));
+          const allowedWrong = Math.max(1, Math.ceil(displayLenNoSpaces(nextWord) * 1.2));
+          await pool.query(
+            `UPDATE game_states SET current_index=$3, correct_letters='[]', wrong_letters='[]', allowed_wrong=$4, last_update=NOW()
+             WHERE game_id=$1 AND user_id=$2;`,
+            [game_id, user_id, nextIndex, allowedWrong]
+          );
           if (roomId) {
-            const states = await pool.query(`SELECT user_id, current_index FROM game_states WHERE game_id=$1;`, [game_id]);
+            const states = await pool.query(`SELECT user_id, current_index, score FROM game_states WHERE game_id=$1;`, [game_id]);
             io.to(roomId).emit('game:next', { game_id, by_user: user_id, nextIndex, states: states.rows });
           }
         }
@@ -390,37 +448,56 @@ io.on('connection', (socket) => {
     }
   });
 
-  // hint
+  // ---------- Hint ----------
   socket.on('game:hint', async ({ game_id, user_id }) => {
     try {
       if (!game_id || !user_id) return;
+
       const gsq = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id]);
-      const gq = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
+      const gq  = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
       if (!gsq.rows.length || !gq.rows.length) return;
-      const gs = gsq.rows[0];
+
+      const gs   = gsq.rows[0];
       const deck = gq.rows[0].deck;
-      const idx = Number(gs.current_index) || 0;
-      const currentWord = String(deck[idx]?.word || '');
-      const hintsUsed = Number(gs.hints_used) || 0;
+      const idx  = Number(gs.current_index) || 0;
+
+      const currentWord = normalizeFaWordKeepSpaces(String(deck[idx]?.word || ''));
+      const hintsUsed   = Number(gs.hints_used) || 0;
       if (hintsUsed >= 2) { socket.emit('game:feedback', { type: 'hint-limit' }); return; }
+
       const correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
-      const candidates = currentWord.split('').filter((l,i,arr) => arr.indexOf(l) === i && !correctLetters.includes(l));
+
+      // کاندیدهای حرف با حذف فاصله و حروفی که قبلاً کشف شده‌اند
+      const candidates = currentWord
+        .split('')
+        .filter(ch => ch !== ' ')
+        .filter((l,i,arr) => arr.indexOf(l) === i && !correctLetters.includes(l));
+
       if (!candidates.length) { socket.emit('game:feedback', { type: 'no-hint' }); return; }
+
       const reveal = candidates[Math.floor(Math.random() * candidates.length)];
+
       const positions = [];
       for (let i = 0; i < currentWord.length; i++) if (currentWord[i] === reveal) positions.push(i);
+
       const penalty = Math.max(5, 10 * positions.length);
       correctLetters.push(reveal);
-      await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, hints_used=hints_used+1, score=GREATEST(score-$4,0), last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, JSON.stringify(correctLetters), penalty]);
+
+      await pool.query(
+        `UPDATE game_states SET correct_letters=$3::jsonb, hints_used=hints_used+1, score=GREATEST(score-$4,0), last_update=NOW()
+         WHERE game_id=$1 AND user_id=$2;`,
+        [game_id, user_id, JSON.stringify(correctLetters), penalty]
+      );
+
       const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [game_id]);
-      const roomId = gameRow.rows[0]?.room_id;
+      const roomId  = gameRow.rows[0]?.room_id;
       if (roomId) io.to(roomId).emit('game:hint:reveal', { user_id, letter: reveal, positions, penalty });
     } catch (e) {
       console.error('game:hint error', e);
     }
   });
 
-  // timer sync
+  // ---------- Timer ----------
   socket.on('game:timer', async ({ game_id, user_id, timer_ms }) => {
     try {
       if (!game_id || !user_id) return;
@@ -431,6 +508,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // ---------- Disconnect ----------
   socket.on('disconnect', () => {
     const m = socketMeta.get(socket.id);
     if (!m) return;
