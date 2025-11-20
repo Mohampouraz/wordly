@@ -82,6 +82,15 @@ async function initDatabase() {
                 end_time TIMESTAMP,
                 created_at TIMESTAMP DEFAULT NOW()
             );
+
+            CREATE TABLE IF NOT EXISTS game_moves (
+                id SERIAL PRIMARY KEY,
+                game_code TEXT REFERENCES games(game_code),
+                player_id TEXT,
+                guess_letter TEXT,
+                is_correct BOOLEAN,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
         `);
         
         console.log('✅ جداول دیتابیس آماده هستند');
@@ -145,7 +154,8 @@ app.get('/api/user/score', async (req, res) => {
         const statsResult = await pool.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE status = 'active' AND (creator_id = $1 OR player_id = $1)) as active_games,
-                COUNT(*) FILTER (WHERE status = 'won' AND player_id = $1) as won_games
+                COUNT(*) FILTER (WHERE status = 'won' AND player_id = $1) as won_games,
+                COUNT(*) FILTER (WHERE status = 'lost' AND player_id = $1) as lost_games
             FROM games
         `, [userId]);
 
@@ -161,6 +171,43 @@ app.get('/api/user/score', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: 'خطای سرور' 
+        });
+    }
+});
+
+// دریافت بازی‌های در انتظار
+app.get('/api/games/waiting', async (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        console.log('📋 دریافت بازی‌های در انتظار');
+
+        const result = await pool.query(
+            `SELECT g.*, u.full_name as creator_name
+             FROM games g 
+             JOIN users u ON g.creator_id = u.id
+             WHERE g.status = 'waiting' AND g.creator_id != $1
+             ORDER BY g.created_at DESC
+             LIMIT 20`,
+            [userId || '']
+        );
+
+        res.json({
+            success: true,
+            games: result.rows.map(game => ({
+                game_code: game.game_code,
+                creator_name: game.creator_name,
+                category: game.category,
+                difficulty: game.difficulty,
+                created_at: game.created_at
+            }))
+        });
+
+    } catch (error) {
+        console.error('❌ خطا در دریافت بازی‌های در انتظار:', error);
+        res.status(500).json({
+            success: false,
+            message: 'خطای سرور'
         });
     }
 });
@@ -355,7 +402,7 @@ app.post('/api/game/guess', async (req, res) => {
         let game = gameResult.rows[0];
 
         // بررسی مجوزها
-        if (game.player_id !== playerId) {
+        if (game.player_id !== playerId && game.creator_id !== playerId) {
             return res.status(403).json({
                 success: false,
                 message: 'شما مجاز به بازی در این اتاق نیستید'
@@ -366,6 +413,14 @@ app.post('/api/game/guess', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'این بازی فعال نیست'
+            });
+        }
+
+        // فقط بازیکن می‌تواند حدس بزند
+        if (game.player_id !== playerId) {
+            return res.status(400).json({
+                success: false,
+                message: 'فقط بازیکن می‌تواند حدس بزند'
             });
         }
 
@@ -413,7 +468,7 @@ app.post('/api/game/guess', async (req, res) => {
         } else if (attemptsLeft <= 0) {
             newStatus = 'lost';
             scoreChange = -25;
-            message = 'باختید! کلمه: ' + game.word;
+            message = 'باختید!';
         }
 
         // به‌روزرسانی بازی
@@ -430,6 +485,13 @@ app.post('/api/game/guess', async (req, res) => {
         );
 
         const updatedGame = updateResult.rows[0];
+
+        // ذخیره حرکت در تاریخچه
+        await pool.query(
+            `INSERT INTO game_moves (game_code, player_id, guess_letter, is_correct)
+             VALUES ($1, $2, $3, $4)`,
+            [gameCode, playerId, normalizedGuess, isCorrect]
+        );
 
         // به‌روزرسانی امتیاز
         if (newStatus !== 'active') {
@@ -476,7 +538,58 @@ app.post('/api/game/guess', async (req, res) => {
     }
 });
 
-// دریافت بازی‌های فعال
+// دریافت تاریخچه حرکات بازی
+app.get('/api/game/moves/:gameCode', async (req, res) => {
+    try {
+        const { gameCode } = req.params;
+        const { userId } = req.query;
+
+        console.log('📜 دریافت تاریخچه حرکات:', { gameCode, userId });
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'شناسه کاربری الزامی است'
+            });
+        }
+
+        // بررسی دسترسی کاربر به بازی
+        const gameCheck = await pool.query(
+            'SELECT 1 FROM games WHERE game_code = $1 AND (creator_id = $2 OR player_id = $2)',
+            [gameCode, userId]
+        );
+
+        if (gameCheck.rows.length === 0) {
+            return res.status(403).json({
+                success: false,
+                message: 'دسترسی غیرمجاز'
+            });
+        }
+
+        const movesResult = await pool.query(
+            `SELECT gm.*, u.full_name as player_name
+             FROM game_moves gm
+             JOIN users u ON gm.player_id = u.id
+             WHERE gm.game_code = $1
+             ORDER BY gm.created_at ASC`,
+            [gameCode]
+        );
+
+        res.json({
+            success: true,
+            moves: movesResult.rows
+        });
+
+    } catch (error) {
+        console.error('❌ خطا در دریافت تاریخچه حرکات:', error);
+        res.status(500).json({
+            success: false,
+            message: 'خطای سرور'
+        });
+    }
+});
+
+// دریافت بازی‌های فعال کاربر
 app.get('/api/games/active', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -506,7 +619,9 @@ app.get('/api/games/active', async (req, res) => {
                 creator_name: game.creator_name,
                 difficulty: game.difficulty,
                 status: game.status,
-                is_creator: game.creator_id === userId
+                is_creator: game.creator_id === userId,
+                category: game.category,
+                player_id: game.player_id
             }))
         });
 
@@ -552,6 +667,17 @@ app.get('/api/game/status/:gameCode', async (req, res) => {
 
         const game = result.rows[0];
 
+        // دریافت آخرین حرکات
+        const movesResult = await pool.query(
+            `SELECT gm.*, u.full_name as player_name
+             FROM game_moves gm
+             JOIN users u ON gm.player_id = u.id
+             WHERE gm.game_code = $1
+             ORDER BY gm.created_at DESC
+             LIMIT 10`,
+            [gameCode]
+        );
+
         res.json({
             success: true,
             gameData: {
@@ -566,7 +692,10 @@ app.get('/api/game/status/:gameCode', async (req, res) => {
                 incorrectGuessedLetters: game.guessed_letters.filter(l => !game.word.includes(l)),
                 status: game.status,
                 timeRemainingSeconds: calculateTimeRemaining(game.start_time, game.time_limit_seconds),
-                actualWord: game.status !== 'active' ? game.word : undefined
+                actualWord: game.status !== 'active' ? game.word : undefined,
+                isPlayer: game.player_id === userId,
+                isCreator: game.creator_id === userId,
+                recentMoves: movesResult.rows.reverse()
             }
         });
 
@@ -625,33 +754,6 @@ bot.onText(/\/start/, (msg) => {
     );
 });
 
-// مدیریت callback queries
-bot.on('callback_query', (callbackQuery) => {
-    const message = callbackQuery.message;
-    const data = callbackQuery.data;
-
-    if (data === 'help') {
-        bot.editMessageText(
-            `📖 **راهنمای Wordly Arena**\n\n` +
-            `🎮 **نحوه بازی:**\n` +
-            `1. روی "شروع بازی" کلیک کنید\n` +
-            `2. یک کلمه و موضوع انتخاب کنید\n` +
-            `3. کد دعوت را برای دوست خود بفرستید\n` +
-            `4. دوست شما با کد دعوت به بازی می‌پیوندد\n` +
-            `5. بازیکن باید حروف کلمه را حدس بزند\n\n` +
-            `🏆 **امتیازها:**\n` +
-            `• برنده: +50 امتیاز\n` +
-            `• بازنده: -25 امتیاز\n\n` +
-            `برای شروع بازی روی منوی وب اپ کلیک کنید.`,
-            {
-                chat_id: message.chat.id,
-                message_id: message.message_id,
-                parse_mode: 'Markdown'
-            }
-        );
-    }
-});
-
 // --- Route های عمومی ---
 
 // Health check
@@ -662,83 +764,6 @@ app.get('/health', (req, res) => {
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development'
     });
-});
-
-// Route برای تست تلگرام
-app.get('/test-telegram', (req, res) => {
-    res.send(`
-        <!DOCTYPE html>
-        <html dir="rtl">
-        <head>
-            <meta charset="UTF-8">
-            <title>تست Telegram Web App</title>
-            <script src="https://telegram.org/js/telegram-web-app.js"></script>
-            <style>
-                body { font-family: Tahoma; padding: 20px; background: #f0f0f0; }
-                .card { background: white; padding: 20px; border-radius: 10px; margin: 10px 0; }
-                .success { background: #d4edda; color: #155724; }
-                .error { background: #f8d7da; color: #721c24; }
-                .info { background: #d1ecf1; color: #0c5460; }
-            </style>
-        </head>
-        <body>
-            <h1>🧪 تست Telegram Web App</h1>
-            
-            <div id="status" class="card">
-                <h3>وضعیت:</h3>
-                <div id="status-content">در حال بررسی...</div>
-            </div>
-            
-            <div id="user-info" class="card" style="display: none;">
-                <h3>اطلاعات کاربر:</h3>
-                <div id="user-content"></div>
-            </div>
-
-            <script>
-                function updateStatus(message, type = 'info') {
-                    const status = document.getElementById('status');
-                    const content = document.getElementById('status-content');
-                    status.className = 'card ' + type;
-                    content.innerHTML = message;
-                }
-
-                function showUserInfo(user) {
-                    const userDiv = document.getElementById('user-info');
-                    const userContent = document.getElementById('user-content');
-                    userDiv.style.display = 'block';
-                    userContent.innerHTML = \`
-                        <p><strong>ID:</strong> \${user.id}</p>
-                        <p><strong>نام:</strong> \${user.first_name} \${user.last_name || ''}</p>
-                        <p><strong>Username:</strong> \${user.username || 'ندارد'}</p>
-                    \`;
-                }
-
-                // بررسی Telegram Web App
-                if (window.Telegram && Telegram.WebApp) {
-                    updateStatus('✅ Telegram Web App شناسایی شد!', 'success');
-                    
-                    const tg = Telegram.WebApp;
-                    tg.ready();
-                    tg.expand();
-                    
-                    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                        updateStatus('✅ کاربر تلگرام شناسایی شد', 'success');
-                        showUserInfo(tg.initDataUnsafe.user);
-                    } else {
-                        updateStatus('⚠️ کاربر تلگرام شناسایی نشد', 'error');
-                    }
-                    
-                    // نمایش اطلاعات کامل
-                    console.log('Telegram WebApp:', tg);
-                    console.log('initDataUnsafe:', tg.initDataUnsafe);
-                    
-                } else {
-                    updateStatus('❌ Telegram Web App یافت نشد. لطفاً از طریق ربات تلگرام باز کنید.', 'error');
-                }
-            </script>
-        </body>
-        </html>
-    `);
 });
 
 // Route پیش‌فرض برای SPA
@@ -761,7 +786,6 @@ async function startServer() {
             console.log(`🚀 سرور روی پورت ${PORT} راه‌اندازی شد`);
             console.log(`🌐 آدرس: ${WEB_APP_URL}`);
             console.log(`❤️  Health check: ${WEB_APP_URL}/health`);
-            console.log(`🧪 تست تلگرام: ${WEB_APP_URL}/test-telegram`);
         });
         
     } catch (error) {
