@@ -1,136 +1,304 @@
-<!-- public/index.html -->
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>وردلی رقابتی — نسخه تلگرام</title>
+  <title>وردلی رقابتی — تجربه موبایل اول</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
-    :root{ --muted:#6b7280; --accent:#4f46e5; --border:rgba(15,23,42,0.06) }
+    :root{
+      --bg-gradient: linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
+      --muted: #6b7280;
+      --border: rgba(15,23,42,0.06);
+      --accent: #4f46e5;
+      --accent-2: #06b6d4;
+      --radius: 12px;
+      --glass-blur: 10px;
+      --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
+    }
     *{box-sizing:border-box;font-family:'Vazirmatn',system-ui}
-    body{margin:0;padding:14px;background:#f6f9ff;color:#071326}
-    .shell{max-width:1100px;margin:18px auto;background:#fff;border-radius:14px;padding:14px;border:1px solid var(--border)}
-    .row{display:flex;justify-content:space-between;align-items:center}
-    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;cursor:pointer}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),#06b6d4);color:#fff;border:none}
-    .panel{padding:12px;border-radius:12px;border:1px solid var(--border);background:#fff;margin-top:12px}
-    .word-slots{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-    .slot{min-width:44px;height:56px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;background:#fbfdff}
-    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04)); color:var(--accent);font-weight:800}
-    .slot.opponent{background:#fff7ed;border:1px dashed #f59e0b;color:#92400e}
-    .gap{width:22px}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff}
+    html,body{height:100%;margin:0;background:var(--bg-gradient);color:#081124;padding:14px}
+    .shell{max-width:1100px;margin:18px auto;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.95));box-shadow:var(--shadow-1);border:1px solid var(--border);overflow:hidden}
+    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--border)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .badge{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
+    .title{font-weight:800;font-size:18px}
+    .subtitle{font-size:12px;color:var(--muted)}
+    .controls{display:flex;gap:10px;align-items:center}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent)}
+    .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.08);color:var(--muted)}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;box-shadow:0 8px 30px rgba(79,70,229,0.12)}
+    nav.mini-tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border)}
+    .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
+    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border-color:rgba(79,70,229,0.06)}
+    main.content{display:grid;grid-template-columns:1fr 380px;gap:18px;padding:18px}
+    @media (max-width:980px){ main.content{grid-template-columns:1fr} }
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.98));border-radius:14px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow-1)}
+    .hero{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border)}
+    .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+    .slot{min-width:44px;height:56px;border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff)}
+    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));color:var(--accent);font-weight:800;transform:translateY(-2px)}
+    .controls-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
+    input.letter{width:86px;height:56px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff)}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
+    aside.right{display:flex;flex-direction:column;gap:12px}
     .players-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
     .muted{color:var(--muted)}
-    .reveal-ind{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff}
+    .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700}
+    .timer{font-weight:900;color:var(--accent);font-size:20px}
     .shake{animation:shake .26s}
     @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+    .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,20,36,0.28);z-index:1400;padding:20px}
+    .modal{width:100%;max-width:980px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);border:1px solid var(--border);padding:16px;box-shadow:0 12px 40px rgba(16,24,40,0.08)}
   </style>
 </head>
 <body>
-  <div class="shell">
-    <div class="row">
-      <div>
-        <strong>وردلی رقابتی</strong>
-        <div class="muted">دو نفره · بلادرنگ</div>
-      </div>
-      <div style="text-align:right">
-        <div id="userFull" style="font-weight:800">کاربر مهمان</div>
-        <div id="userId" class="muted">—</div>
-      </div>
-    </div>
-
-    <div class="panel" id="lobby">
-      <div style="display:flex;justify-content:space-between;align-items:center">
+  <div class="shell" role="application" aria-label="وردلی رقابتی">
+    <header class="appbar" role="banner">
+      <div class="brand">
+        <div class="badge" aria-hidden="true">و</div>
         <div>
-          <select id="levelSelect" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
-            <option value="easy">آسان</option><option value="medium" selected>متوسط</option><option value="hard">سخت</option>
-          </select>
-          <button id="quickJoin" class="btn primary">پیوستن سریع</button>
-          <button id="manageRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div id="revealModeLabel" class="reveal-ind">مود: مشترک</div>
-        </div>
-      </div>
-      <div id="roomsList" style="margin-top:12px"></div>
-    </div>
-
-    <div id="gamePanel" class="panel" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div id="categoryName" style="font-weight:800">—</div>
-          <div id="levelName" class="muted">—</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="muted">کلمه: <span id="wordIndex">—</span>/10</div>
-          <div id="timer" class="muted">۰۰:۰۰</div>
+          <div class="title">وردلی رقابتی</div>
+          <div class="subtitle muted">دو نفره · بلادرنگ · موبایل اول</div>
         </div>
       </div>
 
-      <div id="wordSlots" class="word-slots" style="margin-top:12px"></div>
-
-      <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
-        <input id="letterInput" type="text" dir="rtl" inputmode="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" maxlength="2" placeholder="حرف" style="width:86px;height:56px;font-size:20px;text-align:center;border-radius:10px;border:1px solid var(--border)" />
-        <button id="guessBtn" class="btn primary">حدس</button>
-        <button id="hintBtn" class="btn">راهنما</button>
-        <button id="leaveBtn" class="btn">ترک اتاق</button>
-      </div>
-
-      <div style="display:flex;gap:12px;margin-top:12px">
-        <div style="flex:1">
-          <div style="font-weight:800">حروف صحیح</div>
-          <div id="correctLetters" class="chips"></div>
+      <div class="controls" role="navigation" aria-label="ابزارها">
+        <div class="user-chip" aria-hidden="false">
+          <div id="userName" class="user-id">کاربر مهمان</div>
+          <div id="userId" class="user-name muted">—</div>
         </div>
-        <div style="flex:1">
-          <div style="font-weight:800">حروف غلط</div>
-          <div id="wrongLetters" class="chips"></div>
-        </div>
+        <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog">مدیریت اتاق‌ها</button>
       </div>
+    </header>
 
-      <div style="display:flex;gap:12px;margin-top:12px;align-items:center">
-        <div style="flex:1">
+    <nav class="mini-tabs" role="tablist" aria-label="ناوبری">
+      <button class="tab active" data-tab="dashboard" role="tab" aria-selected="true">داشبورد</button>
+      <button class="tab" data-tab="play" role="tab" aria-selected="false">بازی</button>
+      <button class="tab" data-tab="about" role="tab" aria-selected="false">درباره</button>
+    </nav>
+
+    <main class="content" role="main">
+      <section>
+        <div class="panel hero" aria-labelledby="heroTitle">
+          <div class="left">
+            <div class="kicker muted">آمده‌اید چالش؟</div>
+            <div id="heroTitle" class="headline">اتاق‌ها را مدیریت کن و سریع بازی را شروع کن</div>
+            <div class="actions" style="margin-top:10px;">
+              <select id="levelSelect" aria-label="انتخاب سطح" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
+                <option value="easy">آسان</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="hard">سخت</option>
+              </select>
+              <button id="quickJoin" class="btn primary">پیوستن سریع</button>
+              <button id="resumeGame" class="btn">ادامه</button>
+            </div>
+          </div>
+
+          <div class="right" style="display:flex;flex-direction:column;gap:8px">
+            <div class="muted-sm">وضعیت اتاق</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="pill" id="roomStatus">—</div>
+              <div class="pill" id="playersCount">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel" aria-labelledby="roomsTitle" style="margin-top:14px">
+          <h3 id="roomsTitle">اتاق‌های موجود</h3>
+          <div id="roomsList" class="rooms-grid" role="list" aria-live="polite"></div>
+        </div>
+
+        <div id="playPanel" class="panel" style="margin-top:14px;display:none" aria-live="polite">
+          <div class="play-top" style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:800">بازی رقابتی</div>
+              <div id="playSubtitle" class="muted-sm">کلمهٔ فعلی و کنترل‌ها</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div class="pill">دسته: <span id="categoryName">—</span></div>
+              <div class="pill">سطح: <span id="levelName">—</span></div>
+              <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
+              <div class="timer" id="timer">۰۰:۰۰</div>
+            </div>
+          </div>
+
+          <div id="wordSlots" class="word-slots"></div>
+
+          <div class="controls-row">
+            <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" />
+            <button id="guessBtn" class="btn primary">حدس</button>
+            <button id="hintBtn" class="btn">راهنما</button>
+            <button id="leaveBtn" class="btn ghost">خروج از اتاق</button>
+          </div>
+
+          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+            <div style="flex:1">
+              <div style="font-weight:800">حروف صحیح</div>
+              <div id="correctLetters" class="chips" aria-live="polite"></div>
+            </div>
+            <div style="flex:1">
+              <div style="font-weight:800">حروف غلط</div>
+              <div id="wrongLetters" class="chips" aria-live="polite"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="aboutPanel" class="panel" style="margin-top:14px;display:none">
+          <h3>درباره وردلی</h3>
+          <p class="muted-sm">وردلی رقابتی یک بازی دو نفرهٔ ساده و سریع است که می‌توانید در اتاق‌های خصوصی یا عمومی بازی کنید. این نسخه از Telegram WebApp پشتیبانی می‌کند و تجربهٔ تایپ فارسی را برای IME بهینه کرده است.</p>
+        </div>
+      </section>
+
+      <aside class="right" aria-label="ستون جانبی">
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:800">بازیکنان</div>
+            <div class="muted-sm">وضعیت</div>
+          </div>
+          <div id="playersList" class="players-list" role="list"></div>
+        </div>
+
+        <div class="panel">
           <div style="font-weight:800">امتیاز شما</div>
-          <div id="scoreMe" style="font-size:24px;color:var(--accent);font-weight:800">۰</div>
-          <div id="progressMe" class="muted">—</div>
+          <div id="scoreMe" style="font-size:26px;color:var(--accent);font-weight:800;margin-top:8px">۰</div>
+          <div style="margin-top:12px;font-weight:700">پیشرفت</div>
+          <div id="progressMe" class="muted-sm">—</div>
+          <div id="progressOpp" class="muted-sm" style="margin-top:6px">—</div>
         </div>
-        <div style="width:320px">
-          <div style="font-weight:800">بازیکنان</div>
-          <div id="playersList" class="players-list"></div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:800">ابزارها</div>
+            <div class="muted-sm">سریع</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <button id="openRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
+            <button id="clearState" class="btn ghost">پاکسازی محلی</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+      <div class="muted-sm">ساخته شده برای فارس‌پی — تجربهٔ وب اپ</div>
+      <div class="muted-sm">وردلی — نسخه وب اپ</div>
+    </footer>
+  </div>
+
+  <!-- Rooms Modal -->
+  <div id="roomsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 style="margin:0">مدیریت اتاق‌ها</h3>
+        <div style="display:flex;gap:8px">
+          <button id="closeRooms" class="btn">بستن</button>
+        </div>
+      </div>
+
+      <div class="modal-grid" style="margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px">
+        <div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+            <select id="filterLevel" style="padding:8px;border-radius:10px;border:1px solid var(--border)">
+              <option value="">همه سطوح</option>
+              <option value="easy">آسان</option>
+              <option value="medium">متوسط</option>
+              <option value="hard">سخت</option>
+            </select>
+            <button id="refreshRooms" class="btn">بارگذاری</button>
+          </div>
+          <div id="publicRoomsList" style="display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:6px"></div>
+        </div>
+
+        <div>
+          <div style="font-weight:800">ایجاد اتاق</div>
+          <input id="newRoomName" placeholder="نام اتاق" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
+          <select id="newRoomLevel" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px">
+            <option value="easy">آسان</option>
+            <option value="medium" selected>متوسط</option>
+            <option value="hard">سخت</option>
+          </select>
+          <input id="newRoomMax" type="number" min="2" max="8" value="2" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
+            <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
+          </div>
+          <div style="margin-top:12px;font-weight:800">اتاق‌های من</div>
+          <div id="myRoomsList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Telegram WebApp -->
   <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
     // ---------- Helpers ----------
     const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    function normalizeFaLetter(ch){
+      if (!ch) return '';
+      const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; // ي -> ی ، ك -> ک
+      return (map[ch] || ch).normalize('NFC');
+    }
+    function normalizeFaWordKeepSpaces(word){
+      if (!word) return '';
+      const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+      let w = String(word).replace(removeMarks,'');
+      w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+      return w.normalize('NFC');
+    }
+    function normalizeDisplayWord(word){ return String(word).replace(/[\u200c\s]/g,''); }
 
-    function normalizeFaLetter(ch){ if (!ch) return ''; const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (map[ch]||ch).normalize('NFC'); }
-    function normalizeFaWordKeepSpaces(word){ if(!word) return ''; const removeMarks=/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; let w=String(word).replace(removeMarks,''); w=w.replace(/\u064A/g,'\u06CC').replace(/\u0643/g,'\u06A9'); return w.normalize('NFC'); }
-    function normalizeDisplayWord(word){ return String(word).replace(/\s/g,''); }
-    function buildIndexMap(word){ const map=[]; let disp=0; for(let i=0;i<word.length;i++){ const ch=word[i]; if (ch===' '){ map[i]=null; continue } map[i]=disp++; } return map; }
-    function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    // Map original indices -> display indices (skip spaces & ZWNJ)
+    function buildIndexMap(word){
+      const map = [];
+      let disp = 0;
+      for (let i=0;i<word.length;i++){
+        const ch = word[i];
+        if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; }
+        map[i] = disp++;
+      }
+      return map;
+    }
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-    // ---------- State & socket ----------
-    const state = { myId: null, fullname: 'کاربر مهمان', roomId: null, gameId: null, deck: [], gameState: null, indexMap: [], revealMode: 'shared', composing:false };
+    // ---------- State ----------
+    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [], revealMode: 'shared', composing:false };
     const socket = io();
 
-    // DOM
-    const userFull = document.getElementById('userFull');
-    const userId = document.getElementById('userId');
-    const quickJoin = document.getElementById('quickJoin');
+    // ---------- DOM refs ----------
+    const tabs = document.querySelectorAll('.tab');
     const manageRoomsBtn = document.getElementById('manageRoomsBtn');
-    const roomsList = document.getElementById('roomsList');
-    const levelSelect = document.getElementById('levelSelect');
+    const roomsModal = document.getElementById('roomsModal');
+    const closeRooms = document.getElementById('closeRooms');
+    const openRoomsBtn = document.getElementById('openRoomsBtn');
 
-    const gamePanel = document.getElementById('gamePanel');
+    const userNameEl = document.getElementById('userName');
+    const userIdEl = document.getElementById('userId');
+
+    const levelSelect = document.getElementById('levelSelect');
+    const quickJoin = document.getElementById('quickJoin');
+    const resumeGameBtn = document.getElementById('resumeGame');
+
+    const roomStatus = document.getElementById('roomStatus');
+    const playersCount = document.getElementById('playersCount');
+
+    const roomsList = document.getElementById('roomsList');
+    const publicRoomsList = document.getElementById('publicRoomsList');
+    const myRoomsList = document.getElementById('myRoomsList');
+    const refreshRooms = document.getElementById('refreshRooms');
+    const filterLevel = document.getElementById('filterLevel');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const newRoomName = document.getElementById('newRoomName');
+    const newRoomLevel = document.getElementById('newRoomLevel');
+    const newRoomMax = document.getElementById('newRoomMax');
+
+    const playPanel = document.getElementById('playPanel');
     const categoryName = document.getElementById('categoryName');
     const levelName = document.getElementById('levelName');
     const wordIndex = document.getElementById('wordIndex');
@@ -142,10 +310,28 @@
     const leaveBtn = document.getElementById('leaveBtn');
     const correctLetters = document.getElementById('correctLetters');
     const wrongLetters = document.getElementById('wrongLetters');
+
     const playersList = document.getElementById('playersList');
     const scoreMe = document.getElementById('scoreMe');
     const progressMe = document.getElementById('progressMe');
-    const revealModeLabel = document.getElementById('revealModeLabel');
+    const progressOpp = document.getElementById('progressOpp');
+
+    // ---------- Tabs behavior ----------
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
+      const tab = t.dataset.tab;
+      document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
+      playPanel.style.display = (tab === 'play') ? 'block' : 'none';
+      document.querySelector('[aria-labelledby="roomsTitle"]').style.display = (tab === 'dashboard') ? 'block' : 'none';
+    }));
+
+    // ---------- Modal ----------
+    function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); }
+    function closeModal(){ roomsModal.style.display = 'none'; roomsModal.setAttribute('aria-hidden','true'); document.body.style.overflow='auto'; }
+    manageRoomsBtn.addEventListener('click', openModal);
+    if (openRoomsBtn) openRoomsBtn.addEventListener('click', openModal);
+    closeRooms.addEventListener('click', closeModal);
+    window.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
 
     // ---------- Telegram WebApp init ----------
     (async function initTelegram(){
@@ -162,74 +348,282 @@
       const tg = await waitForTelegram(3000);
       if (tg) {
         try {
-          const initData = tg.initData || '';
+          state.initData = tg.initData || '';
           const user = tg.initDataUnsafe?.user || null;
           if (user && user.id) {
             state.myId = user.id;
-            state.fullname = `${user.first_name || ''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || (`#${state.myId}`);
-            userFull.textContent = state.fullname;
-            userId.textContent = toFaDigits(state.myId);
-            fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData, user }) }).catch(()=>{});
+            const fullname = `${user.first_name||''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || ('#' + state.myId);
+            userNameEl.textContent = fullname;
+            userIdEl.textContent = toFaDigits(state.myId);
+            // notify server (best-effort)
+            fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
             try { tg.expand(); } catch(e){}
           } else fallbackGuest();
         } catch (e) { fallbackGuest(); }
       } else fallbackGuest();
-      loadPublicRooms();
+      loadSuggestedRooms();
     })();
 
     function fallbackGuest(){
       if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999);
-      userFull.textContent = state.fullname;
-      userId.textContent = toFaDigits(state.myId);
+      userNameEl.textContent = 'کاربر مهمان';
+      userIdEl.textContent = toFaDigits(state.myId);
     }
 
-    // ---------- Rooms UI ----------
-    manageRoomsBtn.addEventListener('click', loadPublicRooms);
+    // ---------- Rooms loading ----------
+    levelSelect.addEventListener('change', loadSuggestedRooms);
+    if (refreshRooms) refreshRooms.addEventListener('click', loadPublicRooms);
+    if (filterLevel) filterLevel.addEventListener('change', loadPublicRooms);
 
-    async function loadPublicRooms(){
+    async function loadSuggestedRooms(){
       try {
-        const res = await fetch('/rooms/list');
+        const lvl = levelSelect.value;
+        const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         roomsList.innerHTML = '';
-        if (!d.ok) return roomsList.textContent = 'خطا';
+        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted-sm">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='panel'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.marginTop='8px';
-          el.innerHTML = `<div><strong>${escapeHtml(r.name||'اتاق')}</strong><div class="muted">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · مود:${escapeHtml(r.reveal_mode||'shared')}</div></div>`;
+          const el = document.createElement('div'); el.className = 'room';
+          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
         });
-      } catch (e) { roomsList.textContent='خطا'; }
+      } catch (e) {
+        roomsList.innerHTML = '<div class="muted-sm">خطا در بارگذاری</div>';
+      }
     }
+
+    async function loadPublicRooms(){
+      try {
+        const lvl = filterLevel.value;
+        const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
+        const d = await res.json();
+        publicRoomsList.innerHTML = '';
+        if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted-sm">هیچ اتاقی یافت نشد</div>'; return; }
+        d.rooms.forEach(r => {
+          const el = document.createElement('div'); el.className='room';
+          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
+          btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
+          el.appendChild(btn); publicRoomsList.appendChild(el);
+        });
+      } catch (e) { publicRoomsList.innerHTML = '<div class="muted-sm">خطا</div>'; }
+    }
+
+    async function loadMyRooms(){
+      try {
+        const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId })});
+        const d = await res.json();
+        myRoomsList.innerHTML = '';
+        if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted-sm">شما اتاقی ندارید</div>'; return; }
+        d.rooms.forEach(r => {
+          const el = document.createElement('div'); el.className='room';
+          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${escapeHtml(r.level||'')}</div></div>`;
+          const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
+          open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
+          const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
+          leave.addEventListener('click', async () => { await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })}); loadMyRooms(); loadPublicRooms(); });
+          el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
+        });
+      } catch (e) { myRoomsList.innerHTML = '<div class="muted-sm">خطا</div>'; }
+    }
+
+    // ---------- Room & game flow ----------
+    quickJoin.addEventListener('click', async () => {
+      try {
+        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: levelSelect.value || 'medium', max_players: 2 })});
+        const d = await res.json();
+        if (!d.ok){ alert('خطا'); return; }
+        state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+        document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; loadMyRooms();
+      } catch (e) { alert('خطا'); }
+    });
 
     async function joinRoom(roomId){
       try {
         const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId, user_id: state.myId })});
         const d = await res.json();
-        if (!d.ok){ alert('پیوستن ممکن نیست'); return; }
+        if (!d.ok){ alert('امکان پیوستن نیست'); return; }
         state.roomId = d.room_id;
         socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+        if (d.status === 'ready' && d.game_id){ state.gameId = d.game_id; setTimeout(() => resumeGame(), 140); }
+        else { document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; categoryName.textContent = 'در انتظار حریف'; wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>'; }
+        loadMyRooms(); loadPublicRooms();
       } catch (e) { alert('خطا'); }
     }
 
-    quickJoin.addEventListener('click', async () => {
+    async function loadRoomStateAndResume(roomId){
       try {
-        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: levelSelect.value || 'medium', max_players: 2 })});
+        const res = await fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId })});
         const d = await res.json();
-        if (!d.ok) { alert('خطا'); return; }
-        state.roomId = d.room_id;
-        socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      } catch (e) { alert('خطا'); }
+        if (!d.ok) return;
+        if (d.game && d.game.id) { state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); }
+        else { categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>'; }
+      } catch (e) {}
+    }
+
+    resumeGameBtn.addEventListener('click', resumeGame);
+    function resumeGame(){
+      if (!state.gameId){ alert('بازی هنوز آغاز نشده'); return; }
+      socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+      document.querySelector('.tab[data-tab="play"]').click();
+      playPanel.style.display = 'block';
+    }
+
+    // ---------- Socket events ----------
+    socket.on('room:presence', ({ room_id, count }) => {
+      playersCount.textContent = toFaDigits(count || 0);
+      roomStatus.textContent = 'فعال';
     });
 
-    // ---------- Input/IME handling ----------
-    letterInput.addEventListener('compositionstart', ()=> state.composing = true);
-    letterInput.addEventListener('compositionend', ()=> { state.composing = false; sanitizeInput(); });
-    letterInput.addEventListener('input', ()=> { if (!state.composing) sanitizeInput(); });
-    letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } if (e.key === 'Backspace') setTimeout(()=> letterInput.focus(),0); });
+    socket.on('game:started', ({ game_id, deck, reveal_mode }) => {
+      state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared';
+      if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+      setTimeout(() => resumeGame(), 150);
+    });
+
+    socket.on('game:state', ({ state: gs, deck, reveal_mode, players }) => {
+      state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms)||0; if (reveal_mode) state.revealMode = reveal_mode;
+      renderGame();
+      startTimer();
+      document.querySelector('.tab[data-tab="play"]').click();
+      playPanel.style.display = 'block';
+      updatePlayersList(players || []);
+      setTimeout(()=> letterInput.focus(), 50);
+    });
+
+    // When server sends collective players summary (optional)
+    socket.on('game:states', ({ game_id, states }) => {
+      if (state.gameId !== game_id) return;
+      playersList.innerHTML = '';
+      states.forEach(s => {
+        const row = document.createElement('div'); row.className='player-row';
+        row.innerHTML = `<div style="font-weight:800">${escapeHtml(s.fullname || ('#' + s.user_id))}</div><div class="muted-sm">ایندکس: ${toFaDigits((s.current_index||0)+1)} · امتیاز: ${toFaDigits(s.score||0)}</div>`;
+        playersList.appendChild(row);
+      });
+      const opp = states.find(s => Number(s.user_id) !== Number(state.myId));
+      if (opp) progressOpp.textContent = `${toFaDigits((opp.current_index||0)+1)} / ${toFaDigits(state.deck.length||10)}`;
+    });
+
+    socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta, shared, player }) => {
+      const isMe = Number(user_id) === Number(state.myId);
+      positions.forEach(origIdx => {
+        const dispIdx = state.indexMap[origIdx];
+        if (dispIdx !== null && dispIdx !== undefined){
+          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
+          if (s){ s.textContent = letter; s.classList.add('revealed'); if (!isMe) s.classList.add('opponent'); }
+        }
+      });
+      if (isMe && player) scoreMe.textContent = toFaDigits(player.score || 0);
+      // refresh players list by asking server to resend state for all (optional)
+      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+    });
+
+    socket.on('game:letter:wrong', ({ user_id, letter }) => {
+      if (Number(user_id) === Number(state.myId)) addChip(wrongLetters, letter);
+      else flashMessage('حریف حرف اشتباهی زد');
+    });
+
+    socket.on('game:opponentEvent', (evt) => {
+      if (evt.type === 'opponent_correct') flashMessage('حریف حرفی را حدس زد');
+    });
+
+    socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
+      const isMe = Number(user_id) === Number(state.myId);
+      positions.forEach(origIdx => {
+        const dispIdx = state.indexMap[origIdx];
+        if (dispIdx !== null && dispIdx !== undefined){
+          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
+          if (s){ s.textContent = letter; s.classList.add('revealed'); if (!isMe) s.classList.add('opponent'); }
+        }
+      });
+      if (isMe) {
+        addChip(correctLetters, letter);
+        state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
+        scoreMe.textContent = toFaDigits(state.gameState.score);
+      }
+      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+    });
+
+    socket.on('game:next', ({ game_id }) => {
+      if (state.gameId === game_id) socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+    });
+
+    socket.on('game:finished', ({ game_id }) => {
+      if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); }
+    });
+
+    // ---------- Render ----------
+    function renderGame(){
+      if (!state.gameState || !state.deck || !state.deck.length) return;
+      const idx = Number(state.gameState.current_index) || 0;
+      const item = state.deck[idx] || { word:'', category:'', level:'medium' };
+      const wordNorm = normalizeFaWordKeepSpaces(item.word);
+      state.indexMap = buildIndexMap(wordNorm);
+
+      categoryName.textContent = item.category || '';
+      levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
+      wordIndex.textContent = toFaDigits(idx + 1);
+
+      // render display slots (skip spaces/ZWNJ)
+      const displayWord = normalizeDisplayWord(item.word);
+      wordSlots.innerHTML = '';
+      for (let i=0;i<displayWord.length;i++){
+        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = i; slot.textContent = '_';
+        wordSlots.appendChild(slot);
+      }
+
+      correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
+      const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
+      const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
+      correct.forEach(l => addChip(correctLetters, l));
+      wrong.forEach(l => addChip(wrongLetters, l));
+
+      // pre-reveal positions
+      for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
+        const ch = wordNorm[origIdx];
+        const dispIdx = state.indexMap[origIdx];
+        if (dispIdx === null || dispIdx === undefined) continue;
+        if (correct.includes(ch)){
+          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
+          if (s){ s.textContent = ch; s.classList.add('revealed'); }
+        }
+      }
+
+      scoreMe.textContent = toFaDigits(Number(state.gameState.score) || 0);
+      progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)}`;
+    }
+
+    function addChip(container, letter){
+      const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter; container.appendChild(c);
+    }
+
+    function updatePlayersList(list){
+      playersList.innerHTML = '';
+      (list || []).forEach(p => {
+        const row = document.createElement('div'); row.className='player-row';
+        const name = document.createElement('div'); name.style.fontWeight='800'; name.textContent = p.fullname || ('#' + toFaDigits(p.user_id));
+        const meta = document.createElement('div'); meta.className='muted-sm'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
+        row.appendChild(name); row.appendChild(meta); playersList.appendChild(row);
+      });
+    }
+
+    function flashMessage(s){
+      const el = document.createElement('div'); el.className='panel muted'; el.style.marginTop='8px'; el.textContent = s;
+      document.querySelector('.shell').insertBefore(el, document.querySelector('.shell').children[1]);
+      setTimeout(()=> el.remove(), 1600);
+    }
+
+    // ---------- Input IME handling ----------
+    letterInput.addEventListener('compositionstart', () => state.composing = true);
+    letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
+    letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
+    letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } if (e.key === 'Backspace') setTimeout(()=> letterInput.focus(), 0); });
 
     function sanitizeInput(){
-      const raw = (letterInput.value||'').trim();
+      const raw = (letterInput.value || '').trim();
       const normalized = normalizeFaLetter(raw.replace(/\s/g,''));
       letterInput.value = normalized.slice(0,1);
     }
@@ -246,135 +640,34 @@
     });
 
     hintBtn.addEventListener('click', ()=> socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }));
-    leaveBtn.addEventListener('click', async ()=> {
+    leaveBtn.addEventListener('click', async () => {
       if (!state.roomId) return;
       await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.myId })});
-      resetToLobby();
+      document.querySelector('.tab[data-tab="dashboard"]').click();
     });
 
-    function resetToLobby(){
-      state.roomId = null; state.gameId = null; state.deck = []; state.gameState = null;
-      document.getElementById('lobby').style.display = 'block';
-      gamePanel.style.display = 'none';
+    // ---------- Timer ----------
+    let timerHandle = null;
+    function startTimer(){
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = setInterval(()=>{
+        state.timerMs = (Number(state.timerMs)||0) + 1000;
+        timerEl.textContent = formatTimer(state.timerMs || 0);
+        if (state.gameId) socket.emit('game:timer', { game_id: state.gameId, user_id: state.myId, timer_ms: Math.trunc(state.timerMs || 0) });
+      }, 1000);
+    }
+    function formatTimer(ms){
+      const s = Math.max(0, Math.floor(ms/1000));
+      const m = Math.floor(s/60), r = s%60;
+      return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
 
-    // ---------- Socket handlers ----------
-    socket.on('game:started', ({ game_id, deck, reveal_mode }) => {
-      state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared';
-      revealModeLabel.textContent = 'مود: ' + (state.revealMode === 'shared' ? 'مشترک' : 'خصوصی');
-      setTimeout(()=> socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }), 120);
-    });
+    // ---------- Misc ----------
+    document.getElementById('clearState').addEventListener('click', () => { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
+    letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
 
-    socket.on('game:state', ({ state: gs, deck, reveal_mode, players }) => {
-      state.gameState = gs; state.deck = deck || state.deck; state.revealMode = reveal_mode || state.revealMode;
-      revealModeLabel.textContent = 'مود: ' + (state.revealMode === 'shared' ? 'مشترک' : 'خصوصی');
-      renderGame();
-      gamePanel.style.display = 'block';
-      document.getElementById('lobby').style.display = 'none';
-      updatePlayersList(players || []);
-      setTimeout(()=> letterInput.focus(), 50);
-    });
-
-    socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta, shared, player }) => {
-      const isMe = Number(user_id) === Number(state.myId);
-      positions.forEach(origIdx => {
-        const dispIdx = state.indexMap[origIdx];
-        if (dispIdx === null || dispIdx === undefined) return;
-        const slot = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-        if (slot){ slot.textContent = letter; slot.classList.add('revealed'); if (!isMe) slot.classList.add('opponent'); }
-      });
-      if (isMe && player) scoreMe.textContent = toFaDigits(player.score || 0);
-      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-    });
-
-    socket.on('game:letter:wrong', ({ user_id, letter }) => {
-      if (Number(user_id) === Number(state.myId)) addChip(wrongLetters, letter);
-    });
-
-    socket.on('game:opponentEvent', (evt) => {
-      if (evt.type === 'opponent_correct') flashMessage('حریف حرفی را حدس زد');
-    });
-
-    socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
-      const isMe = Number(user_id) === Number(state.myId);
-      positions.forEach(origIdx => {
-        const dispIdx = state.indexMap[origIdx];
-        if (dispIdx === null || dispIdx === undefined) return;
-        const slot = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-        if (slot){ slot.textContent = letter; slot.classList.add('revealed'); if (!isMe) slot.classList.add('opponent'); }
-      });
-      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-    });
-
-    socket.on('game:next', ({ game_id }) => {
-      if (state.gameId === game_id) socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-    });
-
-    socket.on('game:finished', ({ game_id }) => {
-      if (state.gameId === game_id) { alert('بازی به پایان رسید'); resetToLobby(); }
-    });
-
-    // ---------- render ----------
-    function renderGame(){
-      if (!state.gameState || !state.deck || !state.deck.length) return;
-      const idx = Number(state.gameState.current_index) || 0;
-      const item = state.deck[idx] || { word:'', category:'', level:'medium' };
-      const wordNorm = normalizeFaWordKeepSpaces(item.word);
-      state.indexMap = buildIndexMap(wordNorm);
-
-      categoryName.textContent = item.category || '';
-      levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
-      wordIndex.textContent = toFaDigits(idx + 1);
-
-      wordSlots.innerHTML = '';
-      for (let i=0;i<wordNorm.length;i++){
-        const ch = wordNorm[i];
-        if (ch === ' ') { const g = document.createElement('div'); g.className='gap'; wordSlots.appendChild(g); }
-        else { const dispIdx = state.indexMap[i]; const s = document.createElement('div'); s.className='slot'; s.dataset.dispIndex = dispIdx; s.textContent = '_'; wordSlots.appendChild(s); }
-      }
-
-      correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
-      const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
-      const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
-      correct.forEach(l => addChip(correctLetters, l));
-      wrong.forEach(l => addChip(wrongLetters, l));
-
-      for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
-        const ch = wordNorm[origIdx];
-        const dispIdx = state.indexMap[origIdx];
-        if (dispIdx === null || dispIdx === undefined) continue;
-        if (correct.includes(ch)){
-          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = ch; s.classList.add('revealed'); }
-        }
-      }
-
-      scoreMe.textContent = toFaDigits(Number(state.gameState.score) || 0);
-      progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)}`;
-    }
-
-    function addChip(container, letter){
-      const c = document.createElement('div'); c.className='chip'; c.textContent = letter; container.appendChild(c);
-    }
-
-    function updatePlayersList(list){
-      playersList.innerHTML = '';
-      (list || []).forEach(p => {
-        const row = document.createElement('div'); row.className='player-row';
-        const name = document.createElement('div'); name.style.fontWeight='800'; name.textContent = p.fullname || ('#' + toFaDigits(p.user_id));
-        const meta = document.createElement('div'); meta.className='muted'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
-        row.appendChild(name); row.appendChild(meta); playersList.appendChild(row);
-      });
-    }
-
-    function flashMessage(s){
-      const el = document.createElement('div'); el.className='panel muted'; el.style.marginTop='8px'; el.textContent = s;
-      document.querySelector('.shell').insertBefore(el, document.querySelector('.shell').children[1]);
-      setTimeout(()=> el.remove(), 1600);
-    }
-
-    // initial
-    loadPublicRooms();
+    // initial loads
+    loadSuggestedRooms();
   </script>
 </body>
 </html>
