@@ -15,8 +15,10 @@
       --radius: 12px;
       --glass-blur: 10px;
       --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
+      --success: #059669;
+      --danger: #ef4444;
     }
-    *{box-sizing:border-box;font-family:'Vazirmatn',system-ui}
+    *{box-sizing:border-box;font-family:'Vazirmatn',system-ui,Segoe UI,Roboto}
     html,body{height:100%;margin:0;background:var(--bg-gradient);color:#081124;padding:14px}
     .shell{max-width:1100px;margin:18px auto;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.95));box-shadow:var(--shadow-1);border:1px solid var(--border);overflow:hidden}
     header.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--border)}
@@ -36,12 +38,16 @@
     .panel{background:linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.98));border-radius:14px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow-1)}
     .hero{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border)}
     .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    .slot{min-width:44px;height:56px;border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff)}
-    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));color:var(--accent);font-weight:800;transform:translateY(-2px)}
+    .slot{min-width:44px;height:56px;border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff);color:inherit}
+    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));font-weight:800;transform:translateY(-2px)}
+    .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12);box-shadow:0 6px 20px rgba(5,150,105,0.06)}
+    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12);box-shadow:0 6px 20px rgba(239,68,68,0.06)}
     .controls-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
     input.letter{width:86px;height:56px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff)}
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
+    .chip-letter.correct{background:rgba(5,150,105,0.08);color:var(--success);border-color:rgba(5,150,105,0.12)}
+    .chip-letter.wrong{background:rgba(239,68,68,0.08);color:var(--danger);border-color:rgba(239,68,68,0.12)}
     aside.right{display:flex;flex-direction:column;gap:12px}
     .players-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
@@ -52,6 +58,7 @@
     @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
     .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,20,36,0.28);z-index:1400;padding:20px}
     .modal{width:100%;max-width:980px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);border:1px solid var(--border);padding:16px;box-shadow:0 12px 40px rgba(16,24,40,0.08)}
+    .small{font-size:12px}
   </style>
 </head>
 <body>
@@ -125,7 +132,7 @@
             </div>
           </div>
 
-          <div id="wordSlots" class="word-slots"></div>
+          <div id="wordSlots" class="word-slots" aria-live="polite"></div>
 
           <div class="controls-row">
             <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" />
@@ -148,7 +155,7 @@
 
         <div id="aboutPanel" class="panel" style="margin-top:14px;display:none">
           <h3>درباره وردلی</h3>
-          <p class="muted-sm">وردلی رقابتی یک بازی دو نفرهٔ ساده و سریع است که می‌توانید در اتاق‌های خصوصی یا عمومی بازی کنید. این نسخه از Telegram WebApp پشتیبانی می‌کند و تجربهٔ تایپ فارسی را برای IME بهینه کرده است.</p>
+          <p class="muted-sm">وردلی رقابتی یک بازی دو نفرهٔ ساده و سریع است که می‌توانید در اتاق‌های خصوصی یا عمومی بازی کنید. این نسخه از Telegram WebApp پشتیبانی می‌کند و تجربهٔ تایپ فارسی را برای IME بهینه کرده است. راهنما نیم برابر تعداد حروف است و هر راهنما مساوی با 10 امتیاز به ازای هر حرف افشا شده امتیاز کم می‌کند. تعداد مجاز حروف غلط برابر با 1.5 برابر تعداد حروف است و در صورت عبور، کاربر به کلمهٔ بعدی می‌رود و از امتیاز او به اندازه‌ی 10x تعداد حروف صحیح کم می‌شود.</p>
         </div>
       </section>
 
@@ -384,7 +391,8 @@
         if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted-sm">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
+          el.style.display = 'flex'; el.style.justifyContent = 'space-between'; el.style.alignItems = 'center'; el.style.padding = '8px 10px'; el.style.borderRadius = '10px';
+          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
@@ -403,7 +411,8 @@
         if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted-sm">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          el.style.display = 'flex'; el.style.justifyContent = 'space-between'; el.style.alignItems = 'center'; el.style.padding = '8px 10px'; el.style.borderRadius = '10px';
+          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
@@ -419,7 +428,8 @@
         if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted-sm">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${escapeHtml(r.level||'')}</div></div>`;
+          el.style.display = 'flex'; el.style.justifyContent = 'space-between'; el.style.alignItems = 'center'; el.style.padding = '8px 10px'; el.style.borderRadius = '10px';
+          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${escapeHtml(r.level||'')}</div></div>`;
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
           const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
@@ -494,7 +504,6 @@
       setTimeout(()=> letterInput.focus(), 50);
     });
 
-    // When server sends collective players summary (optional)
     socket.on('game:states', ({ game_id, states }) => {
       if (state.gameId !== game_id) return;
       playersList.innerHTML = '';
@@ -513,16 +522,17 @@
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
           const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = letter; s.classList.add('revealed'); if (!isMe) s.classList.add('opponent'); }
+          if (s){ s.textContent = letter; s.classList.add('revealed','correct'); s.classList.remove('wrong'); if (!isMe) s.classList.add('opponent'); }
         }
       });
       if (isMe && player) scoreMe.textContent = toFaDigits(player.score || 0);
       // refresh players list by asking server to resend state for all (optional)
       socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+      addChip(correctLetters, letter, 'correct');
     });
 
     socket.on('game:letter:wrong', ({ user_id, letter }) => {
-      if (Number(user_id) === Number(state.myId)) addChip(wrongLetters, letter);
+      if (Number(user_id) === Number(state.myId)) addChip(wrongLetters, letter, 'wrong');
       else flashMessage('حریف حرف اشتباهی زد');
     });
 
@@ -536,11 +546,11 @@
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
           const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = letter; s.classList.add('revealed'); if (!isMe) s.classList.add('opponent'); }
+          if (s){ s.textContent = letter; s.classList.add('revealed','correct'); s.classList.remove('wrong'); if (!isMe) s.classList.add('opponent'); }
         }
       });
       if (isMe) {
-        addChip(correctLetters, letter);
+        addChip(correctLetters, letter, 'correct');
         state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
         scoreMe.textContent = toFaDigits(state.gameState.score);
       }
@@ -578,8 +588,8 @@
       correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
       const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
       const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
-      correct.forEach(l => addChip(correctLetters, l));
-      wrong.forEach(l => addChip(wrongLetters, l));
+      correct.forEach(l => addChip(correctLetters, l, 'correct'));
+      wrong.forEach(l => addChip(wrongLetters, l, 'wrong'));
 
       // pre-reveal positions
       for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
@@ -588,7 +598,7 @@
         if (dispIdx === null || dispIdx === undefined) continue;
         if (correct.includes(ch)){
           const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = ch; s.classList.add('revealed'); }
+          if (s){ s.textContent = ch; s.classList.add('revealed','correct'); }
         }
       }
 
@@ -596,8 +606,12 @@
       progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)}`;
     }
 
-    function addChip(container, letter){
-      const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter; container.appendChild(c);
+    function addChip(container, letter, type){
+      const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter;
+      if (type === 'correct') c.classList.add('correct');
+      if (type === 'wrong') c.classList.add('wrong');
+      // avoid duplicates visually
+      if (![...container.children].some(x => x.textContent === letter && x.classList.contains(type))) container.appendChild(c);
     }
 
     function updatePlayersList(list){
