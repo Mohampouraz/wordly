@@ -7,7 +7,8 @@ const path = require('path');
 // --- تنظیمات اولیه ---
 const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const WEB_APP_URL = process.env.WEB_APP_URL || `http://localhost:${PORT}`;
+const WEB_APP_URL = process.env.WEB_APP_URL || `https://wordlygame.onrender.com`;
+const HOST_URL = WEB_APP_URL;
 
 // بررسی متغیرهای محیطی
 if (!TOKEN) {
@@ -28,7 +29,7 @@ const app = express();
 // --- اتصال به دیتابیس ---
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: { rejectUnauthorized: false }
 });
 
 // تست اتصال به دیتابیس
@@ -52,7 +53,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- ایجاد جداول ---
+// --- ایجاد جداول دیتابیس ---
 async function initDatabase() {
     try {
         console.log('📦 در حال ایجاد جداول دیتابیس...');
@@ -106,6 +107,12 @@ function getInitialDisplayWord(word) {
     return word.split('').map(char => char === ' ' ? ' ' : '_').join(' ');
 }
 
+function calculateTimeRemaining(startTime, timeLimit) {
+    if (!startTime) return timeLimit;
+    const elapsed = Math.floor((new Date() - new Date(startTime)) / 1000);
+    return Math.max(0, timeLimit - elapsed);
+}
+
 // --- API Routes ---
 
 // دریافت اطلاعات کاربر
@@ -134,10 +141,19 @@ app.get('/api/user/score', async (req, res) => {
 
         const user = result.rows[0];
         
+        // محاسبه آمار کاربر
+        const statsResult = await pool.query(`
+            SELECT 
+                COUNT(*) FILTER (WHERE status = 'active' AND (creator_id = $1 OR player_id = $1)) as active_games,
+                COUNT(*) FILTER (WHERE status = 'won' AND player_id = $1) as won_games
+            FROM games
+        `, [userId]);
+
         res.json({
             success: true,
             score: user.score,
-            fullName: user.full_name
+            fullName: user.full_name,
+            stats: statsResult.rows[0]
         });
         
     } catch (error) {
@@ -295,7 +311,7 @@ app.post('/api/game/join', async (req, res) => {
                 correctGuessedLetters: updatedGame.guessed_letters.filter(l => updatedGame.word.includes(l)),
                 incorrectGuessedLetters: updatedGame.guessed_letters.filter(l => !updatedGame.word.includes(l)),
                 status: updatedGame.status,
-                timeRemainingSeconds: 120
+                timeRemainingSeconds: calculateTimeRemaining(updatedGame.start_time, updatedGame.time_limit_seconds)
             }
         });
 
@@ -350,6 +366,19 @@ app.post('/api/game/guess', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'این بازی فعال نیست'
+            });
+        }
+
+        // بررسی زمان
+        const timeRemaining = calculateTimeRemaining(game.start_time, game.time_limit_seconds);
+        if (timeRemaining <= 0) {
+            await pool.query(
+                'UPDATE games SET status = $1, end_time = NOW() WHERE game_code = $2',
+                ['lost', gameCode]
+            );
+            return res.status(400).json({
+                success: false,
+                message: 'زمان بازی به پایان رسیده است'
             });
         }
 
@@ -432,7 +461,7 @@ app.post('/api/game/guess', async (req, res) => {
                 correctGuessedLetters: updatedGame.guessed_letters.filter(l => updatedGame.word.includes(l)),
                 incorrectGuessedLetters: updatedGame.guessed_letters.filter(l => !updatedGame.word.includes(l)),
                 status: updatedGame.status,
-                timeRemainingSeconds: 120,
+                timeRemainingSeconds: calculateTimeRemaining(updatedGame.start_time, updatedGame.time_limit_seconds),
                 finalScoreChange: scoreChange,
                 actualWord: newStatus !== 'active' ? game.word : undefined
             }
@@ -536,7 +565,7 @@ app.get('/api/game/status/:gameCode', async (req, res) => {
                 correctGuessedLetters: game.guessed_letters.filter(l => game.word.includes(l)),
                 incorrectGuessedLetters: game.guessed_letters.filter(l => !game.word.includes(l)),
                 status: game.status,
-                timeRemainingSeconds: 120,
+                timeRemainingSeconds: calculateTimeRemaining(game.start_time, game.time_limit_seconds),
                 actualWord: game.status !== 'active' ? game.word : undefined
             }
         });
@@ -560,7 +589,10 @@ app.post(`/webhook/${TOKEN}`, (req, res) => {
 });
 
 app.get(`/webhook/${TOKEN}`, (req, res) => {
-    res.send('Webhook is active');
+    res.json({ 
+        status: 'Webhook is active', 
+        timestamp: new Date().toISOString() 
+    });
 });
 
 // دستور /start
@@ -571,7 +603,7 @@ bot.onText(/\/start/, (msg) => {
         reply_markup: {
             inline_keyboard: [[
                 {
-                    text: '🎮 شروع بازی',
+                    text: '🎮 شروع بازی در Wordly Arena',
                     web_app: { url: WEB_APP_URL }
                 }
             ]]
@@ -580,11 +612,44 @@ bot.onText(/\/start/, (msg) => {
 
     bot.sendMessage(
         chatId, 
-        `👋 به Wordly Arena خوش آمدید!\n\n` +
-        `با این ربات می‌توانید بازی‌های حدس کلمه آنلاین را با دوستان خود انجام دهید.\n\n` +
-        `روی دکمه زیر کلیک کنید تا بازی شروع شود:`, 
-        keyboard
+        `👋 به **Wordly Arena** خوش آمدید!\n\n` +
+        `🎯 **یک بازی حدس کلمه هیجان‌انگیز!**\n\n` +
+        `• ایجاد اتاق بازی خصوصی\n` +
+        `• بازی با دوستان با کد دعوت\n` +
+        `• سیستم امتیاز و رقابت\n\n` +
+        `روی دکمه زیر کلیک کنید و بازی را شروع کنید:`, 
+        { 
+            parse_mode: 'Markdown',
+            ...keyboard 
+        }
     );
+});
+
+// مدیریت callback queries
+bot.on('callback_query', (callbackQuery) => {
+    const message = callbackQuery.message;
+    const data = callbackQuery.data;
+
+    if (data === 'help') {
+        bot.editMessageText(
+            `📖 **راهنمای Wordly Arena**\n\n` +
+            `🎮 **نحوه بازی:**\n` +
+            `1. روی "شروع بازی" کلیک کنید\n` +
+            `2. یک کلمه و موضوع انتخاب کنید\n` +
+            `3. کد دعوت را برای دوست خود بفرستید\n` +
+            `4. دوست شما با کد دعوت به بازی می‌پیوندد\n` +
+            `5. بازیکن باید حروف کلمه را حدس بزند\n\n` +
+            `🏆 **امتیازها:**\n` +
+            `• برنده: +50 امتیاز\n` +
+            `• بازنده: -25 امتیاز\n\n` +
+            `برای شروع بازی روی منوی وب اپ کلیک کنید.`,
+            {
+                chat_id: message.chat.id,
+                message_id: message.message_id,
+                parse_mode: 'Markdown'
+            }
+        );
+    }
 });
 
 // --- Route های عمومی ---
@@ -594,12 +659,90 @@ app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         service: 'Wordly Arena',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development'
     });
 });
 
-// Route پیش‌فرض
-app.get('/', (req, res) => {
+// Route برای تست تلگرام
+app.get('/test-telegram', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <meta charset="UTF-8">
+            <title>تست Telegram Web App</title>
+            <script src="https://telegram.org/js/telegram-web-app.js"></script>
+            <style>
+                body { font-family: Tahoma; padding: 20px; background: #f0f0f0; }
+                .card { background: white; padding: 20px; border-radius: 10px; margin: 10px 0; }
+                .success { background: #d4edda; color: #155724; }
+                .error { background: #f8d7da; color: #721c24; }
+                .info { background: #d1ecf1; color: #0c5460; }
+            </style>
+        </head>
+        <body>
+            <h1>🧪 تست Telegram Web App</h1>
+            
+            <div id="status" class="card">
+                <h3>وضعیت:</h3>
+                <div id="status-content">در حال بررسی...</div>
+            </div>
+            
+            <div id="user-info" class="card" style="display: none;">
+                <h3>اطلاعات کاربر:</h3>
+                <div id="user-content"></div>
+            </div>
+
+            <script>
+                function updateStatus(message, type = 'info') {
+                    const status = document.getElementById('status');
+                    const content = document.getElementById('status-content');
+                    status.className = 'card ' + type;
+                    content.innerHTML = message;
+                }
+
+                function showUserInfo(user) {
+                    const userDiv = document.getElementById('user-info');
+                    const userContent = document.getElementById('user-content');
+                    userDiv.style.display = 'block';
+                    userContent.innerHTML = \`
+                        <p><strong>ID:</strong> \${user.id}</p>
+                        <p><strong>نام:</strong> \${user.first_name} \${user.last_name || ''}</p>
+                        <p><strong>Username:</strong> \${user.username || 'ندارد'}</p>
+                    \`;
+                }
+
+                // بررسی Telegram Web App
+                if (window.Telegram && Telegram.WebApp) {
+                    updateStatus('✅ Telegram Web App شناسایی شد!', 'success');
+                    
+                    const tg = Telegram.WebApp;
+                    tg.ready();
+                    tg.expand();
+                    
+                    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                        updateStatus('✅ کاربر تلگرام شناسایی شد', 'success');
+                        showUserInfo(tg.initDataUnsafe.user);
+                    } else {
+                        updateStatus('⚠️ کاربر تلگرام شناسایی نشد', 'error');
+                    }
+                    
+                    // نمایش اطلاعات کامل
+                    console.log('Telegram WebApp:', tg);
+                    console.log('initDataUnsafe:', tg.initDataUnsafe);
+                    
+                } else {
+                    updateStatus('❌ Telegram Web App یافت نشد. لطفاً از طریق ربات تلگرام باز کنید.', 'error');
+                }
+            </script>
+        </body>
+        </html>
+    `);
+});
+
+// Route پیش‌فرض برای SPA
+app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -610,14 +753,15 @@ async function startServer() {
         await initDatabase();
         
         // تنظیم وب‌هوک
-        await bot.setWebHook(`${WEB_APP_URL}/webhook/${TOKEN}`);
-        console.log(`✅ Webhook تنظیم شد: ${WEB_APP_URL}/webhook/${TOKEN}`);
+        await bot.setWebHook(`${HOST_URL}/webhook/${TOKEN}`);
+        console.log(`✅ Webhook تنظیم شد: ${HOST_URL}/webhook/${TOKEN}`);
         
         // شروع سرور
         app.listen(PORT, () => {
             console.log(`🚀 سرور روی پورت ${PORT} راه‌اندازی شد`);
             console.log(`🌐 آدرس: ${WEB_APP_URL}`);
             console.log(`❤️  Health check: ${WEB_APP_URL}/health`);
+            console.log(`🧪 تست تلگرام: ${WEB_APP_URL}/test-telegram`);
         });
         
     } catch (error) {
@@ -628,3 +772,10 @@ async function startServer() {
 
 // شروع برنامه
 startServer();
+
+// مدیریت graceful shutdown
+process.on('SIGINT', async () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    await pool.end();
+    process.exit(0);
+});
