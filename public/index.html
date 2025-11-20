@@ -6,7 +6,6 @@
   <title>وردلی رقابتی — تجربهٔ موبایل‌اول</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
-    /* ====== Variables (light theme) ====== */
     :root{
       --bg-gradient: linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
       --surface: #ffffff;
@@ -25,18 +24,13 @@
       color-scheme: light;
     }
 
-    /* ====== Reset & base ====== */
-    *{box-sizing:border-box}
+    *{box-sizing:border-box; font-family:'Vazirmatn',system-ui,-apple-system,Segoe UI,Roboto}
     html,body{height:100%}
     body{
-      margin:0; font-family:'Vazirmatn',system-ui,-apple-system;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      background: var(--bg-gradient);
-      color:#081124; padding:14px;
-      direction: rtl; -webkit-font-feature-settings:"liga" 1;
+      margin:0; background: var(--bg-gradient); color:#081124; padding:14px;
+      direction: rtl; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
 
-    /* ====== App container ====== */
     .shell{
       max-width:1100px; margin:18px auto; border-radius:20px;
       background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
@@ -45,10 +39,8 @@
       display:flex; flex-direction:column;
     }
 
-    /* ====== Header ====== */
     header.appbar{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:12px; padding:14px 18px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px;
       backdrop-filter: blur(var(--glass-blur));
       background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.6));
       border-bottom: 1px solid var(--border);
@@ -63,7 +55,7 @@
     .brand .title{font-weight:800;font-size:18px}
     .brand .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
 
-    .controls {display:flex; gap:8px; align-items:center}
+    .controls {display:flex; gap:10px; align-items:center}
     .btn{
       display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px;
       border:1px solid transparent; cursor:pointer; font-weight:700; font-size:14px;
@@ -71,38 +63,29 @@
       background:transparent; color:var(--accent);
     }
     .btn:active{transform:translateY(1px)}
-    .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.04); color:var(--muted)}
+    .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.08); color:var(--muted)}
     .btn.primary{
       background: linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; border:none;
       box-shadow: 0 8px 30px rgba(79,70,229,0.12);
     }
     .user-chip{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
-    .user-id{font-weight:700;color:#0f172a}
+    .user-id{font-weight:800;color:#0f172a}
     .user-name{font-size:12px;color:var(--muted)}
 
-    /* ====== Nav ====== */
     nav.mini-tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border);background:transparent}
     .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
     .tab.active{color:var(--accent); background: linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04)); border-color: rgba(79,70,229,0.06) }
 
-    /* ====== Layout ====== */
-    main.content{
-      display:grid; grid-template-columns: 1fr 380px; gap:18px; padding:18px;
-    }
+    main.content{display:grid; grid-template-columns: 1fr 380px; gap:18px; padding:18px}
+    @media (max-width:980px){ main.content{grid-template-columns:1fr} }
 
-    @media (max-width:980px){
-      main.content{grid-template-columns:1fr}
-    }
-
-    /* ====== Panels ====== */
     .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.95));
+      background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.98));
       border-radius:14px; padding:14px; border:1px solid var(--border); box-shadow: var(--shadow-1)
     }
     .panel h3{margin:0 0 8px 0;font-size:15px}
     .muted{color:var(--muted); font-size:13px}
 
-    /* ====== Dashboard left ====== */
     .hero{
       display:flex;gap:12px;align-items:center;justify-content:space-between;
       padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border)
@@ -126,7 +109,6 @@
     .room .meta .name{font-weight:700}
     .room .meta .small{font-size:12px;color:var(--muted);margin-top:4px}
 
-    /* ====== Play panel ====== */
     .play-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
     .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700}
     .timer{font-weight:900;color:var(--accent);font-size:20px}
@@ -148,12 +130,10 @@
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
     .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
 
-    /* ====== Right column (sidebar) ====== */
     aside.right { display:flex; flex-direction:column; gap:12px }
     .players-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
 
-    /* ====== Modal (rooms manager) ====== */
     .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,20,36,0.28);z-index:1400;padding:20px}
     .modal{
       width:100%;max-width:980px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);
@@ -162,16 +142,14 @@
     .modal-grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
     @media (max-width:880px){ .modal-grid{grid-template-columns:1fr} }
 
-    /* ====== Small helpers ====== */
+    footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
     .muted-sm{color:var(--muted);font-size:13px}
-    .center{display:flex;align-items:center;justify-content:center}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
   </style>
 </head>
 <body>
   <div class="shell" role="application" aria-label="وردلی رقابتی">
     <header class="appbar" role="banner">
-      <div class="brand" aria-hidden="false">
+      <div class="brand">
         <div class="badge" aria-hidden="true">و</div>
         <div>
           <div class="title">وردلی رقابتی</div>
@@ -180,7 +158,7 @@
       </div>
 
       <div class="controls" role="navigation" aria-label="ابزارها">
-        <div class="user-chip" aria-hidden="false">
+        <div class="user-chip">
           <div id="userName" class="user-id">کاربر مهمان</div>
           <div id="userId" class="user-name muted">—</div>
         </div>
@@ -195,11 +173,10 @@
     </nav>
 
     <main class="content" role="main">
-      <!-- Left / primary -->
       <section>
         <div class="panel hero" aria-labelledby="heroTitle">
           <div class="left">
-            <div class="kicker muted">آماده رویارویی؟</div>
+            <div class="kicker muted">آمادهٔ چالش؟</div>
             <div id="heroTitle" class="headline">اتاق‌ها را مدیریت کن و سریع بازی را شروع کن</div>
             <div class="actions">
               <select id="levelSelect" aria-label="انتخاب سطح" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
@@ -209,9 +186,9 @@
               <button id="resumeGame" class="btn">ادامه</button>
             </div>
           </div>
-          <div class="right center" style="flex-direction:column;align-items:flex-start">
-            <div class="muted-sm">وضعیت</div>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <div class="right" style="display:flex;flex-direction:column;gap:8px">
+            <div class="muted-sm">وضعیت اتاق</div>
+            <div style="display:flex;gap:8px;align-items:center">
               <div class="pill" id="roomStatus">—</div>
               <div class="pill" id="playersCount">—</div>
             </div>
@@ -237,7 +214,7 @@
             </div>
           </div>
 
-          <div id="wordSlots" class="word-slots" aria-hidden="false"></div>
+          <div id="wordSlots" class="word-slots"></div>
 
           <div class="controls">
             <input id="letterInput" class="letter" maxlength="1" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" />
@@ -264,7 +241,6 @@
         </div>
       </section>
 
-      <!-- Right / sidebar -->
       <aside class="right" aria-label="ستون جانبی">
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -295,13 +271,13 @@
       </aside>
     </main>
 
-    <footer style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+    <footer>
       <div class="muted-sm">ساخته شده برای فارسی — تجربهٔ موبایل‌اول</div>
       <div class="muted-sm">وردلی — نسخه وب اپ</div>
     </footer>
   </div>
 
-  <!-- Modal: Rooms Manager -->
+  <!-- Rooms Modal -->
   <div id="roomsModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal" role="document">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -318,9 +294,7 @@
               <option value="">همه سطوح</option><option value="easy">آسان</option><option value="medium">متوسط</option><option value="hard">سخت</option>
             </select>
             <button id="refreshRooms" class="btn">بارگذاری</button>
-            <button id="closeRoomsTop" class="btn ghost">×</button>
           </div>
-
           <div id="publicRoomsList" style="display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:6px"></div>
         </div>
 
@@ -335,7 +309,6 @@
             <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
             <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
           </div>
-
           <div style="margin-top:12px;font-weight:800">اتاق‌های من</div>
           <div id="myRoomsList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
         </div>
@@ -343,48 +316,60 @@
     </div>
   </div>
 
-  <!-- Optional: icons (inline SVG for small UI) -->
-  <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
-    <symbol id="icon-check" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></symbol>
-  </svg>
-
-  <!-- Scripts (only UI improvements, no server logic changes) -->
+  <!-- Telegram WebApp -->
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+
   <script>
-    // Light client logic: keep existing API usage, but focused on UI behavior.
+    // ---------- Helpers (digits, word normalization, mapping) ----------
+    const toFaDigits = (s) => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const normalizeDisplayWord = (word) => String(word).replace(/[\u200c\s]/g, ''); // remove ZWNJ and spaces for visual length
+    const buildIndexMap = (word) => {
+      // Map original indices -> display indices (skip ZWNJ U+200C and spaces)
+      const map = [];
+      let disp = 0;
+      for (let i=0; i<word.length; i++){
+        const ch = word[i];
+        if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; }
+        map[i] = disp;
+        disp++;
+      }
+      return map;
+    };
+
+    // ---------- State ----------
+    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [] };
     const socket = io();
 
-    const state = { myId: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0 };
-
-    // DOM refs
+    // ---------- DOM ----------
     const tabs = document.querySelectorAll('.tab');
-    const panels = { dashboard: document.querySelector('.panel[aria-labelledby="roomsTitle"]').parentElement.querySelector('.panel') };
-    const playPanel = document.getElementById('playPanel');
-    const aboutPanel = document.getElementById('aboutPanel');
-    const roomsList = document.getElementById('roomsList');
-    const publicRoomsList = document.getElementById('publicRoomsList');
-    const myRoomsList = document.getElementById('myRoomsList');
     const manageRoomsBtn = document.getElementById('manageRoomsBtn');
     const roomsModal = document.getElementById('roomsModal');
     const closeRooms = document.getElementById('closeRooms');
     const openRoomsBtn = document.getElementById('openRoomsBtn');
-    const openRoomsTop = document.getElementById('closeRoomsTop');
+
+    const userName = document.getElementById('userName');
+    const userId = document.getElementById('userId');
+
+    const levelSelect = document.getElementById('levelSelect');
+    const quickJoin = document.getElementById('quickJoin');
+    const resumeGameBtn = document.getElementById('resumeGame');
+
+    const roomStatus = document.getElementById('roomStatus');
+    const playersCount = document.getElementById('playersCount');
+
+    const roomsList = document.getElementById('roomsList');
+    const publicRoomsList = document.getElementById('publicRoomsList');
+    const myRoomsList = document.getElementById('myRoomsList');
+    const refreshRooms = document.getElementById('refreshRooms');
+    const filterLevel = document.getElementById('filterLevel');
     const createRoomBtn = document.getElementById('createRoomBtn');
     const newRoomName = document.getElementById('newRoomName');
     const newRoomLevel = document.getElementById('newRoomLevel');
     const newRoomMax = document.getElementById('newRoomMax');
-    const refreshRoomsBtn = document.getElementById('refreshRooms');
-    const filterLevel = document.getElementById('filterLevel');
 
-    const userName = document.getElementById('userName');
-    const userId = document.getElementById('userId');
-    const quickJoin = document.getElementById('quickJoin');
-    const levelSelect = document.getElementById('levelSelect');
-    const resumeGameBtn = document.getElementById('resumeGame');
-    const roomStatus = document.getElementById('roomStatus');
-    const playersCount = document.getElementById('playersCount');
-
-    const playSubtitle = document.getElementById('playSubtitle');
+    const playPanel = document.getElementById('playPanel');
     const categoryName = document.getElementById('categoryName');
     const levelName = document.getElementById('levelName');
     const wordIndex = document.getElementById('wordIndex');
@@ -396,209 +381,323 @@
     const leaveBtn = document.getElementById('leaveBtn');
     const correctLetters = document.getElementById('correctLetters');
     const wrongLetters = document.getElementById('wrongLetters');
+
     const playersList = document.getElementById('playersList');
     const scoreMe = document.getElementById('scoreMe');
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
 
-    // small helpers
-    const persianDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    const $ = sel => document.querySelector(sel);
-
-    // Tab logic (light)
+    // ---------- Tabs ----------
     tabs.forEach(t => t.addEventListener('click', () => {
-      tabs.forEach(x => x.classList.remove('active'));
-      t.classList.add('active');
+      tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
       const tab = t.dataset.tab;
-      if (tab === 'dashboard'){ playPanel.style.display = 'none'; aboutPanel.style.display = 'none'; document.querySelector('[aria-labelledby="roomsTitle"]').style.display = 'block'; }
-      if (tab === 'play'){ document.querySelector('[aria-labelledby="roomsTitle"]').style.display = 'none'; aboutPanel.style.display = 'none'; playPanel.style.display = 'block'; }
-      if (tab === 'about'){ document.querySelector('[aria-labelledby="roomsTitle"]').style.display = 'none'; playPanel.style.display = 'none'; aboutPanel.style.display = 'block'; }
+      document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
+      playPanel.style.display = (tab === 'play') ? 'block' : 'none';
+      document.querySelector('[aria-labelledby="roomsTitle"]').style.display = (tab === 'dashboard') ? 'block' : 'none';
     }));
 
-    // Modal open/close
+    // ---------- Modal ----------
     function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); }
     function closeModal(){ roomsModal.style.display = 'none'; roomsModal.setAttribute('aria-hidden','true'); document.body.style.overflow='auto'; }
     manageRoomsBtn.addEventListener('click', openModal);
-    openRoomsBtn && openRoomsBtn.addEventListener('click', openModal);
+    if (openRoomsBtn) openRoomsBtn.addEventListener('click', openModal);
     closeRooms.addEventListener('click', closeModal);
-    openRoomsTop.addEventListener('click', closeModal);
+    window.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
 
-    // Basic Telegram init fallback (non-blocking)
-    (function initGuest(){
-      // If Telegram WebApp available, prefer it (best-effort). Otherwise create guest id.
-      if (window.Telegram && window.Telegram.WebApp){
-        try{
-          const tg = window.Telegram.WebApp;
+    // ---------- Telegram WebApp init ----------
+    (async function initTelegram(){
+      function waitForTelegram(timeout = 3000){
+        return new Promise(resolve => {
+          const start = Date.now();
+          (function check(){
+            if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp);
+            if (Date.now() - start > timeout) return resolve(null);
+            setTimeout(check, 50);
+          })();
+        });
+      }
+      const tg = await waitForTelegram(3000);
+      if (tg) {
+        try {
+          state.initData = tg.initData || '';
           const user = tg.initDataUnsafe?.user || null;
-          if (user && user.id){ state.myId = user.id; userName.textContent = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : ''); userId.textContent = persianDigits(user.id); fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: tg.initData || '', user }) }).catch(()=>{}); }
-          else fallbackGuest();
-          try{ tg.expand(); }catch(e){}
-        }catch(e){ fallbackGuest(); }
-      } else fallbackGuest();
+          if (user && user.id) {
+            state.myId = user.id;
+            userName.textContent = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : '');
+            userId.textContent = toFaDigits(user.id);
+            fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
+            try { tg.expand(); } catch(e){}
+          } else {
+            fallbackGuest();
+          }
+        } catch (e) {
+          fallbackGuest();
+        }
+      } else {
+        fallbackGuest();
+      }
       loadSuggestedRooms();
     })();
 
-    function fallbackGuest(){ if (!state.myId){ state.myId = Math.floor(100000 + Math.random()*899999); userName.textContent = 'کاربر مهمان'; userId.textContent = persianDigits(state.myId); } }
+    function fallbackGuest(){
+      if (!state.myId) {
+        state.myId = Math.floor(100000 + Math.random()*899999);
+        userName.textContent = 'کاربر مهمان';
+        userId.textContent = toFaDigits(state.myId);
+      }
+    }
 
-    // Rooms: load and render
+    // ---------- Rooms ----------
+    levelSelect.addEventListener('change', loadSuggestedRooms);
+    refreshRooms.addEventListener('click', loadPublicRooms);
+
     async function loadSuggestedRooms(){
-      try{
-        const level = levelSelect.value;
-        const res = await fetch('/rooms/list' + (level ? '?level=' + encodeURIComponent(level) : ''));
+      try {
+        const lvl = levelSelect.value;
+        const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         roomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length){ roomsList.innerHTML = '<div class="muted-sm">اتاقی برای نمایش نیست</div>'; return; }
+        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted-sm">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${r.level || '—'} · ${r.players||0}/${r.max_players||2}</div></div>`;
+          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
         });
-      }catch(e){ roomsList.innerHTML = '<div class="muted-sm">خطا در دریافت لیست اتاق‌ها</div>'; console.error(e); }
+      } catch (e) {
+        roomsList.innerHTML = '<div class="muted-sm">خطا در دریافت لیست اتاق‌ها</div>';
+      }
     }
 
-    // Public/my rooms for modal
     async function loadPublicRooms(){
-      try{
+      try {
         const lvl = filterLevel.value;
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
-        const d = await res.json(); publicRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length){ publicRoomsList.innerHTML = '<div class="muted-sm">هیچ اتاقی یافت نشد</div>'; return; }
+        const d = await res.json();
+        publicRoomsList.innerHTML = '';
+        if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted-sm">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${r.players||0}/${r.max_players||2} · ${r.level||'—'}</div></div>`;
+          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
         });
-      }catch(e){ publicRoomsList.innerHTML = '<div class="muted-sm">خطا</div>'; console.error(e); }
+      } catch (e) {
+        publicRoomsList.innerHTML = '<div class="muted-sm">خطا</div>';
+      }
     }
 
     async function loadMyRooms(){
-      try{
+      try {
         const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId })});
-        const d = await res.json(); myRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length){ myRoomsList.innerHTML = '<div class="muted-sm">شما اتاقی ندارید</div>'; return; }
+        const d = await res.json();
+        myRoomsList.innerHTML = '';
+        if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted-sm">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${r.level||''}</div></div>`;
+          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${escapeHtml(r.level||'')}</div></div>`;
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', ()=> { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
           const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
           leave.addEventListener('click', async ()=> { await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })}); loadMyRooms(); loadPublicRooms(); });
           el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
         });
-      }catch(e){ myRoomsList.innerHTML = '<div class="muted-sm">خطا</div>'; console.error(e); }
+      } catch (e) {
+        myRoomsList.innerHTML = '<div class="muted-sm">خطا</div>';
+      }
     }
 
-    // Create & join
-    createRoomBtn.addEventListener('click', async ()=>{
-      try{
-        const name = newRoomName.value || ('اتاق ' + Math.floor(Math.random()*900+100));
-        const level = newRoomLevel.value || 'medium';
-        const maxp = Number(newRoomMax.value) || 2;
-        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name, level, max_players: maxp })});
+    // ---------- Room and game flow ----------
+    quickJoin.addEventListener('click', async ()=>{
+      try {
+        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: levelSelect.value || 'medium', max_players: 2 })});
         const d = await res.json();
-        if (!d.ok){ alert('خطا در ایجاد اتاق'); return; }
-        state.roomId = d.room_id; socket.emit('join-room', { room_id: d.room_id, user_id: state.myId });
-        closeModal(); loadMyRooms(); loadSuggestedRooms();
-      }catch(e){ console.error(e); alert('خطا'); }
+        if (!d.ok){ alert('خطا'); return; }
+        state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+        document.querySelector('.tab[data-tab="play"]').click();
+        playPanel.style.display = 'block';
+        loadMyRooms();
+      } catch (e) { alert('خطا'); }
     });
 
-    refreshRoomsBtn.addEventListener('click', loadPublicRooms);
-
-    // Join room flow
     async function joinRoom(roomId){
-      try{
+      try {
         const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId, user_id: state.myId })});
         const d = await res.json();
         if (!d.ok){ alert('امکان پیوستن نیست'); return; }
-        state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        if (d.status === 'ready' && d.game_id){ state.gameId = d.game_id; setTimeout(()=> resumeGame(), 120); }
-        else { document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; categoryName.textContent = 'در انتظار حریف'; wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>'; }
+        state.roomId = d.room_id;
+        socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+        if (d.status === 'ready' && d.game_id){
+          state.gameId = d.game_id; setTimeout(()=> resumeGame(), 140);
+        } else {
+          document.querySelector('.tab[data-tab="play"]').click();
+          playPanel.style.display = 'block';
+          categoryName.textContent = 'در انتظار حریف';
+          wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>';
+        }
         loadMyRooms(); loadPublicRooms();
-      }catch(e){ console.error(e); alert('خطا'); }
+      } catch (e) { alert('خطا'); }
     }
 
-    // Room state
     async function loadRoomStateAndResume(roomId){
-      try{
+      try {
         const res = await fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId })});
         const d = await res.json();
         if (!d.ok) return;
-        if (d.game && d.game.id){ state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); }
-        else { categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>'; }
-      }catch(e){ console.error(e); }
+        if (d.game && d.game.id){
+          state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+        } else {
+          categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>';
+        }
+      } catch (e) {}
     }
 
-    // Socket events (best-effort UI)
-    socket.on('room:presence', ({ room_id, count }) => { playersCount.textContent = persianDigits(count || 0); roomStatus.textContent = 'فعال'; });
-    socket.on('game:started', ({ game_id, deck }) => { state.gameId = game_id; state.deck = deck; if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId }); setTimeout(()=> resumeGame(), 150); });
-    socket.on('game:state', ({ state: gs, deck }) => { state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms)||0; renderGame(); startTimer(); });
+    resumeGameBtn.addEventListener('click', resumeGame);
+    function resumeGame(){
+      if (!state.gameId){ alert('بازی هنوز آغاز نشده'); return; }
+      socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+      document.querySelector('.tab[data-tab="play"]').click();
+      playPanel.style.display = 'block';
+    }
+
+    // ---------- Sockets ----------
+    socket.on('room:presence', ({ room_id, count }) => {
+      playersCount.textContent = toFaDigits(count || 0);
+      roomStatus.textContent = 'فعال';
+    });
+
+    socket.on('game:started', ({ game_id, deck }) => {
+      state.gameId = game_id; state.deck = deck;
+      if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+      setTimeout(()=> resumeGame(), 150);
+    });
+
+    socket.on('game:state', ({ state: gs, deck }) => {
+      state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms)||0;
+      renderGame(); startTimer();
+    });
+
     socket.on('game:states', ({ game_id, states }) => {
       if (state.gameId !== game_id) return;
       playersList.innerHTML = '';
       states.forEach(s => {
         const row = document.createElement('div'); row.className='player-row';
-        row.innerHTML = `<div style="font-weight:700">${s.user_id}</div><div class="muted-sm">ایندکس: ${s.current_index||0} · امتیاز: ${s.score||0}</div>`;
+        row.innerHTML = `<div style="font-weight:800">${toFaDigits(s.user_id)}</div><div class="muted-sm">ایندکس: ${toFaDigits(s.current_index||0)} · امتیاز: ${toFaDigits(s.score||0)}</div>`;
         playersList.appendChild(row);
       });
       const opp = states.find(s => s.user_id !== state.myId);
-      if (opp) progressOpp.textContent = ((opp.current_index||0)+1) + ' / ' + (state.deck.length||10);
+      if (opp) progressOpp.textContent = `${toFaDigits((opp.current_index||0)+1)} / ${toFaDigits(state.deck.length||10)}`;
     });
 
     socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta }) => {
-      positions.forEach(p => { const s = wordSlots.querySelector(`.slot[data-index="${p}"]`); if (s){ s.textContent = letter; s.classList.add('revealed'); }});
-      if (user_id === state.myId) appendChip(correctLetters, letter);
-      if (user_id === state.myId){ state.gameState = state.gameState || {}; state.gameState.score = (Number(state.gameState.score)||0) + (scoreDelta||0); scoreMe.textContent = state.gameState.score; }
+      // Use original->display index map
+      positions.forEach(origIdx => {
+        const dispIdx = state.indexMap[origIdx];
+        if (dispIdx !== null && dispIdx !== undefined){
+          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
+          if (s){ s.textContent = letter; s.classList.add('revealed'); }
+        }
+      });
+      if (user_id === state.myId){
+        addChip(correctLetters, letter);
+        state.gameState.score = (Number(state.gameState.score)||0) + (scoreDelta||0);
+        scoreMe.textContent = toFaDigits(state.gameState.score);
+      }
     });
-    socket.on('game:letter:wrong', ({ user_id, letter }) => { if (user_id === state.myId) appendChip(wrongLetters, letter); });
-    socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
-      positions.forEach(p => { const s = wordSlots.querySelector(`.slot[data-index="${p}"]`); if (s){ s.textContent = letter; s.classList.add('revealed'); }});
-      if (user_id === state.myId){ appendChip(correctLetters, letter); state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0)); scoreMe.textContent = state.gameState.score; }
-    });
-    socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); });
-    socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) alert('بازی به پایان رسید'); });
 
-    // Game render & actions
+    socket.on('game:letter:wrong', ({ user_id, letter }) => {
+      if (user_id === state.myId) addChip(wrongLetters, letter);
+    });
+
+    socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
+      positions.forEach(origIdx => {
+        const dispIdx = state.indexMap[origIdx];
+        if (dispIdx !== null && dispIdx !== undefined){
+          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
+          if (s){ s.textContent = letter; s.classList.add('revealed'); }
+        }
+      });
+      if (user_id === state.myId){
+        addChip(correctLetters, letter);
+        state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
+        scoreMe.textContent = toFaDigits(state.gameState.score);
+      }
+    });
+
+    socket.on('game:next', ({ game_id }) => {
+      if (state.gameId === game_id) socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+    });
+
+    socket.on('game:finished', ({ game_id }) => {
+      if (state.gameId === game_id) alert('بازی به پایان رسید');
+    });
+
+    // ---------- Render ----------
     function renderGame(){
       if (!state.gameState || !state.deck || !state.deck.length) return;
       const idx = Number(state.gameState.current_index) || 0;
-      const item = state.deck[idx] || { word:'' };
+      const item = state.deck[idx] || { word:'', category:'', level:'medium' };
+      const displayWord = normalizeDisplayWord(item.word);
+      state.indexMap = buildIndexMap(item.word);
+
       categoryName.textContent = item.category || '';
-      levelName.textContent = (item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط');
-      wordIndex.textContent = persianDigits(idx + 1);
+      levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
+      wordIndex.textContent = toFaDigits(idx + 1);
+
       wordSlots.innerHTML = '';
-      for (let i=0;i<String(item.word).length;i++){
-        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.index = i; slot.dataset.index = i; slot.textContent = '_';
+      for (let i=0;i<displayWord.length;i++){
+        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = i; slot.textContent = '_';
         wordSlots.appendChild(slot);
       }
+
       correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
       const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
       const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
-      correct.forEach(l => appendChip(correctLetters, l)); wrong.forEach(l => appendChip(wrongLetters, l));
-      for (let i=0;i<String(item.word).length;i++){ const ch = item.word[i]; if (correct.includes(ch)){ const s = wordSlots.querySelector(`.slot[data-index="${i}"]`); if (s){ s.textContent = ch; s.classList.add('revealed'); } } }
-      scoreMe.textContent = String(state.gameState.score || 0);
-      progressMe.textContent = String((Number(state.gameState.current_index)||0)+1) + ' / ' + String(state.deck.length || 10);
+      correct.forEach(l => addChip(correctLetters, l));
+      wrong.forEach(l => addChip(wrongLetters, l));
+
+      // Pre-reveal already-correct letters using mapping
+      for (let origIdx=0; origIdx<item.word.length; origIdx++){
+        const ch = item.word[origIdx];
+        const dispIdx = state.indexMap[origIdx];
+        if (dispIdx === null || dispIdx === undefined) continue;
+        if (correct.includes(ch)){
+          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
+          if (s){ s.textContent = ch; s.classList.add('revealed'); }
+        }
+      }
+
+      scoreMe.textContent = toFaDigits(Number(state.gameState.score) || 0);
+      progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)}`;
     }
 
-    function appendChip(container, letter){
+    function addChip(container, letter){
       const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter; container.appendChild(c);
     }
 
-    guessBtn.addEventListener('click', ()=> {
+    // ---------- Actions ----------
+    guessBtn.addEventListener('click', () => {
       const v = (letterInput.value||'').trim();
-      if (!v || v.length !== 1){ alert('لطفاً یک حرف وارد کنید'); return; }
-      if (!/^[\u0600-\u06FF]$/.test(v)){ alert('لطفاً حرف فارسی وارد کنید'); return; }
+      if (!v || v.length !== 1) return alert('لطفاً یک حرف وارد کنید');
+      if (!/^[\u0600-\u06FF]$/.test(v)) return alert('لطفاً حرف فارسی وارد کنید');
       socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
-      letterInput.value=''; letterInput.focus();
+      letterInput.value = ''; letterInput.focus();
     });
 
     hintBtn.addEventListener('click', ()=> socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }));
-    leaveBtn.addEventListener('click', async ()=> { if (!state.roomId) return; await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.myId }) }); document.querySelector('.tab[data-tab="dashboard"]').click(); });
 
-    // Timer (client-side safe)
+    leaveBtn.addEventListener('click', async ()=> {
+      if (!state.roomId) return;
+      await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.myId })});
+      document.querySelector('.tab[data-tab="dashboard"]').click();
+    });
+
+    document.getElementById('clearState').addEventListener('click', ()=> { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
+
+    // ---------- Timer ----------
     let timerHandle = null;
     function startTimer(){
       if (timerHandle) clearInterval(timerHandle);
@@ -612,44 +711,17 @@
       const s = Math.max(0, Math.floor(ms/1000));
       const m = Math.floor(s/60);
       const r = s%60;
-      return persianDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
+      return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
 
-    function resumeGame(){
-      if (!state.gameId){ alert('بازی هنوز آغاز نشده'); return; }
-      socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-      document.querySelector('.tab[data-tab="play"]').click();
-      playPanel.style.display = 'block';
-    }
+    // ---------- Misc ----------
+    filterLevel.addEventListener('change', loadPublicRooms);
+    letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
 
-    // Quick join
-    quickJoin.addEventListener('click', async ()=>{
-      try{
-        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: levelSelect.value || 'medium', max_players: 2 })});
-        const d = await res.json();
-        if (!d.ok){ alert('خطا'); return; }
-        state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        // let server decide when to start
-        document.querySelector('.tab[data-tab="play"]').click();
-        playPanel.style.display = 'block';
-        loadMyRooms();
-      }catch(e){ console.error(e); alert('خطا'); }
-    });
-
-    resumeGameBtn.addEventListener('click', resumeGame);
-
-    // Utilities
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function persianDigits(s){ return String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]); }
 
-    // Init small
-    levelSelect.addEventListener('change', loadSuggestedRooms);
+    // Initial
     loadSuggestedRooms();
-    document.getElementById('clearState').addEventListener('click', ()=> { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
-
-    // Accessibility: close modal on ESC
-    window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
   </script>
 </body>
 </html>
