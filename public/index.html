@@ -19,46 +19,64 @@
       --danger: #ef4444;
     }
     *{box-sizing:border-box;font-family:'Vazirmatn',system-ui,Segoe UI,Roboto}
-    html,body{height:100%;margin:0;background:var(--bg-gradient);color:#081124;padding:14px}
-    .shell{max-width:1100px;margin:18px auto;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.95));box-shadow:var(--shadow-1);border:1px solid var(--border);overflow:hidden}
-    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--border)}
-    .brand{display:flex;gap:12px;align-items:center}
-    .badge{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px}
-    .title{font-weight:800;font-size:18px}
+    html,body{height:100%;margin:0;background:var(--bg-gradient);color:#081124;padding:12px}
+    .shell{max-width:1100px;margin:14px auto;border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.95));box-shadow:var(--shadow-1);border:1px solid var(--border);overflow:hidden}
+    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--border)}
+    .brand{display:flex;gap:10px;align-items:center}
+    .badge{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px}
+    .title{font-weight:800;font-size:17px}
     .subtitle{font-size:12px;color:var(--muted)}
     .controls{display:flex;gap:10px;align-items:center}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid transparent;cursor:pointer;font-weight:700;font-size:14px;background:transparent;color:var(--accent)}
     .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.08);color:var(--muted)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;box-shadow:0 8px 30px rgba(79,70,229,0.12)}
-    nav.mini-tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border)}
-    .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;}
+    nav.mini-tabs{display:flex;gap:8px;padding:8px 12px;border-bottom:1px solid var(--border)}
+    .tab{padding:8px 10px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
     .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border-color:rgba(79,70,229,0.06)}
-    main.content{display:grid;grid-template-columns:1fr 380px;gap:18px;padding:18px}
+    main.content{display:grid;grid-template-columns:1fr minmax(240px, 32%);gap:16px;padding:14px}
     @media (max-width:980px){ main.content{grid-template-columns:1fr} }
-    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.98));border-radius:14px;padding:14px;border:1px solid var(--border);box-shadow:var(--shadow-1)}
-    .hero{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border)}
-    .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    .slot{min-width:44px;height:56px;border-radius:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff);color:inherit}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.98));border-radius:12px;padding:12px;border:1px solid var(--border);box-shadow:var(--shadow-1)}
+    .hero{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border);flex-wrap:wrap}
+    .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+    .slot{min-width:36px;min-height:48px;height:auto;padding:10px 8px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;background:linear-gradient(180deg,#fff,#fbfcff);line-height:1}
     .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04));font-weight:800;transform:translateY(-2px)}
-    .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12);box-shadow:0 6px 20px rgba(5,150,105,0.06)}
-    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12);box-shadow:0 6px 20px rgba(239,68,68,0.06)}
-    .controls-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
-    input.letter{width:86px;height:56px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff)}
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .slot.correct{color:var(--success);border-color:rgba(5,150,105,0.12)}
+    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12)}
+    .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
+    input.letter{flex:0 0 72px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:linear-gradient(180deg,#fff,#fbfcff)}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
     .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
     .chip-letter.correct{background:rgba(5,150,105,0.08);color:var(--success);border-color:rgba(5,150,105,0.12)}
     .chip-letter.wrong{background:rgba(239,68,68,0.08);color:var(--danger);border-color:rgba(239,68,68,0.12)}
-    aside.right{display:flex;flex-direction:column;gap:12px}
+    aside.right{display:flex;flex-direction:column;gap:10px}
     .players-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
     .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
     .muted{color:var(--muted)}
-    .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700}
-    .timer{font-weight:900;color:var(--accent);font-size:20px}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700;flex-shrink:0;white-space:nowrap}
+    .timer{font-weight:900;color:var(--accent);font-size:18px;flex-shrink:0;min-width:64px;text-align:center}
     .shake{animation:shake .26s}
     @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
     .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,20,36,0.28);z-index:1400;padding:20px}
     .modal{width:100%;max-width:980px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);border:1px solid var(--border);padding:16px;box-shadow:0 12px 40px rgba(16,24,40,0.08)}
     .small{font-size:12px}
+    /* small screens */
+    @media (max-width:760px){
+      html,body{padding:8px}
+      .shell{margin:10px}
+      header.appbar{padding:10px}
+      .badge{width:40px;height:40px;font-size:16px}
+      .title{font-size:16px}
+      main.content{padding:10px;gap:12px}
+      .hero{padding:10px}
+      .controls-row{gap:6px}
+      input.letter{flex:0 0 60px;height:44px;font-size:16px}
+      .slot{min-width:30px;height:44px;font-size:16px;padding:8px}
+      .timer{font-size:16px;min-width:56px}
+      .play-top > div:last-child{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-start}
+      .pill{white-space:normal;padding:6px 8px}
+      footer{padding:8px}
+    }
+    .shell, .panel{word-break:break-word;overflow-wrap:break-word}
   </style>
 </head>
 <body>
@@ -155,7 +173,7 @@
 
         <div id="aboutPanel" class="panel" style="margin-top:14px;display:none">
           <h3>درباره وردلی</h3>
-          <p class="muted-sm">وردلی رقابتی یک بازی دو نفرهٔ ساده و سریع است که می‌توانید در اتاق‌های خصوصی یا عمومی بازی کنید. این نسخه از Telegram WebApp پشتیبانی می‌کند و تجربهٔ تایپ فارسی را برای IME بهینه کرده است. راهنما نیم برابر تعداد حروف است و هر راهنما مساوی با 10 امتیاز به ازای هر حرف افشا شده امتیاز کم می‌کند. تعداد مجاز حروف غلط برابر با 1.5 برابر تعداد حروف است و در صورت عبور، کاربر به کلمهٔ بعدی می‌رود و از امتیاز او به اندازه‌ی 10x تعداد حروف صحیح کم می‌شود.</p>
+          <p class="muted-sm">وردلی رقابتی یک بازی دو نفرهٔ ساده و سریع است که می‌توانید در اتاق‌های خصوصی یا عمومی بازی کنید. این نسخه از Telegram WebApp پشتیبانی می‌کند و تجربهٔ تایپ فارسی را برای IME بهینه کرده است.</p>
         </div>
       </section>
 
@@ -247,31 +265,10 @@
   <script>
     // ---------- Helpers ----------
     const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    function normalizeFaLetter(ch){
-      if (!ch) return '';
-      const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; // ي -> ی ، ك -> ک
-      return (map[ch] || ch).normalize('NFC');
-    }
-    function normalizeFaWordKeepSpaces(word){
-      if (!word) return '';
-      const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
-      let w = String(word).replace(removeMarks,'');
-      w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
-      return w.normalize('NFC');
-    }
+    function normalizeFaLetter(ch){ if (!ch) return ''; const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (map[ch] || ch).normalize('NFC'); }
+    function normalizeFaWordKeepSpaces(word){ if (!word) return ''; const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; let w = String(word).replace(removeMarks,''); w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9'); return w.normalize('NFC'); }
     function normalizeDisplayWord(word){ return String(word).replace(/[\u200c\s]/g,''); }
-
-    // Map original indices -> display indices (skip spaces & ZWNJ)
-    function buildIndexMap(word){
-      const map = [];
-      let disp = 0;
-      for (let i=0;i<word.length;i++){
-        const ch = word[i];
-        if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; }
-        map[i] = disp++;
-      }
-      return map;
-    }
+    function buildIndexMap(word){ const map = []; let disp = 0; for (let i=0;i<word.length;i++){ const ch = word[i]; if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; } map[i] = disp++; } return map; }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     // ---------- State ----------
@@ -362,7 +359,6 @@
             const fullname = `${user.first_name||''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || ('#' + state.myId);
             userNameEl.textContent = fullname;
             userIdEl.textContent = toFaDigits(state.myId);
-            // notify server (best-effort)
             fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
             try { tg.expand(); } catch(e){}
           } else fallbackGuest();
@@ -371,11 +367,7 @@
       loadSuggestedRooms();
     })();
 
-    function fallbackGuest(){
-      if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999);
-      userNameEl.textContent = 'کاربر مهمان';
-      userIdEl.textContent = toFaDigits(state.myId);
-    }
+    function fallbackGuest(){ if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999); userNameEl.textContent = 'کاربر مهمان'; userIdEl.textContent = toFaDigits(state.myId); }
 
     // ---------- Rooms loading ----------
     levelSelect.addEventListener('change', loadSuggestedRooms);
@@ -391,7 +383,7 @@
         if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted-sm">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.style.display = 'flex'; el.style.justifyContent = 'space-between'; el.style.alignItems = 'center'; el.style.padding = '8px 10px'; el.style.borderRadius = '10px';
+          el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px 10px'; el.style.borderRadius='10px';
           el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
@@ -411,7 +403,7 @@
         if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted-sm">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room';
-          el.style.display = 'flex'; el.style.justifyContent = 'space-between'; el.style.alignItems = 'center'; el.style.padding = '8px 10px'; el.style.borderRadius = '10px';
+          el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px 10px'; el.style.borderRadius='10px';
           el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
@@ -428,7 +420,7 @@
         if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted-sm">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room';
-          el.style.display = 'flex'; el.style.justifyContent = 'space-between'; el.style.alignItems = 'center'; el.style.padding = '8px 10px'; el.style.borderRadius = '10px';
+          el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px 10px'; el.style.borderRadius='10px';
           el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${escapeHtml(r.level||'')}</div></div>`;
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
@@ -437,6 +429,47 @@
           el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
         });
       } catch (e) { myRoomsList.innerHTML = '<div class="muted-sm">خطا</div>'; }
+    }
+
+    // ---------- Create room handler (wired) ----------
+    if (createRoomBtn) {
+      createRoomBtn.addEventListener('click', async () => {
+        try {
+          const name = (newRoomName.value || '').trim();
+          const level = (newRoomLevel.value || 'medium');
+          let maxPlayers = parseInt(newRoomMax.value || '2', 10);
+          if (!maxPlayers || maxPlayers < 2) maxPlayers = 2;
+          if (!state.myId) { alert('شناسه کاربر موجود نیست. صفحه را دوباره بارگیری کنید.'); return; }
+
+          createRoomBtn.disabled = true;
+          createRoomBtn.textContent = 'در حال ایجاد...';
+
+          const res = await fetch('/rooms/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: state.myId, name: name || 'اتاق خصوصی', level, max_players: maxPlayers })
+          });
+          const d = await res.json();
+          if (!d.ok) { alert('خطا در ایجاد اتاق'); console.error('rooms/create response', d); createRoomBtn.disabled = false; createRoomBtn.textContent = 'ایجاد و پیوستن'; return; }
+
+          state.roomId = d.room_id;
+          socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+
+          document.querySelector('.tab[data-tab="play"]').click();
+          playPanel.style.display = 'block';
+
+          await loadMyRooms();
+          await loadPublicRooms();
+          closeModal();
+
+        } catch (err) {
+          console.error('createRoom error', err);
+          alert('خطا در ایجاد اتاق');
+        } finally {
+          createRoomBtn.disabled = false;
+          createRoomBtn.textContent = 'ایجاد و پیوستن';
+        }
+      });
     }
 
     // ---------- Room & game flow ----------
@@ -483,25 +516,13 @@
     }
 
     // ---------- Socket events ----------
-    socket.on('room:presence', ({ room_id, count }) => {
-      playersCount.textContent = toFaDigits(count || 0);
-      roomStatus.textContent = 'فعال';
-    });
+    socket.on('room:presence', ({ room_id, count }) => { playersCount.textContent = toFaDigits(count || 0); roomStatus.textContent = 'فعال'; });
 
-    socket.on('game:started', ({ game_id, deck, reveal_mode }) => {
-      state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared';
-      if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      setTimeout(() => resumeGame(), 150);
-    });
+    socket.on('game:started', ({ game_id, deck, reveal_mode }) => { state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared'; if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId }); setTimeout(() => resumeGame(), 150); });
 
     socket.on('game:state', ({ state: gs, deck, reveal_mode, players }) => {
       state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms)||0; if (reveal_mode) state.revealMode = reveal_mode;
-      renderGame();
-      startTimer();
-      document.querySelector('.tab[data-tab="play"]').click();
-      playPanel.style.display = 'block';
-      updatePlayersList(players || []);
-      setTimeout(()=> letterInput.focus(), 50);
+      renderGame(); startTimer(); document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; updatePlayersList(players || []); setTimeout(()=> letterInput.focus(), 50);
     });
 
     socket.on('game:states', ({ game_id, states }) => {
@@ -526,7 +547,6 @@
         }
       });
       if (isMe && player) scoreMe.textContent = toFaDigits(player.score || 0);
-      // refresh players list by asking server to resend state for all (optional)
       socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
       addChip(correctLetters, letter, 'correct');
     });
@@ -536,9 +556,7 @@
       else flashMessage('حریف حرف اشتباهی زد');
     });
 
-    socket.on('game:opponentEvent', (evt) => {
-      if (evt.type === 'opponent_correct') flashMessage('حریف حرفی را حدس زد');
-    });
+    socket.on('game:opponentEvent', (evt) => { if (evt.type === 'opponent_correct') flashMessage('حریف حرفی را حدس زد'); });
 
     socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
       const isMe = Number(user_id) === Number(state.myId);
@@ -557,13 +575,9 @@
       socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
     });
 
-    socket.on('game:next', ({ game_id }) => {
-      if (state.gameId === game_id) socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-    });
+    socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); });
 
-    socket.on('game:finished', ({ game_id }) => {
-      if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); }
-    });
+    socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); } });
 
     // ---------- Render ----------
     function renderGame(){
@@ -577,7 +591,6 @@
       levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
       wordIndex.textContent = toFaDigits(idx + 1);
 
-      // render display slots (skip spaces/ZWNJ)
       const displayWord = normalizeDisplayWord(item.word);
       wordSlots.innerHTML = '';
       for (let i=0;i<displayWord.length;i++){
@@ -591,7 +604,6 @@
       correct.forEach(l => addChip(correctLetters, l, 'correct'));
       wrong.forEach(l => addChip(wrongLetters, l, 'wrong'));
 
-      // pre-reveal positions
       for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
         const ch = wordNorm[origIdx];
         const dispIdx = state.indexMap[origIdx];
@@ -610,7 +622,6 @@
       const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter;
       if (type === 'correct') c.classList.add('correct');
       if (type === 'wrong') c.classList.add('wrong');
-      // avoid duplicates visually
       if (![...container.children].some(x => x.textContent === letter && x.classList.contains(type))) container.appendChild(c);
     }
 
@@ -636,11 +647,7 @@
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
     letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } if (e.key === 'Backspace') setTimeout(()=> letterInput.focus(), 0); });
 
-    function sanitizeInput(){
-      const raw = (letterInput.value || '').trim();
-      const normalized = normalizeFaLetter(raw.replace(/\s/g,''));
-      letterInput.value = normalized.slice(0,1);
-    }
+    function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
     // ---------- Actions ----------
     guessBtn.addEventListener('click', () => {
@@ -675,6 +682,16 @@
       const m = Math.floor(s/60), r = s%60;
       return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
+
+    // Reflow helper for old mobile browsers: ensure timer fits and inputs visible
+    function safeReflow(){
+      const shell = document.querySelector('.shell');
+      if (!shell) return;
+      shell.style.display = 'none';
+      setTimeout(()=> { shell.style.display = ''; }, 50);
+    }
+    window.addEventListener('resize', safeReflow);
+    window.addEventListener('orientationchange', () => { setTimeout(safeReflow, 150); });
 
     // ---------- Misc ----------
     document.getElementById('clearState').addEventListener('click', () => { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
