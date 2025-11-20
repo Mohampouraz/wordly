@@ -139,6 +139,18 @@
             transform: translateY(-3px);
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
         }
+        
+        .status-waiting {
+            background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%);
+        }
+        
+        .status-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        
+        .status-finished {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        }
     </style>
 </head>
 <body class="min-h-screen p-4">
@@ -345,6 +357,7 @@
         let userId = '';
         let fullName = '';
         let currentActiveGameCode = null;
+        const API_BASE_URL = window.location.origin; // آدرس سرور
 
         // تابع دیباگ
         function debugLog(message, data = null) {
@@ -551,18 +564,22 @@
             try {
                 debugLog('در حال بارگذاری پروفایل کاربر...', { userId, fullName });
                 
-                const response = await fetch(`/api/user/score?userId=${encodeURIComponent(userId)}&fullName=${encodeURIComponent(fullName)}`);
+                const response = await fetch(`${API_BASE_URL}/api/user/score?userId=${encodeURIComponent(userId)}&fullName=${encodeURIComponent(fullName)}`);
                 
                 debugLog('پاسخ سرور دریافت شد', { 
                     status: response.status,
                     statusText: response.statusText
                 });
                 
+                if (!response.ok) {
+                    throw new Error(`خطای سرور: ${response.status}`);
+                }
+                
                 const data = await response.json();
                 debugLog('داده‌های پروفایل:', data);
                 
                 if (data.success) {
-                    document.getElementById('userScoreDisplay').textContent = data.score;
+                    document.getElementById('userScoreDisplay').textContent = data.score || 0;
                     
                     if (data.stats) {
                         document.getElementById('activeGamesCount').textContent = data.stats.active_games || 0;
@@ -604,11 +621,21 @@
             try {
                 debugLog('ایجاد بازی جدید...', { word, category, difficulty, creatorId: userId });
                 
-                const response = await fetch('/api/game/create', {
+                const response = await fetch(`${API_BASE_URL}/api/game/create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ word, category, difficulty, creatorId: userId })
+                    body: JSON.stringify({ 
+                        word, 
+                        category, 
+                        difficulty, 
+                        creatorId: userId,
+                        creatorName: fullName 
+                    })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`خطای سرور: ${response.status}`);
+                }
 
                 const data = await response.json();
                 debugLog('پاسخ ایجاد بازی:', data);
@@ -658,11 +685,19 @@
             try {
                 debugLog('پیوستن به بازی...', { gameCode, playerId: userId });
                 
-                const response = await fetch('/api/game/join', {
+                const response = await fetch(`${API_BASE_URL}/api/game/join`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ gameCode, playerId: userId })
+                    body: JSON.stringify({ 
+                        gameCode, 
+                        playerId: userId,
+                        playerName: fullName 
+                    })
                 });
+
+                if (!response.ok) {
+                    throw new Error(`خطای سرور: ${response.status}`);
+                }
 
                 const data = await response.json();
                 debugLog('پاسخ پیوستن:', data);
@@ -677,11 +712,8 @@
                     // نمایش پیام موفقیت
                     showMessage('joinGameMessage', data.message, 'bg-green-100 text-green-800 border border-green-200');
                     
-                    // در اینجا باید صفحه بازی نمایش داده شود
-                    // فعلاً یک پیام نشان می‌دهیم
-                    setTimeout(() => {
-                        showNotification('توجه', 'صفحه بازی در حال توسعه است', 'info');
-                    }, 1000);
+                    // بارگذاری مجدد لیست بازی‌ها
+                    loadActiveGames();
                     
                 } else {
                     showNotification('خطا', data.message || 'خطا در پیوستن به بازی', 'error');
@@ -702,57 +734,13 @@
             try {
                 debugLog('در حال بارگذاری بازی‌های فعال...', { userId });
                 
-                // این بخش شبیه‌سازی شده است - در حالت واقعی باید از API استفاده شود
-                // برای نمایش نمونه، داده‌های تستی ایجاد می‌کنیم
-                const mockData = {
-                    success: true,
-                    games: [
-                        {
-                            game_code: "ABC123",
-                            creator_name: "علی محمدی",
-                            status: "waiting",
-                            is_creator: true,
-                            difficulty: "متوسط",
-                            category: "شهرها",
-                            players_count: 1
-                        },
-                        {
-                            game_code: "DEF456",
-                            creator_name: "سارا احمدی",
-                            status: "waiting",
-                            is_creator: false,
-                            difficulty: "آسان",
-                            category: "فیلم‌ها",
-                            players_count: 2
-                        },
-                        {
-                            game_code: "GHI789",
-                            creator_name: "مهدی رضایی",
-                            status: "active",
-                            is_creator: false,
-                            difficulty: "سخت",
-                            category: "کشورها",
-                            players_count: 3
-                        },
-                        {
-                            game_code: "JKL012",
-                            creator_name: fullName,
-                            status: "active",
-                            is_creator: true,
-                            difficulty: "متوسط",
-                            category: "حیوانات",
-                            players_count: 4
-                        }
-                    ]
-                };
-
-                // در حالت واقعی این خط استفاده می‌شود:
-                // const response = await fetch(`/api/games/active?userId=${encodeURIComponent(userId)}`);
-                // const data = await response.json();
+                const response = await fetch(`${API_BASE_URL}/api/games/active?userId=${encodeURIComponent(userId)}`);
                 
-                // برای تست از داده‌های شبیه‌سازی شده استفاده می‌کنیم
-                const data = mockData;
+                if (!response.ok) {
+                    throw new Error(`خطای سرور: ${response.status}`);
+                }
 
+                const data = await response.json();
                 debugLog('پاسخ بازی‌های فعال:', data);
 
                 const gamesList = document.getElementById('activeGamesList');
@@ -761,60 +749,80 @@
                 if (data.success && data.games && data.games.length > 0) {
                     data.games.forEach(game => {
                         const gameCard = document.createElement('div');
-                        gameCard.className = 'game-card bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-2xl';
                         
-                        // تعیین وضعیت بازی
+                        // تعیین کلاس بر اساس وضعیت
+                        let statusClass = '';
                         let statusText = '';
-                        let statusColor = '';
+                        let statusIcon = '';
+                        
                         if (game.status === 'waiting') {
+                            statusClass = 'status-waiting';
                             statusText = '⏳ در انتظار بازیکن';
-                            statusColor = 'bg-yellow-500';
+                            statusIcon = 'fa-clock';
                         } else if (game.status === 'active') {
+                            statusClass = 'status-active';
                             statusText = '🎮 در حال بازی';
-                            statusColor = 'bg-green-500';
+                            statusIcon = 'fa-play';
                         } else if (game.status === 'finished') {
+                            statusClass = 'status-finished';
                             statusText = '🏁 پایان یافته';
-                            statusColor = 'bg-gray-500';
+                            statusIcon = 'fa-flag-checkered';
+                        } else {
+                            statusClass = 'status-waiting';
+                            statusText = '⏳ در انتظار';
+                            statusIcon = 'fa-clock';
                         }
+                        
+                        gameCard.className = `game-card ${statusClass} text-white p-6 rounded-2xl`;
                         
                         // تعیین دکمه مناسب
                         let actionButton = '';
                         if (game.is_creator) {
                             // سازنده بازی
                             if (game.status === 'waiting') {
-                                actionButton = `<button onclick="viewGameStatus('${game.game_code}')" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors">
+                                actionButton = `<button onclick="viewGameStatus('${game.game_code}')" class="bg-white text-yellow-600 px-4 py-2 rounded-lg font-bold hover:bg-yellow-50 transition-colors">
                                     <i class="fas fa-eye ml-1"></i>مشاهده وضعیت
                                 </button>`;
                             } else if (game.status === 'active') {
                                 actionButton = `<button onclick="continueGame('${game.game_code}')" class="bg-white text-green-600 px-4 py-2 rounded-lg font-bold hover:bg-green-50 transition-colors">
                                     <i class="fas fa-play ml-1"></i>ادامه بازی
                                 </button>`;
+                            } else if (game.status === 'finished') {
+                                actionButton = `<button onclick="viewGameResults('${game.game_code}')" class="bg-white text-gray-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chart-bar ml-1"></i>مشاهده نتایج
+                                </button>`;
                             }
                         } else {
                             // سایر کاربران
                             if (game.status === 'waiting') {
-                                actionButton = `<button onclick="joinGameFromList('${game.game_code}')" class="bg-white text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-purple-50 transition-colors">
+                                actionButton = `<button onclick="joinGameFromList('${game.game_code}')" class="bg-white text-yellow-600 px-4 py-2 rounded-lg font-bold hover:bg-yellow-50 transition-colors">
                                     <i class="fas fa-sign-in-alt ml-1"></i>پیوستن به بازی
                                 </button>`;
                             } else if (game.status === 'active') {
                                 actionButton = `<button onclick="continueGame('${game.game_code}')" class="bg-white text-green-600 px-4 py-2 rounded-lg font-bold hover:bg-green-50 transition-colors">
                                     <i class="fas fa-play ml-1"></i>ادامه بازی
                                 </button>`;
+                            } else if (game.status === 'finished') {
+                                actionButton = `<button onclick="viewGameResults('${game.game_code}')" class="bg-white text-gray-600 px-4 py-2 rounded-lg font-bold hover:bg-gray-50 transition-colors">
+                                    <i class="fas fa-chart-bar ml-1"></i>مشاهده نتایج
+                                </button>`;
                             }
                         }
 
                         gameCard.innerHTML = `
                             <div class="flex justify-between items-center">
-                                <div class="text-right">
+                                <div class="text-right flex-1">
                                     <div class="flex items-center space-x-2 space-x-reverse mb-2">
                                         <h3 class="text-xl font-black">${game.game_code}</h3>
-                                        <span class="${statusColor} text-white text-xs px-2 py-1 rounded-full">${statusText}</span>
+                                        <span class="bg-white/20 text-white text-xs px-2 py-1 rounded-full">
+                                            <i class="fas ${statusIcon} ml-1"></i>${statusText}
+                                        </span>
                                     </div>
-                                    <p class="text-white/80 text-sm mb-1">سازنده: ${game.creator_name}</p>
-                                    <p class="text-white/80 text-sm mb-1">دسته‌بندی: ${game.category}</p>
-                                    <p class="text-white/80 text-sm">سطح: ${game.difficulty} | بازیکنان: ${game.players_count}</p>
+                                    <p class="text-white/90 text-sm mb-1"><i class="fas fa-user ml-1"></i>سازنده: ${game.creator_name}</p>
+                                    <p class="text-white/90 text-sm mb-1"><i class="fas fa-tag ml-1"></i>دسته‌بندی: ${game.category}</p>
+                                    <p class="text-white/90 text-sm"><i class="fas fa-chart-line ml-1"></i>سطح: ${game.difficulty} | <i class="fas fa-users ml-1"></i>بازیکنان: ${game.players_count || 1}</p>
                                 </div>
-                                <div>
+                                <div class="mr-4">
                                     ${actionButton}
                                 </div>
                             </div>
@@ -837,6 +845,17 @@
                 console.error('خطا در بارگذاری بازی‌های فعال:', error);
                 debugLog('❌ خطا در بارگذاری بازی‌های فعال', error.message);
                 showNotification('خطا', 'خطا در بارگذاری بازی‌ها', 'error');
+                
+                const gamesList = document.getElementById('activeGamesList');
+                gamesList.innerHTML = `
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-6xl text-red-400 mb-4"></i>
+                        <p class="text-red-500 text-lg">خطا در بارگذاری بازی‌ها</p>
+                        <button onclick="loadActiveGames()" class="btn-secondary mt-4 px-6 py-3 rounded-2xl text-white font-black">
+                            تلاش مجدد
+                        </button>
+                    </div>
+                `;
             } finally {
                 hideLoading();
             }
@@ -851,12 +870,33 @@
             showNotification('مشاهده وضعیت', `وضعیت بازی ${gameCode} در حال بارگذاری است...`, 'info');
             // در اینجا باید وضعیت بازی نمایش داده شود
             debugLog('مشاهده وضعیت بازی:', gameCode);
+            
+            // نمایش پیام موقت
+            setTimeout(() => {
+                showNotification('توجه', 'صفحه وضعیت بازی به زودی اضافه خواهد شد', 'info');
+            }, 1000);
         }
 
         function continueGame(gameCode) {
             showNotification('ادامه بازی', `بازی ${gameCode} در حال بارگذاری است...`, 'info');
             // در اینجا باید بازی ادامه یابد
             debugLog('ادامه بازی:', gameCode);
+            
+            // نمایش پیام موقت
+            setTimeout(() => {
+                showNotification('توجه', 'صفحه بازی به زودی اضافه خواهد شد', 'info');
+            }, 1000);
+        }
+
+        function viewGameResults(gameCode) {
+            showNotification('نتایج بازی', `نتایج بازی ${gameCode} در حال بارگذاری است...`, 'info');
+            // در اینجا باید نتایج بازی نمایش داده شود
+            debugLog('مشاهده نتایج بازی:', gameCode);
+            
+            // نمایش پیام موقت
+            setTimeout(() => {
+                showNotification('توجه', 'صفحه نتایج بازی به زودی اضافه خواهد شد', 'info');
+            }, 1000);
         }
 
         // راه‌اندازی اولیه
