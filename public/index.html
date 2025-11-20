@@ -1017,7 +1017,7 @@
             });
         }
 
-        // پیوستن به بازی - نسخه اصلاح شده
+        // پیوستن به بازی - نسخه تضمینی
         function joinGame() {
             const gameCode = document.getElementById('join-game-code').value.trim().toUpperCase();
             
@@ -1035,6 +1035,8 @@
             const joinBtn = document.getElementById('join-game-btn');
             joinBtn.disabled = true;
             
+            console.log('در حال پیوستن به بازی با کد:', gameCode);
+            
             // ارسال درخواست به سرور
             fetch('/api/game/join', {
                 method: 'POST',
@@ -1049,14 +1051,18 @@
             })
             .then(response => response.json())
             .then(data => {
+                console.log('پاسخ سرور:', data);
+                
                 if (data.success) {
                     showNotification('با موفقیت به بازی پیوستید', 'success');
                     document.getElementById('join-game-code').value = '';
                     
                     // ذخیره اطلاعات بازی و نمایش صفحه بازی
                     currentGame = data.game;
+                    console.log('اطلاعات بازی دریافت شد:', currentGame);
+                    
+                    // باز کردن مودال بازی
                     openGameModal();
-                    setupGameView();
                     
                     // بارگذاری مجدد بازی‌های فعال
                     loadActiveGames();
@@ -1151,14 +1157,16 @@
 
         // مشاهده بازی
         function viewGame(gameCode) {
+            console.log('مشاهده بازی با کد:', gameCode);
+            
             // دریافت اطلاعات بازی از سرور
             fetch(`/api/game/${gameCode}`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     currentGame = data.game;
+                    console.log('اطلاعات بازی برای مشاهده:', currentGame);
                     openGameModal();
-                    setupGameView();
                 } else {
                     showNotification(data.message || 'خطا در دریافت اطلاعات بازی', 'error');
                 }
@@ -1171,12 +1179,17 @@
 
         // باز کردن مودال بازی
         function openGameModal() {
+            console.log('باز کردن مودال بازی');
             document.getElementById('game-modal').classList.add('active');
             
             // پیوستن به اتاق بازی در WebSocket
             if (socket && currentGame) {
                 socket.emit('joinGame', currentGame.game_code);
+                console.log('پیوستن به اتاق WebSocket:', currentGame.game_code);
             }
+            
+            // تنظیم نمای بازی
+            setupGameView();
         }
 
         // بستن مودال بازی
@@ -1199,7 +1212,12 @@
 
         // تنظیم نمای بازی
         function setupGameView() {
-            if (!currentGame) return;
+            if (!currentGame) {
+                console.log('هیچ بازی فعالی برای نمایش وجود ندارد');
+                return;
+            }
+            
+            console.log('تنظیم نمای بازی:', currentGame);
             
             const user = tg.initDataUnsafe.user;
             const isCreator = user.id === currentGame.creator_id;
@@ -1209,6 +1227,7 @@
                 `بازی ${currentGame.game_code} - ${currentGame.category}`;
             
             if (currentGame.game_state === 'waiting') {
+                console.log('نمایش وضعیت انتظار');
                 // نمایش وضعیت انتظار
                 document.getElementById('game-waiting').style.display = 'block';
                 document.getElementById('game-active').style.display = 'none';
@@ -1222,6 +1241,7 @@
                 displayPlayers(currentGame.players, 'waiting-players');
             } 
             else if (currentGame.game_state === 'active') {
+                console.log('نمایش وضعیت فعال');
                 // نمایش وضعیت فعال
                 document.getElementById('game-waiting').style.display = 'none';
                 document.getElementById('game-active').style.display = 'block';
@@ -1240,6 +1260,7 @@
                 startGameTimer();
             }
             else if (currentGame.game_state === 'finished') {
+                console.log('نمایش وضعیت پایان یافته');
                 // نمایش وضعیت پایان یافته
                 document.getElementById('game-waiting').style.display = 'none';
                 document.getElementById('game-active').style.display = 'none';
@@ -1529,6 +1550,7 @@
         if (socket) {
             // بازیکن جدید پیوست
             socket.on('playerJoined', (data) => {
+                console.log('بازیکن جدید پیوست:', data);
                 if (currentGame) {
                     // به‌روزرسانی لیست بازیکنان
                     currentGame.players = data.players;
@@ -1545,6 +1567,7 @@
             
             // حدس جدید
             socket.on('newGuess', (data) => {
+                console.log('حدس جدید:', data);
                 if (currentGame) {
                     // به‌روزرسانی تاریخچه حدس‌ها
                     if (!currentGame.guesses) currentGame.guesses = [];
@@ -1567,6 +1590,7 @@
             
             // استفاده از راهنمایی
             socket.on('hintUsed', (data) => {
+                console.log('راهنمایی استفاده شد:', data);
                 if (currentGame) {
                     if (!currentGame.revealedLetters) currentGame.revealedLetters = [];
                     currentGame.revealedLetters.push(data.position);
@@ -1580,6 +1604,7 @@
             
             // شروع بازی
             socket.on('gameStarted', (data) => {
+                console.log('بازی شروع شد:', data);
                 if (currentGame) {
                     currentGame.game_state = 'active';
                     currentGame.start_time = data.startTime;
@@ -1592,6 +1617,7 @@
             
             // پایان بازی
             socket.on('gameFinished', (data) => {
+                console.log('بازی پایان یافت:', data);
                 if (currentGame) {
                     currentGame.game_state = 'finished';
                     currentGame.winner_id = data.winnerId;
