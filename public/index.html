@@ -1017,7 +1017,7 @@
             });
         }
 
-        // پیوستن به بازی
+        // پیوستن به بازی - نسخه اصلاح شده
         function joinGame() {
             const gameCode = document.getElementById('join-game-code').value.trim().toUpperCase();
             
@@ -1052,6 +1052,11 @@
                 if (data.success) {
                     showNotification('با موفقیت به بازی پیوستید', 'success');
                     document.getElementById('join-game-code').value = '';
+                    
+                    // ذخیره اطلاعات بازی و نمایش صفحه بازی
+                    currentGame = data.game;
+                    openGameModal();
+                    setupGameView();
                     
                     // بارگذاری مجدد بازی‌های فعال
                     loadActiveGames();
@@ -1524,10 +1529,15 @@
         if (socket) {
             // بازیکن جدید پیوست
             socket.on('playerJoined', (data) => {
-                if (currentGame && currentGame.game_code === data.gameCode) {
+                if (currentGame) {
                     // به‌روزرسانی لیست بازیکنان
                     currentGame.players = data.players;
-                    displayPlayers(currentGame.players, 'waiting-players');
+                    
+                    if (currentGame.game_state === 'waiting') {
+                        displayPlayers(currentGame.players, 'waiting-players');
+                    } else if (currentGame.game_state === 'active') {
+                        displayPlayers(currentGame.players, 'active-players');
+                    }
                     
                     showNotification(`بازیکن ${data.username} به بازی پیوست`, 'success');
                 }
