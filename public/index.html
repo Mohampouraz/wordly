@@ -1,506 +1,466 @@
-<!doctype html>
-<html lang="fa" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>وردلی رقابتی</title>
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
-  <style>
-    :root{
-      --bg:#f7fbff; --card:#ffffff; --muted:#6b7280; --border:#e6e9ef; --accent:#3b82f6; --accent2:#06b6d4; --success:#10b981; --danger:#ef4444; --radius:12px;
+// server.js
+// Full production-ready server:
+// - Multi-room, games, game_states
+// - Telegram initData HMAC verification in /auth/telegram
+// - Broadcast complete game_states to all room members on change
+// - Safe bigint handling (timer_ms)
+// - Postgres migrations (idempotent) and Socket.io real-time
+// Save in project root as server.js
+
+require('dotenv').config();
+
+const express = require('express');
+const http = require('http');
+const path = require('path');
+const crypto = require('crypto');
+const cors = require('cors');
+const { Pool } = require('pg');
+const { Server } = require('socket.io');
+
+const PORT = process.env.PORT || 3000;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || ''; // required for HMAC validate
+const APP_URL = process.env.WEB_APP_URL || `http://localhost:${PORT}`;
+
+// ---------- Postgres connection ----------
+const buildConnectionString = () => {
+  let cs = process.env.DATABASE_URL;
+  if (cs && !/sslmode=/i.test(cs)) cs += (cs.includes('?') ? '&' : '?') + 'sslmode=require';
+  if (cs) return cs;
+  const host = process.env.PGHOST, port = process.env.PGPORT || 5432, user = process.env.PGUSER, pass = process.env.PGPASSWORD, db = process.env.PGDATABASE;
+  if (host && user && pass && db) return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(pass)}@${host}:${port}/${db}?sslmode=require`;
+  return null;
+};
+const connectionString = buildConnectionString();
+const pool = new Pool({ connectionString, ssl: connectionString ? { rejectUnauthorized: false } : undefined });
+
+// ---------- App + Socket ----------
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*', methods: ['GET','POST'] } });
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ---------- Words pack ----------
+const words = require('./words');
+
+// ---------- Helpers ----------
+const now = () => new Date();
+const safeBigInt = (v, fallback = 0) => {
+  if (v === null || v === undefined) return fallback;
+  const n = typeof v === 'number' ? v : (typeof v === 'string' ? Number(v) : NaN);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.trunc(Math.max(0, n));
+};
+const seededShuffle = (arr, seedStr) => {
+  const a = arr.slice();
+  let seed = 0;
+  for (let i = 0; i < seedStr.length; i++) seed = (seed * 31 + seedStr.charCodeAt(i)) >>> 0;
+  for (let i = a.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+const newGameDeckForRoom = (roomId, level = 'medium') => {
+  const all = [];
+  for (const c of words.categories) {
+    for (const w of c.words.filter(x => !level || x.level === level)) all.push({ word: String(w.text), category: c.name, level: w.level });
+  }
+  return seededShuffle(all, roomId).slice(0, Math.min(10, all.length));
+};
+
+// ---------- Migrations (idempotent) ----------
+const ensureSchema = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id BIGINT PRIMARY KEY,
+      username TEXT,
+      first_name TEXT,
+      last_name TEXT,
+      language_code TEXT,
+      photo_url TEXT,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS rooms (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      status TEXT DEFAULT 'waiting',
+      level TEXT,
+      max_players INT DEFAULT 2,
+      created_by BIGINT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS room_players (
+      room_id TEXT,
+      user_id BIGINT,
+      role TEXT,
+      joined_at TIMESTAMP DEFAULT NOW(),
+      PRIMARY KEY (room_id, user_id)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS games (
+      id TEXT PRIMARY KEY,
+      room_id TEXT,
+      deck JSONB,
+      level TEXT,
+      status TEXT,
+      started_at TIMESTAMP,
+      finished_at TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS game_states (
+      game_id TEXT,
+      user_id BIGINT,
+      current_index INT DEFAULT 0,
+      correct_letters JSONB DEFAULT '[]',
+      wrong_letters JSONB DEFAULT '[]',
+      hints_used INT DEFAULT 0,
+      score INT DEFAULT 0,
+      allowed_wrong INT DEFAULT 0,
+      timer_ms BIGINT DEFAULT 0,
+      last_update TIMESTAMP DEFAULT NOW(),
+      PRIMARY KEY (game_id, user_id)
+    );
+  `);
+};
+
+// ---------- Telegram initData verification ----------
+const verifyTelegramInitData = (initData) => {
+  try {
+    if (!initData || !BOT_TOKEN) return false;
+    // Parse key=value pairs, find hash and build data_check_string
+    const parts = initData.split('\n').join('&').split('&').filter(Boolean);
+    const obj = {};
+    let hash = null;
+    for (const p of parts) {
+      const [k, v] = p.split('=');
+      if (k === 'hash') { hash = v; } else obj[k] = v;
     }
-    *{box-sizing:border-box}
-    body{margin:0;font-family:'Vazirmatn',system-ui; background:linear-gradient(180deg,#f7faff,#ffffff); color:#0f172a;padding:12px}
-    .app{max-width:1080px;margin:18px auto;border-radius:14px;background:var(--card);box-shadow:0 8px 30px rgba(15,23,42,0.06);overflow:hidden;border:1px solid var(--border)}
-    header{display:flex;justify-content:space-between;align-items:center;padding:16px 18px}
-    .logo{display:flex;align-items:center;gap:12px}
-    .logo-badge{width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
-    .user{display:flex;align-items:center;gap:10px}
-    .chip{padding:8px 12px;border-radius:999px;background:#f3f4f6;border:1px solid var(--border);color:var(--muted);font-weight:600}
-    nav{display:flex;gap:8px;padding:12px 18px;border-top:1px solid var(--border);background:#fbfdff}
-    .tab{padding:8px 12px;border-radius:10px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer}
-    .tab.active{background:linear-gradient(90deg,rgba(59,130,246,0.08),rgba(6,182,212,0.06));color:var(--accent);font-weight:700}
-    main{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
-    .panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
-    .rooms-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    .room-card{padding:12px;border-radius:10px;border:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:transparent;cursor:pointer;color:var(--accent)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;font-weight:700}
-    .btn.ghost{background:#fff;border:1px dashed #e6e9ef;color:var(--muted)}
-    .game-header{display:flex;justify-content:space-between;align-items:center}
-    .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700}
-    .timer{font-weight:800;color:var(--accent);font-size:20px}
-    .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
-    .slot{min-width:36px;height:48px;border-radius:10px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:#fff}
-    .slot.revealed{background:linear-gradient(90deg,rgba(59,130,246,0.06),rgba(6,182,212,0.04));color:var(--accent);font-weight:800}
-    input.letter{width:84px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px}
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff}
-    .players-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-    footer{padding:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;color:var(--muted)}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0.35);display:none;align-items:center;justify-content:center;z-index:1200;padding:16px}
-    .modal{width:100%;max-width:980px;border-radius:12px;background:#fff;border:1px solid var(--border);padding:16px}
-    .cols{display:grid;grid-template-columns:1fr 320px;gap:12px}
-    @media (max-width:1000px){
-      main{grid-template-columns:1fr}
-      .rooms-grid{grid-template-columns:1fr}
-      .cols{grid-template-columns:1fr}
-    }
-    @media (max-width:420px){
-      .slot{min-width:30px;height:40px;font-size:16px}
-      input.letter{width:64px}
-    }
-  </style>
-</head>
-<body>
-  <div class="app" role="application" aria-label="وردلی رقابتی">
-    <header>
-      <div class="logo">
-        <div class="logo-badge">و</div>
-        <div>
-          <div style="font-weight:800">وردلی رقابتی</div>
-          <div style="font-size:13px;color:var(--muted)">دو نفره؛ بلادرنگ؛ فارسی</div>
-        </div>
-      </div>
-      <div class="user">
-        <div id="userName" class="chip">کاربر مهمان</div>
-        <div id="userId" class="chip">—</div>
-        <button id="openRooms" class="btn ghost">مدیریت اتاق‌ها</button>
-      </div>
-    </header>
+    if (!hash) return false;
+    const sorted = Object.keys(obj).sort().map(k => `${k}=${obj[k]}`).join('\n');
+    const secret = crypto.createHmac('sha256', BOT_TOKEN).update('WebAppData').digest();
+    const hmac = crypto.createHmac('sha256', secret).update(sorted).digest('hex');
+    return crypto.timingSafeEqual(Buffer.from(hmac,'hex'), Buffer.from(hash,'hex'));
+  } catch (e) {
+    console.warn('telegram verify failed', e.message);
+    return false;
+  }
+};
 
-    <nav>
-      <button class="tab active" data-tab="dashboard">داشبورد</button>
-      <button class="tab" data-tab="play">بازی</button>
-      <button class="tab" data-tab="about">درباره</button>
-    </nav>
+// ---------- Broadcast helper: publish full game_states for a game to room -->
+const broadcastGameStates = async (gameId) => {
+  try {
+    const gs = await pool.query(`SELECT gs.user_id, gs.current_index, gs.score, gs.timer_ms FROM game_states gs WHERE gs.game_id=$1;`, [gameId]);
+    const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [gameId]);
+    const roomId = gameRow.rows[0]?.room_id;
+    const payload = { game_id: gameId, states: gs.rows };
+    if (roomId) io.to(roomId).emit('game:states', payload);
+  } catch (e) {
+    console.error('broadcastGameStates error', e);
+  }
+};
 
-    <main>
-      <section>
-        <div id="dashboard" class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div><div style="font-weight:800">داشبورد</div><div style="font-size:13px;color:var(--muted)">اتاق‌ها و شروع سریع</div></div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div class="pill" id="roomStatus">وضعیت: —</div>
-              <div class="pill" id="playersCount">بازیکنان: —</div>
-            </div>
-          </div>
+// ---------- API endpoints ----------
+app.get('/health', async (req, res) => {
+  try { await pool.query('SELECT 1'); res.json({ ok: true, ts: now() }); }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
 
-          <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-            <select id="quickLevel" style="padding:8px;border-radius:8px;border:1px solid var(--border)">
-              <option value="easy">آسان</option><option value="medium" selected>متوسط</option><option value="hard">سخت</option>
-            </select>
-            <button id="quickJoin" class="btn primary">پیوستن سریع</button>
-            <button id="resume" class="btn">ادامه</button>
-          </div>
+// auth: validate initData and store user
+app.post('/auth/telegram', async (req, res) => {
+  const { initData, user } = req.body;
+  try {
+    if (!initData || !user) return res.status(400).json({ ok: false, error: 'missing' });
+    // validate
+    const ok = verifyTelegramInitData(initData);
+    if (!ok) return res.status(400).json({ ok: false, error: 'invalid_init' });
+    const uid = Number(user.id);
+    if (!uid) return res.status(400).json({ ok: false, error: 'no_user' });
+    await pool.query(
+      `INSERT INTO users (id, username, first_name, last_name, language_code, photo_url)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (id) DO UPDATE SET username=EXCLUDED.username, first_name=EXCLUDED.first_name, last_name=EXCLUDED.last_name, language_code=EXCLUDED.language_code, photo_url=EXCLUDED.photo_url, updated_at=NOW();`,
+      [uid, user.username || null, user.first_name || null, user.last_name || null, user.language_code || null, user.photo_url || null]
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('auth error', e);
+    res.status(500).json({ ok: false, error: 'server_error' });
+  }
+});
 
-          <div style="margin-top:16px">
-            <div style="font-weight:700;margin-bottom:8px">اتاق‌های پیشنهادی</div>
-            <div id="roomsList" class="rooms-grid"></div>
-          </div>
-        </div>
+// rooms list
+app.get('/rooms/list', async (req, res) => {
+  const level = req.query.level || null;
+  try {
+    let q = `SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, COUNT(rp.user_id) AS players
+             FROM rooms r LEFT JOIN room_players rp ON r.id = rp.room_id
+             WHERE r.status <> 'finished'`;
+    const params = [];
+    if (level) { params.push(level); q += ` AND r.level = $${params.length}`; }
+    q += ` GROUP BY r.id ORDER BY r.created_at DESC LIMIT 100;`;
+    const out = await pool.query(q, params);
+    res.json({ ok: true, rooms: out.rows });
+  } catch (e) { console.error('rooms/list', e); res.status(500).json({ ok: false, error: 'server_error' }); }
+});
 
-        <div id="gamePanel" class="panel" style="margin-top:18px;display:none">
-          <div class="game-header">
-            <div>
-              <div style="font-weight:800">بازی</div>
-              <div style="font-size:13px;color:var(--muted)">کلمهٔ فعلی و کنترل‌ها</div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div class="pill">دسته: <span id="categoryName">—</span></div>
-              <div class="pill">سطح: <span id="levelName">—</span></div>
-              <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
-              <div class="timer" id="timer">۰۰:۰۰</div>
-            </div>
-          </div>
+// create room
+app.post('/rooms/create', async (req, res) => {
+  const { user_id, name, level, max_players } = req.body;
+  if (!user_id) return res.status(400).json({ ok: false, error: 'no_user' });
+  try {
+    const roomId = crypto.randomUUID();
+    await pool.query(`INSERT INTO rooms (id,name,status,level,max_players,created_by) VALUES ($1,$2,'waiting',$3,$4,$5);`, [roomId, name || 'اتاق', level || 'medium', Number(max_players) || 2, user_id]);
+    await pool.query(`INSERT INTO room_players (room_id,user_id,role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`, [roomId, user_id, 'host']);
+    res.json({ ok: true, room_id: roomId });
+  } catch (e) { console.error('rooms/create', e); res.status(500).json({ ok: false, error: 'server_error' }); }
+});
 
-          <div class="word-slots" id="wordSlots"></div>
+// join room (by id)
+app.post('/rooms/join', async (req, res) => {
+  const { room_id, user_id } = req.body;
+  if (!room_id || !user_id) return res.status(400).json({ ok: false, error: 'missing' });
+  try {
+    const r = await pool.query(`SELECT id, status, level, max_players FROM rooms WHERE id=$1 LIMIT 1;`, [room_id]);
+    if (!r.rows.length) return res.status(404).json({ ok: false, error: 'not_found' });
+    const rn = r.rows[0];
+    const cnt = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
+    if (Number(cnt.rows[0].cnt) >= (rn.max_players || 2)) return res.status(400).json({ ok: false, error: 'full' });
+    await pool.query(`INSERT INTO room_players (room_id,user_id,role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`, [room_id, user_id, 'player']);
 
-          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-            <input id="letterInput" class="letter" maxlength="1" placeholder="حرف فارسی" />
-            <button id="guessBtn" class="btn primary">حدس</button>
-            <button id="hintBtn" class="btn">راهنما</button>
-            <button id="backBtn" class="btn ghost">بازگشت</button>
-          </div>
-
-          <div style="display:flex;gap:12px;margin-top:12px">
-            <div style="flex:1"><div style="font-weight:700">حروف صحیح</div><div class="chips" id="correctLetters"></div></div>
-            <div style="flex:1"><div style="font-weight:700">حروف غلط</div><div class="chips" id="wrongLetters"></div></div>
-          </div>
-        </div>
-
-        <div id="about" class="panel" style="margin-top:18px;display:none">
-          <div style="font-weight:800">درباره</div>
-          <p style="color:var(--muted)">وردلی رقابتی یک بازی حدس کلمهٔ فارسی با تجربهٔ موبایل-اول و قابلیت حضور در چند اتاق و نمایش همزمان امتیاز و پیشرفت است.</p>
-        </div>
-      </section>
-
-      <aside>
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:800">بازیکنان</div>
-            <div style="font-size:13px;color:var(--muted)">وضعیت</div>
-          </div>
-          <div class="players-list" id="playersList"></div>
-
-          <div style="margin-top:12px">
-            <div style="font-weight:700">امتیاز شما</div>
-            <div id="scoreMe" style="font-size:24px;font-weight:800;color:var(--accent);margin-top:6px">۰</div>
-            <div style="font-weight:700;margin-top:12px">پیشرفت</div>
-            <div id="progressMe" style="color:var(--muted)">—</div>
-            <div id="progressOpp" style="color:var(--muted);margin-top:6px">—</div>
-          </div>
-        </div>
-
-        <div class="panel" style="margin-top:12px">
-          <div style="font-weight:700">ابزار</div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="manageBtn" class="btn">مدیریت اتاق‌ها</button>
-            <button id="clearLocal" class="btn ghost">پاکسازی محلی</button>
-          </div>
-        </div>
-      </aside>
-    </main>
-
-    <footer>
-      <div style="color:var(--muted)">ساخته شده برای تجربهٔ فارسی</div>
-      <div style="color:var(--muted)">وردلی — وب اپ</div>
-    </footer>
-  </div>
-
-  <!-- Rooms Modal -->
-  <div id="roomsModal" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 style="margin:0">مدیریت اتاق‌ها</h3>
-        <div>
-          <button id="closeModal" class="btn">بستن</button>
-        </div>
-      </div>
-
-      <div class="cols" style="margin-top:12px">
-        <div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-            <select id="filterLevel" style="padding:8px;border-radius:8px;border:1px solid var(--border)">
-              <option value="">همه سطوح</option><option value="easy">آسان</option><option value="medium">متوسط</option><option value="hard">سخت</option>
-            </select>
-            <button id="refreshRooms" class="btn">بارگذاری</button>
-          </div>
-          <div id="publicRooms" style="max-height:360px;overflow:auto;display:grid;gap:8px"></div>
-        </div>
-
-        <div>
-          <div style="font-weight:700">ایجاد اتاق</div>
-          <input id="roomName" placeholder="نام اتاق" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);margin-top:8px" />
-          <select id="roomLevel" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);margin-top:8px">
-            <option value="easy">آسان</option><option value="medium" selected>متوسط</option><option value="hard">سخت</option>
-          </select>
-          <input id="roomMax" type="number" value="2" min="2" max="8" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);margin-top:8px" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="createRoom" class="btn primary">ایجاد و پیوستن</button>
-            <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
-          </div>
-          <div style="margin-top:12px;font-weight:700">اتاق‌های من</div>
-          <div id="myRooms" style="max-height:200px;overflow:auto;margin-top:8px"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- scripts -->
-  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-
-  <script>
-    // ---------- State ----------
-    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0 };
-    const socket = io();
-
-    const d = (s) => document.querySelector(s);
-
-    // ---------- DOM ----------
-    const tabs = document.querySelectorAll('.tab');
-    const views = { dashboard: d('#dashboard'), play: d('#gamePanel'), about: d('#about') };
-    const userName = d('#userName'), userId = d('#userId'), roomsList = d('#roomsList'), quickLevel = d('#quickLevel');
-    const quickJoin = d('#quickJoin'), resumeBtn = d('#resume'), playersList = d('#playersList');
-    const scoreMe = d('#scoreMe'), progressMe = d('#progressMe'), progressOpp = d('#progressOpp');
-    const categoryName = d('#categoryName'), levelName = d('#levelName'), wordIndex = d('#wordIndex');
-    const timerEl = d('#timer'), wordSlots = d('#wordSlots'), letterInput = d('#letterInput');
-    const guessBtn = d('#guessBtn'), hintBtn = d('#hintBtn'), backBtn = d('#backBtn');
-    const correctLetters = d('#correctLetters'), wrongLetters = d('#wrongLetters');
-
-    // rooms modal elements
-    const openRooms = d('#openRooms'), roomsModal = d('#roomsModal'), closeModal = d('#closeModal');
-    const refreshRooms = d('#refreshRooms'), filterLevel = d('#filterLevel'), publicRooms = d('#publicRooms');
-    const roomName = d('#roomName'), roomLevel = d('#roomLevel'), roomMax = d('#roomMax'), createRoomBtn = d('#createRoom');
-    const myRooms = d('#myRooms'), myRoomsBtn = d('#myRoomsBtn');
-
-    // tabs
-    tabs.forEach(t => t.addEventListener('click', () => {
-      tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
-      views.dashboard.style.display = views.play.style.display = views.about.style.display = 'none';
-      const key = t.dataset.tab; views[key].style.display = 'block';
-    }));
-
-    // ---------- Telegram init ----------
-    (async function initTelegram(){
-      function waitForTelegram(timeout=3000){
-        return new Promise(resolve => {
-          const start = Date.now();
-          (function check(){
-            if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp);
-            if (Date.now()-start > timeout) return resolve(null);
-            setTimeout(check,50);
-          })();
-        });
+    const players = await pool.query(`SELECT user_id FROM room_players WHERE room_id=$1 ORDER BY joined_at ASC;`, [room_id]);
+    if (players.rows.length >= 2 && rn.status === 'waiting') {
+      const gameId = crypto.randomUUID();
+      const deck = newGameDeckForRoom(room_id, rn.level || 'medium');
+      await pool.query(`INSERT INTO games (id,room_id,deck,level,status,started_at) VALUES ($1,$2,$3::jsonb,$4,'active',NOW());`, [gameId, room_id, JSON.stringify(deck), rn.level || 'medium']);
+      for (const p of players.rows) {
+        const first = deck[0]?.word || '';
+        const allowed = Math.max(1, Math.ceil(String(first).length * 1.2));
+        await pool.query(`INSERT INTO game_states (game_id,user_id,current_index,correct_letters,wrong_letters,hints_used,score,allowed_wrong,timer_ms) VALUES ($1,$2,0,'[]','[]',0,0,$3,0) ON CONFLICT DO NOTHING;`, [gameId, p.user_id, allowed]);
       }
-      const tg = await waitForTelegram(3000);
-      if (tg) {
-        try {
-          state.initData = tg.initData || '';
-          const user = tg.initDataUnsafe?.user || null;
-          if (user && user.id) {
-            state.myId = user.id;
-            userName.textContent = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : '');
-            userId.textContent = user.id.toString().replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
-            fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
-            try { tg.expand(); } catch(e){}
-          } else fallbackGuest();
-        } catch (e) { console.error('tg init', e); fallbackGuest(); }
-      } else fallbackGuest();
-      loadSuggestedRooms();
-    })();
-
-    function fallbackGuest(){ if (!state.myId) { state.myId = Math.floor(100000 + Math.random()*899999); userName.textContent='کاربر مهمان'; userId.textContent = String(state.myId).replace(/[0-9]/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]); } }
-
-    // ---------- Rooms and UI ----------
-    async function loadSuggestedRooms(){
-      try {
-        const level = quickLevel.value;
-        const res = await fetch('/rooms/list' + (level ? '?level=' + encodeURIComponent(level) : ''));
-        const d = await res.json();
-        roomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div style="color:var(--muted)">اتاقی نیست</div>'; return; }
-        d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room-card';
-          el.innerHTML = `<div><div style="font-weight:700">${r.name}</div><div style="font-size:13px;color:var(--muted)">سطح: ${r.level || '—'}</div></div>`;
-          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
-          btn.addEventListener('click', async ()=> { await joinRoom(r.id); });
-          el.appendChild(btn); roomsList.appendChild(el);
-        });
-      } catch (e) { console.error(e); roomsList.innerHTML = '<div style="color:var(--muted)">خطا</div>'; }
+      await pool.query(`UPDATE rooms SET status='playing' WHERE id=$1;`, [room_id]);
+      io.to(room_id).emit('game:started', { game_id: gameId, deck });
+      // broadcast initial states
+      await broadcastGameStates(gameId);
+      return res.json({ ok: true, room_id, status: 'ready', game_id: gameId });
     }
+    const cntAfter = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
+    io.to(room_id).emit('room:presence', { room_id, count: Number(cntAfter.rows[0].cnt) });
+    res.json({ ok: true, room_id, status: 'waiting' });
+  } catch (e) { console.error('rooms/join', e); res.status(500).json({ ok: false, error: 'server_error' }); }
+});
 
-    quickJoin.addEventListener('click', async () => {
-      try {
-        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: quickLevel.value, max_players: 2 })});
-        const d = await res.json(); if (!d.ok) return alert('خطا');
-        state.roomId = d.room_id;
-        await joinRoom(d.room_id);
-      } catch (e) { console.error(e); alert('خطا'); }
-    });
+// leave room
+app.post('/rooms/leave', async (req, res) => {
+  const { room_id, user_id } = req.body;
+  if (!room_id || !user_id) return res.status(400).json({ ok: false, error: 'missing' });
+  try {
+    await pool.query(`DELETE FROM room_players WHERE room_id=$1 AND user_id=$2;`, [room_id, user_id]);
+    const c = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
+    const cnt = Number(c.rows[0].cnt);
+    if (cnt === 0) await pool.query(`UPDATE rooms SET status='waiting' WHERE id=$1;`, [room_id]);
+    io.to(room_id).emit('room:presence', { room_id, count: cnt });
+    res.json({ ok: true });
+  } catch (e) { console.error('rooms/leave', e); res.status(500).json({ ok: false, error: 'server_error' }); }
+});
 
-    async function joinRoom(roomId){
-      try {
-        const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId, user_id: state.myId })});
-        const d = await res.json(); if (!d.ok) return alert('نشد');
-        state.roomId = d.room_id;
-        socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        if (d.status === 'ready' && d.game_id) {
-          state.gameId = d.game_id; setTimeout(()=> resume(), 120);
-        } else {
-          document.querySelector('.tab[data-tab="play"]').click();
-          categoryName.textContent = 'در انتظار';
-          wordSlots.innerHTML = '<div style="padding:12px;color:var(--muted)">در انتظار حریف...</div>';
-        }
-        loadMyRooms();
-      } catch (e) { console.error(e); alert('خطا'); }
+// my rooms
+app.post('/rooms/myrooms', async (req, res) => {
+  const { user_id } = req.body;
+  if (!user_id) return res.status(400).json({ ok: false, error: 'no_user' });
+  try {
+    const r = await pool.query(`SELECT r.id, r.name, r.level, r.status, r.max_players, rp.joined_at FROM rooms r JOIN room_players rp ON r.id = rp.room_id WHERE rp.user_id = $1 ORDER BY rp.joined_at DESC;`, [user_id]);
+    res.json({ ok: true, rooms: r.rows });
+  } catch (e) { console.error('rooms/myrooms', e); res.status(500).json({ ok: false, error: 'server_error' }); }
+});
+
+// rooms state (includes game summary and full game_states if game active)
+app.post('/rooms/state', async (req, res) => {
+  const { room_id } = req.body;
+  if (!room_id) return res.status(400).json({ ok: false, error: 'no_room_id' });
+  try {
+    const room = await pool.query(`SELECT id, name, status, level FROM rooms WHERE id=$1;`, [room_id]);
+    if (!room.rows.length) return res.status(404).json({ ok: false, error: 'room_not_found' });
+    const players = await pool.query(`SELECT user_id, role FROM room_players WHERE room_id=$1 ORDER BY joined_at ASC;`, [room_id]);
+    const game = await pool.query(`SELECT id, deck, level, status FROM games WHERE room_id=$1 ORDER BY started_at DESC LIMIT 1;`, [room_id]);
+    let states = [];
+    if (game.rows.length) {
+      const gs = await pool.query(`SELECT user_id, current_index, score, timer_ms FROM game_states WHERE game_id=$1;`, [game.rows[0].id]);
+      states = gs.rows;
     }
+    res.json({ ok: true, room: room.rows[0], players: players.rows, game: game.rows.length ? game.rows[0] : null, states });
+  } catch (e) { console.error('rooms/state', e); res.status(500).json({ ok: false, error: 'server_error' }); }
+});
 
-    // rooms modal
-    openRooms.addEventListener('click', ()=> { roomsModal.style.display='flex'; loadPublicRooms(); loadMyRooms(); });
-    d('#manageBtn').addEventListener('click', ()=> { roomsModal.style.display='flex'; loadPublicRooms(); loadMyRooms(); });
-    closeModal.addEventListener('click', ()=> roomsModal.style.display='none');
-    refreshRooms.addEventListener('click', loadPublicRooms);
-    myRoomsBtn.addEventListener('click', loadMyRooms);
-    filterLevel.addEventListener('change', loadPublicRooms);
+// ---------- Socket handling ----------
+const socketMeta = new Map(); // socket.id -> { roomIds:Set, userId }
 
-    async function loadPublicRooms(){
-      try {
-        const lvl = filterLevel.value;
-        const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
-        const d = await res.json(); publicRooms.innerHTML='';
-        if (!d.ok || !d.rooms.length) { publicRooms.innerHTML = '<div style="color:var(--muted)">هیچ اتاقی یافت نشد</div>'; return; }
-        d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room-card';
-          el.innerHTML = `<div><div style="font-weight:700">${r.name}</div><div style="font-size:13px;color:var(--muted)">${r.players||0}/${r.max_players||2}</div></div>`;
-          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
-          btn.addEventListener('click', async ()=> { await joinRoom(r.id); roomsModal.style.display='none'; });
-          el.appendChild(btn); publicRooms.appendChild(el);
-        });
-      } catch (e) { console.error(e); publicRooms.innerHTML='<div style="color:var(--muted)">خطا</div>'; }
-    }
+io.on('connection', (socket) => {
+  socketMeta.set(socket.id, { roomIds: new Set(), userId: null });
 
-    createRoomBtn.addEventListener('click', async () => {
-      try {
-        const name = roomName.value || ('اتاق ' + Math.floor(Math.random()*900+100));
-        const lvl = roomLevel.value; const maxp = Number(roomMax.value) || 2;
-        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name, level: lvl, max_players: maxp })});
-        const d = await res.json(); if (!d.ok) return alert('خطا');
-        state.roomId = d.room_id; socket.emit('join-room', { room_id: d.room_id, user_id: state.myId });
-        roomsModal.style.display='none'; loadMyRooms(); loadPublicRooms();
-      } catch (e) { console.error(e); alert('خطا'); }
-    });
+  socket.on('join-room', ({ room_id, user_id }) => {
+    if (!room_id) return;
+    const meta = socketMeta.get(socket.id) || { roomIds: new Set(), userId: null };
+    if (user_id) meta.userId = user_id;
+    socket.join(room_id);
+    meta.roomIds.add(room_id);
+    socketMeta.set(socket.id, meta);
+    io.to(room_id).emit('room:presence', { room_id, count: io.sockets.adapter.rooms.get(room_id)?.size || 0 });
+  });
 
-    async function loadMyRooms(){
-      try {
-        const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId })});
-        const d = await res.json(); myRooms.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { myRooms.innerHTML = '<div style="color:var(--muted)">شما اتاقی ندارید</div>'; return; }
-        d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room-card';
-          el.innerHTML = `<div><div style="font-weight:700">${r.name}</div><div style="font-size:13px;color:var(--muted)">${r.level||''}</div></div>`;
-          const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
-          open.addEventListener('click', ()=> { roomsModal.style.display='none'; state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); document.querySelector('.tab[data-tab="play"]').click(); });
-          const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
-          leave.addEventListener('click', async ()=> { await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })}); loadMyRooms(); loadPublicRooms(); });
-          el.appendChild(open); el.appendChild(leave); myRooms.appendChild(el);
-        });
-      } catch (e) { console.error(e); myRooms.innerHTML='<div style="color:var(--muted)">خطا</div>'; }
-    }
+  socket.on('game:resume', async ({ game_id, user_id }) => {
+    try {
+      const gs = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id]);
+      const g = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
+      if (!gs.rows.length || !g.rows.length) return;
+      socket.emit('game:state', { state: gs.rows[0], deck: g.rows[0].deck });
+      // also send full game_states for UI
+      await broadcastGameStates(game_id);
+    } catch (e) { console.error('game:resume', e); }
+  });
 
-    async function loadRoomStateAndResume(roomId){
-      try {
-        const res = await fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId })});
-        const d = await res.json(); if (!d.ok) return;
-        if (d.game && d.game.id) {
-          state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-        } else {
-          categoryName.textContent='در انتظار'; wordSlots.innerHTML='<div style="padding:12px;color:var(--muted)">در انتظار...</div>';
-        }
-      } catch (e) { console.error(e); }
-    }
+  socket.on('game:guess', async ({ game_id, user_id, letter }) => {
+    try {
+      if (!game_id || !user_id || !letter) return;
+      const gsq = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id]);
+      const gq = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
+      if (!gsq.rows.length || !gq.rows.length) return;
+      const gs = gsq.rows[0];
+      const deck = gq.rows[0].deck;
+      const idx = Number(gs.current_index) || 0;
+      const word = String(deck[idx]?.word || '');
+      const normalized = String(letter).trim();
+      if (!normalized || normalized.length !== 1) return;
 
-    // ---------- Socket listeners ----------
-    socket.on('room:presence', ({ room_id, count }) => {
-      d('#playersCount').textContent = 'بازیکنان: ' + String(count || 0);
-    });
+      const correct = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
+      const wrong = Array.isArray(gs.wrong_letters) ? gs.wrong_letters : JSON.parse(gs.wrong_letters || '[]');
+      if (correct.includes(normalized) || wrong.includes(normalized)) { socket.emit('game:feedback', { type: 'duplicate' }); return; }
 
-    socket.on('game:started', ({ game_id, deck }) => {
-      state.gameId = game_id; state.deck = deck;
-      if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      setTimeout(()=> resume(), 150);
-    });
+      const positions = [];
+      for (let i=0;i<word.length;i++) if (word[i] === normalized) positions.push(i);
 
-    socket.on('game:state', ({ state: gs, deck }) => {
-      state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms) || 0;
-      renderGame(); startTimer();
-    });
+      const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [game_id]);
+      const roomId = gameRow.rows[0]?.room_id;
 
-    // full states broadcast for accurate opponent display
-    socket.on('game:states', ({ game_id, states }) => {
-      if (state.gameId !== game_id) return;
-      // update opponent UI
-      playersList.innerHTML = '';
-      states.forEach(s => {
-        const el = document.createElement('div'); el.className='player-row';
-        el.innerHTML = `<div>${s.user_id}</div><div style="font-size:13px;color:var(--muted)">ایندکس: ${s.current_index||0} — امتیاز: ${s.score||0}</div>`;
-        playersList.appendChild(el);
-      });
-      // set progressOpp as the max index among others
-      const opp = states.find(s => s.user_id !== state.myId);
-      if (opp) progressOpp.textContent = (opp.current_index||0)+1 + ' / ' + (state.deck.length||10);
-    });
-
-    socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta }) => {
-      positions.forEach(p => { const s = wordSlots.querySelector(`.slot[data-index="${p}"]`); if (s) { s.textContent = letter; s.classList.add('revealed'); } });
-      if (user_id === state.myId) appendChip(correctLetters, letter);
-      if (user_id === state.myId) { state.gameState = state.gameState || {}; state.gameState.score = (Number(state.gameState.score)||0) + (scoreDelta||0); scoreMe.textContent = state.gameState.score; }
-    });
-
-    socket.on('game:letter:wrong', ({ user_id, letter }) => { if (user_id === state.myId) appendChip(wrongLetters, letter); });
-
-    socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
-      positions.forEach(p => { const s = wordSlots.querySelector(`.slot[data-index="${p}"]`); if (s) { s.textContent = letter; s.classList.add('revealed'); } });
-      if (user_id === state.myId) { appendChip(correctLetters, letter); state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0)); scoreMe.textContent = state.gameState.score; }
-    });
-
-    socket.on('game:next', ({ game_id, nextIndex, states }) => {
-      if (state.gameId === game_id) { socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); }
-    });
-
-    socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) alert('بازی به پایان رسید'); });
-
-    // ---------- Game actions & rendering ----------
-    function renderGame(){
-      if (!state.gameState || !state.deck || !state.deck.length) return;
-      const idx = Number(state.gameState.current_index) || 0;
-      const item = state.deck[idx];
-      categoryName.textContent = item.category || '';
-      levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
-      wordIndex.textContent = String(idx+1);
-      wordSlots.innerHTML = '';
-      for (let i=0;i<String(item.word).length;i++){
-        const s = document.createElement('div'); s.className='slot'; s.dataset.index = i; s.textContent = '_'; wordSlots.appendChild(s);
+      if (positions.length > 0) {
+        correct.push(normalized);
+        const scoreDelta = 10 * positions.length;
+        await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, score=score+$4, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, JSON.stringify(correct), scoreDelta]);
+        if (roomId) io.to(roomId).emit('game:letter:correct', { user_id, letter: normalized, positions, scoreDelta });
+      } else {
+        wrong.push(normalized);
+        await pool.query(`UPDATE game_states SET wrong_letters=$3::jsonb, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, JSON.stringify(wrong)]);
+        if (roomId) io.to(roomId).emit('game:letter:wrong', { user_id, letter: normalized, wrongCount: wrong.length });
       }
-      correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
-      const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
-      const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
-      correct.forEach(l => appendChip(correctLetters, l)); wrong.forEach(l => appendChip(wrongLetters, l));
-      for (let i=0;i<String(item.word).length;i++){ const ch = item.word[i]; if (correct.includes(ch)){ const slot = wordSlots.querySelector(`.slot[data-index="${i}"]`); if (slot){ slot.textContent = ch; slot.classList.add('revealed'); } } }
-      scoreMe.textContent = String(state.gameState.score || 0);
-      progressMe.textContent = String((Number(state.gameState.current_index)||0)+1) + ' / ' + String(state.deck.length || 10);
+
+      // Check solved
+      const unique = new Set(word.split(''));
+      const solved = [...unique].every(l => correct.includes(l));
+      if (solved) {
+        const nextIndex = idx + 1;
+        const deckLen = Array.isArray(deck) ? deck.length : 0;
+        if (nextIndex >= deckLen) {
+          await pool.query(`UPDATE games SET status='finished', finished_at=NOW() WHERE id=$1;`, [game_id]);
+          if (roomId) io.to(roomId).emit('game:finished', { game_id });
+        } else {
+          const nextWord = String(deck[nextIndex].word || '');
+          const allowed = Math.max(1, Math.ceil(nextWord.length * 1.2));
+          await pool.query(`UPDATE game_states SET current_index=$3, correct_letters='[]', wrong_letters='[]', allowed_wrong=$4, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, nextIndex, allowed]);
+          if (roomId) {
+            const states = await pool.query(`SELECT user_id, current_index FROM game_states WHERE game_id=$1;`, [game_id]);
+            io.to(roomId).emit('game:next', { game_id, by_user: user_id, nextIndex, states: states.rows });
+          }
+        }
+      }
+
+      // After any change, broadcast full game_states for UI sync
+      await broadcastGameStates(game_id);
+    } catch (e) { console.error('game:guess', e); }
+  });
+
+  socket.on('game:hint', async ({ game_id, user_id }) => {
+    try {
+      if (!game_id || !user_id) return;
+      const gsq = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id]);
+      const gq = await pool.query(`SELECT * FROM games WHERE id=$1;`, [game_id]);
+      if (!gsq.rows.length || !gq.rows.length) return;
+      const gs = gsq.rows[0];
+      const deck = gq.rows[0].deck;
+      const idx = Number(gs.current_index) || 0;
+      const word = String(deck[idx]?.word || '');
+      const hintsUsed = Number(gs.hints_used) || 0;
+      if (hintsUsed >= 2) { socket.emit('game:feedback', { type: 'hint-limit' }); return; }
+      const correct = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
+      const candidates = word.split('').filter((l,i,arr) => arr.indexOf(l) === i && !correct.includes(l));
+      if (!candidates.length) { socket.emit('game:feedback', { type: 'no-hint' }); return; }
+      const reveal = candidates[Math.floor(Math.random()*candidates.length)];
+      const positions = [];
+      for (let i=0;i<word.length;i++) if (word[i] === reveal) positions.push(i);
+      const penalty = Math.max(5, 10 * positions.length);
+      correct.push(reveal);
+      await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, hints_used=hints_used+1, score=GREATEST(score-$4,0), last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, JSON.stringify(correct), penalty]);
+      const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [game_id]);
+      const roomId = gameRow.rows[0]?.room_id;
+      if (roomId) io.to(roomId).emit('game:hint:reveal', { user_id, letter: reveal, positions, penalty });
+      await broadcastGameStates(game_id);
+    } catch (e) { console.error('game:hint', e); }
+  });
+
+  socket.on('game:timer', async ({ game_id, user_id, timer_ms }) => {
+    try {
+      if (!game_id || !user_id) return;
+      const safe = safeBigInt(timer_ms, 0);
+      await pool.query(`UPDATE game_states SET timer_ms=$3, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, safe]);
+      await broadcastGameStates(game_id);
+    } catch (e) { console.error('game:timer', e); }
+  });
+
+  socket.on('disconnect', () => {
+    const meta = socketMeta.get(socket.id);
+    if (!meta) return;
+    for (const rid of meta.roomIds) {
+      io.to(rid).emit('room:presence', { room_id: rid, count: io.sockets.adapter.rooms.get(rid)?.size || 0 });
     }
+    socketMeta.delete(socket.id);
+  });
+});
 
-    function appendChip(container, letter){ const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter; container.appendChild(c); }
+// ---------- Boot ----------
+(async () => {
+  try {
+    const c = await pool.connect();
+    await c.query('SELECT 1');
+    c.release();
+    console.log('Postgres OK');
+  } catch (e) {
+    console.error('Postgres connection failed:', e.message);
+    process.exit(1);
+  }
 
-    guessBtn.addEventListener('click', ()=> {
-      const v = (letterInput.value || '').trim(); if (!v || v.length !== 1) return alert('لطفا یک حرف فارسی وارد کنید'); if (!/^[\u0600-\u06FF]$/.test(v)) return alert('حرف فارسی وارد کنید');
-      socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v }); letterInput.value = ''; letterInput.focus();
-    });
+  try {
+    await ensureSchema();
+    console.log('Schema ensured');
+  } catch (e) {
+    console.error('Migration failed', e);
+    process.exit(1);
+  }
 
-    hintBtn.addEventListener('click', ()=> socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }));
-    backBtn.addEventListener('click', ()=> document.querySelector('.tab[data-tab="dashboard"]').click());
+  app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
-    // timer
-    let timerHandle = null;
-    function startTimer(){
-      if (timerHandle) clearInterval(timerHandle);
-      timerHandle = setInterval(()=> {
-        state.timerMs = (Number(state.timerMs) || 0) + 1000;
-        timerEl.textContent = formatMS(state.timerMs);
-        if (state.gameId) socket.emit('game:timer', { game_id: state.gameId, user_id: state.myId, timer_ms: Math.trunc(state.timerMs) });
-      }, 1000);
-    }
-    function formatMS(ms){ const s = Math.max(0, Math.floor(ms/1000)); const m = Math.floor(s/60); const r = s%60; return String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'); }
-
-    function resume(){
-      if (!state.gameId) return alert('بازی هنوز آغاز نشده');
-      socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-      document.querySelector('.tab[data-tab="play"]').click();
-    }
-
-    async function updateOpponentUI(){
-      if (!state.roomId) return;
-      try {
-        const res = await fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId })});
-        const d = await res.json(); if (!d.ok) return;
-        playersList.innerHTML = '';
-        d.players.forEach(p => {
-          const el = document.createElement('div'); el.className='player-row'; el.innerHTML = `<div>${p.user_id}</div><div style="font-size:13px;color:var(--muted)">${p.role||''}</div>`; playersList.appendChild(el);
-        });
-        // if server returns states, UI shows them via game:states broadcast
-      } catch (e) { console.error(e); }
-    }
-
-    // initial
-    quickLevel.addEventListener('change', loadSuggestedRooms);
-    loadSuggestedRooms();
-    d('#clearLocal').addEventListener('click', ()=> { localStorage.clear(); alert('محلی پاک شد'); });
-
-    // small UX
-    letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
-  </script>
-</body>
-</html>
+  server.listen(PORT, () => console.log(`Server listening on ${PORT}, APP_URL=${APP_URL}`));
+})();
