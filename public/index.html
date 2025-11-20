@@ -3,187 +3,91 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>وردلی رقابتی — تجربهٔ موبایل‌اول</title>
+  <title>وردلی رقابتی — موبایل‌اول</title>
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
   <style>
     :root{
       --bg-gradient: linear-gradient(180deg,#f8fbff 0%,#ffffff 100%);
-      --surface: #ffffff;
-      --glass: rgba(255,255,255,0.6);
       --muted: #6b7280;
       --border: rgba(15,23,42,0.06);
       --accent: #4f46e5;
       --accent-2: #06b6d4;
-      --danger: #ef4444;
-      --success: #10b981;
-      --radius-lg: 18px;
-      --radius: 12px;
-      --glass-blur: 10px;
       --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
       --shadow-2: 0 12px 40px rgba(16,24,40,0.08);
-      color-scheme: light;
     }
-    *{box-sizing:border-box; font-family:'Vazirmatn',system-ui,-apple-system,Segoe UI,Roboto}
-    html,body{height:100%}
-    body{
-      margin:0; background: var(--bg-gradient); color:#081124; padding:14px;
-      direction: rtl; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-    }
-    .shell{
-      max-width:1100px; margin:18px auto; border-radius:20px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
-      box-shadow: var(--shadow-1);
-      border: 1px solid var(--border); overflow:hidden;
-      display:flex; flex-direction:column;
-    }
-    header.appbar{
-      display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px;
-      backdrop-filter: blur(var(--glass-blur));
-      background: linear-gradient(180deg, rgba(255,255,255,0.75), rgba(255,255,255,0.6));
-      border-bottom: 1px solid var(--border);
-    }
-    .brand{display:flex;align-items:center;gap:12px}
-    .badge{
-      width:52px;height:52px;border-radius:12px;
-      background: linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff;
-      display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;
-      box-shadow: 0 6px 18px rgba(79,70,229,0.12);
-    }
-    .brand .title{font-weight:800;font-size:18px}
-    .brand .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
-    .controls {display:flex; gap:10px; align-items:center}
-    .btn{
-      display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px;
-      border:1px solid transparent; cursor:pointer; font-weight:700; font-size:14px;
-      transition: transform .14s ease, box-shadow .14s ease, opacity .14s;
-      background:transparent; color:var(--accent);
-    }
-    .btn:active{transform:translateY(1px)}
-    .btn.ghost{background:transparent;border:1px solid rgba(13,20,36,0.08); color:var(--muted)}
-    .btn.primary{
-      background: linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; border:none;
-      box-shadow: 0 8px 30px rgba(79,70,229,0.12);
-    }
-    .user-chip{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
-    .user-id{font-weight:800;color:#0f172a}
-    .user-name{font-size:12px;color:var(--muted)}
-
-    nav.mini-tabs{display:flex;gap:8px;padding:10px 18px;border-bottom:1px solid var(--border);background:transparent}
-    .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
-    .tab.active{color:var(--accent); background: linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04)); border-color: rgba(79,70,229,0.06) }
-
-    main.content{display:grid; grid-template-columns: 1fr 380px; gap:18px; padding:18px}
-    @media (max-width:980px){ main.content{grid-template-columns:1fr} }
-
-    .panel{
-      background: linear-gradient(180deg, rgba(255,255,255,0.88), rgba(255,255,255,0.98));
-      border-radius:14px; padding:14px; border:1px solid var(--border); box-shadow: var(--shadow-1)
-    }
-    .panel h3{margin:0 0 8px 0;font-size:15px}
-    .muted{color:var(--muted); font-size:13px}
-
-    .hero{
-      display:flex;gap:12px;align-items:center;justify-content:space-between;
-      padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fbfdff);border:1px solid var(--border)
-    }
-    .hero .left{display:flex;flex-direction:column}
-    .hero .kicker{font-size:13px;color:var(--muted)}
-    .hero .headline{font-weight:800;font-size:20px;margin-top:6px}
-    .hero .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-
-    .rooms-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px}
-    @media (max-width:640px){ .rooms-grid{grid-template-columns:1fr} }
-
-    .room{
-      border-radius:12px;padding:12px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;
-      transition: transform .12s ease, box-shadow .12s ease;
-      background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4));
-      cursor:pointer;
-    }
-    .room:hover{transform:translateY(-4px); box-shadow: var(--shadow-2)}
-    .room .meta{display:flex;flex-direction:column;align-items:flex-end;text-align:right}
-    .room .meta .name{font-weight:700}
-    .room .meta .small{font-size:12px;color:var(--muted);margin-top:4px}
-
-    .play-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700}
-    .timer{font-weight:900;color:var(--accent);font-size:20px}
-
-    .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
-    .slot{
-      min-width:44px;height:56px;border-radius:12px;border:1px solid var(--border);
-      display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff);
-      transition:background .12s ease, transform .08s ease;
-    }
-    .slot.revealed{background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04)); color:var(--accent); font-weight:800; transform:translateY(-2px) }
-
-    .controls{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
-    input.letter{
-      width:86px;height:56px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:20px;
-      background:linear-gradient(180deg,#fff,#fbfcff)
-    }
-
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;font-weight:700}
-
-    aside.right { display:flex; flex-direction:column; gap:12px }
-    .players-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
-    .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
-
-    .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(13,20,36,0.28);z-index:1400;padding:20px}
-    .modal{
-      width:100%;max-width:980px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,0.95),#fff);
-      border:1px solid var(--border);padding:16px;box-shadow:var(--shadow-2)
-    }
-    .modal-grid{display:grid;grid-template-columns:1fr 320px;gap:12px}
-    @media (max-width:880px){ .modal-grid{grid-template-columns:1fr} }
-
-    footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between}
-    .muted-sm{color:var(--muted);font-size:13px}
+    *{box-sizing:border-box; font-family:'Vazirmatn',system-ui}
+    body{ margin:0; background:var(--bg-gradient); color:#081124; padding:14px }
+    .shell{ max-width:1100px; margin:18px auto; border-radius:20px; background:#fff; box-shadow:var(--shadow-1); border:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column }
+    header{ display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border) }
+    .brand{ display:flex; align-items:center; gap:12px }
+    .badge{ width:52px; height:52px; border-radius:12px; background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px }
+    nav{ display:flex; gap:8px; padding:10px 18px; border-bottom:1px solid var(--border) }
+    .tab{ padding:8px 12px; border-radius:12px; cursor:pointer; font-weight:700; color:var(--muted); border:1px solid transparent }
+    .tab.active{ color:var(--accent); background:rgba(79,70,229,0.06); border-color:rgba(79,70,229,0.06) }
+    main{ display:grid; grid-template-columns:1fr 380px; gap:18px; padding:18px }
+    @media (max-width:980px){ main{ grid-template-columns:1fr } }
+    .panel{ background:#fff; border-radius:14px; padding:14px; border:1px solid var(--border); box-shadow:var(--shadow-1) }
+    .rooms-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-top:12px }
+    @media (max-width:640px){ .rooms-grid{ grid-template-columns:1fr } }
+    .room{ border-radius:12px; padding:12px; border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:8px; background:linear-gradient(180deg, rgba(255,255,255,0.6), rgba(255,255,255,0.4)); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease }
+    .room:hover{ transform:translateY(-4px); box-shadow:var(--shadow-2) }
+    .btn{ display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px; border:1px solid var(--border); cursor:pointer; font-weight:700; font-size:14px; background:#fff; color:var(--accent) }
+    .btn.primary{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; border:none }
+    .pill{ padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fbfdff; color:var(--muted); font-weight:700 }
+    .word-slots{ display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center }
+    .slot{ min-width:44px; height:56px; border-radius:12px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:20px; background:linear-gradient(180deg,#fff,#fbfcff) }
+    .slot.revealed{ background:linear-gradient(90deg,rgba(79,70,229,0.06),rgba(6,182,212,0.04)); color:var(--accent); font-weight:800 }
+    .gap{ width:22px; height:1px; margin:0 4px } /* فاصله بصری برای space */
+    .chips{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px }
+    .chip-letter{ padding:6px 10px; border-radius:999px; border:1px solid var(--border); background:#fff; font-weight:700 }
+    .players-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px }
+    .player-row{ display:flex; justify-content:space-between; gap:8px; padding:8px; border-radius:10px; border:1px solid var(--border); background:#fff; align-items:center }
+    .modal-backdrop{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(13,20,36,0.28); z-index:1400; padding:20px }
+    .modal{ width:100%; max-width:980px; border-radius:16px; background:#fff; border:1px solid var(--border); padding:16px; box-shadow:var(--shadow-2) }
+    .modal-grid{ display:grid; grid-template-columns:1fr 320px; gap:12px }
+    @media (max-width:880px){ .modal-grid{ grid-template-columns:1fr } }
   </style>
 </head>
 <body>
-  <div class="shell" role="application" aria-label="وردلی رقابتی">
-    <header class="appbar" role="banner">
+  <div class="shell">
+    <header>
       <div class="brand">
-        <div class="badge" aria-hidden="true">و</div>
+        <div class="badge">و</div>
         <div>
-          <div class="title">وردلی رقابتی</div>
-          <div class="subtitle muted">دو نفره، بلادرنگ، طراحی موبایل‌اول</div>
+          <div class="title" style="font-weight:800">وردلی رقابتی</div>
+          <div class="subtitle" style="font-size:12px;color:var(--muted)">دو نفره، بلادرنگ</div>
         </div>
       </div>
-
-      <div class="controls" role="navigation" aria-label="ابزارها">
-        <div class="user-chip">
-          <div id="userName" class="user-id">کاربر مهمان</div>
-          <div id="userId" class="user-name muted">—</div>
+      <div class="controls">
+        <div class="user-chip" style="display:flex;flex-direction:column;align-items:flex-end;text-align:right">
+          <div id="userName" style="font-weight:800;color:#0f172a">کاربر مهمان</div>
+          <div id="userId" style="font-size:12px;color:var(--muted)">—</div>
         </div>
-        <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog">مدیریت اتاق‌ها</button>
+        <button id="manageRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
       </div>
     </header>
 
-    <nav class="mini-tabs" role="tablist" aria-label="ناوبری">
-      <button class="tab active" data-tab="dashboard" role="tab" aria-selected="true">داشبورد</button>
-      <button class="tab" data-tab="play" role="tab" aria-selected="false">بازی</button>
-      <button class="tab" data-tab="about" role="tab" aria-selected="false">درباره</button>
+    <nav>
+      <button class="tab active" data-tab="dashboard">داشبورد</button>
+      <button class="tab" data-tab="play">بازی</button>
+      <button class="tab" data-tab="about">درباره</button>
     </nav>
 
-    <main class="content" role="main">
+    <main>
       <section>
-        <div class="panel hero" aria-labelledby="heroTitle">
-          <div class="left">
-            <div class="kicker muted">آمادهٔ چالش؟</div>
-            <div id="heroTitle" class="headline">اتاق‌ها را مدیریت کن و سریع بازی را شروع کن</div>
-            <div class="actions">
-              <select id="levelSelect" aria-label="انتخاب سطح" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
-                <option value="easy">آسان</option><option value="medium" selected>متوسط</option><option value="hard">سخت</option>
-              </select>
-              <button id="quickJoin" class="btn primary">پیوستن سریع</button>
-              <button id="resumeGame" class="btn">ادامه</button>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:800">اتاق‌ها را مدیریت کن و بازی را شروع کن</div>
+              <div class="muted" style="margin-top:6px">آمادهٔ چالش؟</div>
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                <select id="levelSelect" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
+                  <option value="easy">آسان</option><option value="medium" selected>متوسط</option><option value="hard">سخت</option>
+                </select>
+                <button id="quickJoin" class="btn primary">پیوستن سریع</button>
+                <button id="resumeGame" class="btn">ادامه</button>
+              </div>
             </div>
-          </div>
-          <div class="right" style="display:flex;flex-direction:column;gap:8px">
-            <div class="muted-sm">وضعیت اتاق</div>
             <div style="display:flex;gap:8px;align-items:center">
               <div class="pill" id="roomStatus">—</div>
               <div class="pill" id="playersCount">—</div>
@@ -191,85 +95,86 @@
           </div>
         </div>
 
-        <div class="panel" aria-labelledby="roomsTitle" style="margin-top:14px">
-          <h3 id="roomsTitle">اتاق‌های موجود</h3>
-          <div id="roomsList" class="rooms-grid" role="list" aria-live="polite"></div>
+        <div class="panel" style="margin-top:14px">
+          <h3 style="margin:0 0 8px 0;font-size:15px">اتاق‌های موجود</h3>
+          <div id="roomsList" class="rooms-grid"></div>
         </div>
 
-        <div id="playPanel" class="panel" style="margin-top:14px;display:none" aria-live="polite">
-          <div class="play-top">
+        <div id="playPanel" class="panel" style="margin-top:14px;display:none">
+          <div class="play-top" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
             <div>
               <div style="font-weight:800">بازی رقابتی</div>
-              <div class="muted-sm" id="playSubtitle">کلمهٔ فعلی و کنترل‌ها</div>
+              <div class="muted" id="playSubtitle">کلمهٔ فعلی و کنترل‌ها</div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
               <div class="pill">دسته: <span id="categoryName">—</span></div>
               <div class="pill">سطح: <span id="levelName">—</span></div>
               <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
-              <div class="timer" id="timer">۰۰:۰۰</div>
+              <div class="pill" id="timer">۰۰:۰۰</div>
             </div>
           </div>
 
           <div id="wordSlots" class="word-slots"></div>
 
-          <div class="controls">
-            <input id="letterInput" class="letter" maxlength="1" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" />
+          <div class="controls" style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center">
+            <input id="letterInput" class="letter" maxlength="1" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس"
+                   style="width:86px;height:56px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:20px;background:linear-gradient(180deg,#fff,#fbfcff)" />
             <button id="guessBtn" class="btn primary">حدس</button>
             <button id="hintBtn" class="btn">راهنما</button>
-            <button id="leaveBtn" class="btn ghost">خروج از اتاق</button>
+            <button id="leaveBtn" class="btn">خروج</button>
           </div>
 
           <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
             <div style="flex:1">
               <div style="font-weight:800">حروف صحیح</div>
-              <div id="correctLetters" class="chips" aria-live="polite"></div>
+              <div id="correctLetters" class="chips"></div>
             </div>
             <div style="flex:1">
               <div style="font-weight:800">حروف غلط</div>
-              <div id="wrongLetters" class="chips" aria-live="polite"></div>
+              <div id="wrongLetters" class="chips"></div>
             </div>
           </div>
         </div>
 
         <div id="aboutPanel" class="panel" style="margin-top:14px;display:none">
-          <h3>دربارهٔ وردلی</h3>
-          <p class="muted-sm">وردلی رقابتی یک بازی دو نفرهٔ حدس کلمهٔ فارسی است؛ طراحی شده برای موبایل، واکنش‌گرا و با تمرکز بر تجربهٔ بلادرنگ و مدیریت اتاق.</p>
+          <h3 style="margin:0 0 8px 0;font-size:15px">دربارهٔ وردلی</h3>
+          <p class="muted">وردلی رقابتی یک بازی دو نفرهٔ حدس کلمهٔ فارسی است؛ موبایل‌اول و بلادرنگ.</p>
         </div>
       </section>
 
-      <aside class="right" aria-label="ستون جانبی">
+      <aside>
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="font-weight:800">بازیکنان</div>
-            <div class="muted-sm">وضعیت</div>
+            <div class="muted">وضعیت</div>
           </div>
-          <div id="playersList" class="players-list" role="list"></div>
+          <div id="playersList" class="players-list"></div>
         </div>
 
         <div class="panel">
           <div style="font-weight:800">امتیاز شما</div>
           <div id="scoreMe" style="font-size:26px;color:var(--accent);font-weight:800;margin-top:8px">۰</div>
           <div style="margin-top:12px;font-weight:700">پیشرفت</div>
-          <div id="progressMe" class="muted-sm">—</div>
-          <div id="progressOpp" class="muted-sm" style="margin-top:6px">—</div>
+          <div id="progressMe" class="muted">—</div>
+          <div id="progressOpp" class="muted" style="margin-top:6px">—</div>
         </div>
 
         <div class="panel">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <div style="font-weight:800">ابزارها</div>
-            <div class="muted-sm">سریع</div>
+            <div class="muted">سریع</div>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
             <button id="openRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
-            <button id="clearState" class="btn ghost">پاکسازی محلی</button>
+            <button id="clearState" class="btn">پاکسازی محلی</button>
           </div>
         </div>
       </aside>
     </main>
 
-    <footer>
-      <div class="muted-sm">ساخته شده برای فارسی — تجربهٔ موبایل‌اول</div>
-      <div class="muted-sm">وردلی — نسخه وب اپ</div>
+    <footer style="padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+      <div class="muted">ساخته شده برای فارسی — موبایل‌اول</div>
+      <div class="muted">وردلی — نسخه وب اپ</div>
     </footer>
   </div>
 
@@ -320,20 +225,44 @@
   <script>
     // ---------- Helpers ----------
     const toFaDigits = (s) => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    const normalizeDisplayWord = (word) => String(word).replace(/[\u200c\s]/g, '');
-    const buildIndexMap = (word) => {
+
+    // نرمال‌سازی حرف فارسی (ي/ك → ی/ک) و حذف ترکیب‌های عجیب
+    function normalizeFaLetter(ch){
+      if (!ch) return '';
+      const map = { '\u064A':'\u06CC', '\u0643':'\u06A9' };
+      return (map[ch] || ch).normalize('NFC');
+    }
+
+    // نرمال‌سازی کلمه: حذف اعراب/کشیده؛ استانداردسازی ی/ک؛ فاصله‌ها نگه‌داشته می‌شوند
+    function normalizeFaWordKeepSpaces(word){
+      if (!word) return '';
+      const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
+      let w = String(word).replace(removeMarks, '');
+      w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9'); // ي/ك → ی/ک
+      return w.normalize('NFC');
+    }
+
+    // نمایش بدون فاصله‌ها (برای تعداد اسلات)
+    function normalizeDisplayWord(word){ return String(word).replace(/\s/g, ''); }
+
+    // نگاشت ایندکس اصلی → نمایشی؛ فاصله‌ها شمارش نمی‌شوند
+    function buildIndexMap(word){
       const map = []; let disp = 0;
-      for (let i=0; i<word.length; i++){
+      for (let i=0;i<word.length;i++){
         const ch = word[i];
-        if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; }
+        if (ch === ' ') { map[i] = null; continue; }
         map[i] = disp; disp++;
       }
       return map;
-    };
+    }
+
     function escapeHtml(s){ return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function addChip(container, letter){
+      const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter; container.appendChild(c);
+    }
 
     // ---------- State ----------
-    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [] };
+    const state = { myId:null, initData:null, roomId:null, gameId:null, deck:[], gameState:null, timerMs:0, indexMap:[] };
     const socket = io();
 
     // ---------- DOM ----------
@@ -388,7 +317,7 @@
       const tab = t.dataset.tab;
       document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
       playPanel.style.display = (tab === 'play') ? 'block' : 'none';
-      document.querySelector('[aria-labelledby="roomsTitle"]').style.display = (tab === 'dashboard') ? 'block' : 'none';
+      document.querySelector('#roomsList').parentElement.style.display = (tab === 'dashboard') ? 'block' : 'none';
     }));
 
     // ---------- Modal ----------
@@ -423,15 +352,9 @@
             userId.textContent = toFaDigits(user.id);
             fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
             try { tg.expand(); } catch(e){}
-          } else {
-            fallbackGuest();
-          }
-        } catch (e) {
-          fallbackGuest();
-        }
-      } else {
-        fallbackGuest();
-      }
+          } else { fallbackGuest(); }
+        } catch (e) { fallbackGuest(); }
+      } else { fallbackGuest(); }
       loadSuggestedRooms();
     })();
 
@@ -445,7 +368,7 @@
 
     // ---------- Rooms ----------
     levelSelect.addEventListener('change', loadSuggestedRooms);
-    refreshRooms.addEventListener('click', loadPublicRooms);
+    if (refreshRooms) refreshRooms.addEventListener('click', loadPublicRooms);
 
     async function loadSuggestedRooms(){
       try {
@@ -453,16 +376,19 @@
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         roomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted-sm">اتاقی برای نمایش نیست</div>'; return; }
+        if (!d.ok || !d.rooms.length) { roomsList.innerHTML = '<div class="muted">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
+          el.innerHTML = `<div class="meta" style="display:flex;flex-direction:column;align-items:flex-end;text-align:right">
+                           <div class="name" style="font-weight:700">${escapeHtml(r.name||'اتاق')}</div>
+                           <div class="small muted" style="font-size:12px;margin-top:4px">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div>
+                         </div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
         });
       } catch (e) {
-        roomsList.innerHTML = '<div class="muted-sm">خطا در دریافت لیست اتاق‌ها</div>';
+        roomsList.innerHTML = '<div class="muted">خطا در دریافت لیست اتاق‌ها</div>';
       }
     }
 
@@ -472,16 +398,19 @@
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         publicRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted-sm">هیچ اتاقی یافت نشد</div>'; return; }
+        if (!d.ok || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||'اتاق')}</div><div class="small muted-sm">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          el.innerHTML = `<div class="meta" style="display:flex;flex-direction:column;align-items:flex-end;text-align:right">
+                           <div class="name" style="font-weight:700">${escapeHtml(r.name||'اتاق')}</div>
+                           <div class="small muted" style="font-size:12px;margin-top:4px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div>
+                          </div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
         });
       } catch (e) {
-        publicRoomsList.innerHTML = '<div class="muted-sm">خطا</div>';
+        publicRoomsList.innerHTML = '<div class="muted">خطا</div>';
       }
     }
 
@@ -490,68 +419,48 @@
         const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId })});
         const d = await res.json();
         myRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted-sm">شما اتاقی ندارید</div>'; return; }
+        if (!d.ok || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room';
-          el.innerHTML = `<div class="meta"><div class="name">${escapeHtml(r.name||r.id)}</div><div class="small muted-sm">${escapeHtml(r.level||'')}</div></div>`;
+          el.innerHTML = `<div class="meta" style="display:flex;flex-direction:column;align-items:flex-end;text-align:right">
+                           <div class="name" style="font-weight:700">${escapeHtml(r.name||r.id)}</div>
+                           <div class="small muted" style="font-size:12px;margin-top:4px">${escapeHtml(r.level||'')}</div>
+                          </div>`;
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', ()=> { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
-          const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
+          const leave = document.createElement('button'); leave.className='btn'; leave.textContent='خروج';
           leave.addEventListener('click', async ()=> {
             await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })});
-            loadMyRooms(); loadPublicRooms();
-            roomStatus.textContent = '—'; playersCount.textContent = '—';
+            loadMyRooms(); loadPublicRooms(); roomStatus.textContent = '—'; playersCount.textContent = '—';
           });
           el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
         });
-      } catch (e) {
-        myRoomsList.innerHTML = '<div class="muted-sm">خطا</div>';
-      }
+      } catch (e) { myRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
     }
 
-    // ---------- Create room ----------
+    // ---------- Create / Quick join ----------
     createRoomBtn.addEventListener('click', async () => {
       try {
         const name = newRoomName.value.trim() || 'اتاق جدید';
         const level = newRoomLevel.value || 'medium';
         const maxPlayers = Math.min(8, Math.max(2, parseInt(newRoomMax.value,10)||2));
-
-        const res = await fetch('/rooms/create', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ user_id: state.myId, name, level, max_players: maxPlayers })
-        });
+        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name, level, max_players: maxPlayers })});
         const d = await res.json();
         if (!d.ok){ alert('خطا در ایجاد اتاق'); return; }
-
-        state.roomId = d.room_id;
-        socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-
-        // پاکسازی ورودی‌ها
-        newRoomName.value = ''; newRoomLevel.value = 'medium'; newRoomMax.value = 2;
-
-        // نمایش پنل بازی و بستن مودال
-        document.querySelector('.tab[data-tab="play"]').click();
-        playPanel.style.display = 'block';
-        closeModal();
-
-        // تازه‌سازی لیست‌ها
+        state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+        newRoomName.value=''; newRoomLevel.value='medium'; newRoomMax.value=2;
+        document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display='block'; closeModal();
         loadMyRooms(); loadPublicRooms();
-      } catch (e) {
-        alert('خطا در ایجاد اتاق');
-      }
+      } catch (e) { alert('خطا در ایجاد اتاق'); }
     });
 
-    // ---------- Room and game flow ----------
     quickJoin.addEventListener('click', async ()=>{
       try {
         const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: levelSelect.value || 'medium', max_players: 2 })});
         const d = await res.json();
         if (!d.ok){ alert('خطا'); return; }
         state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        document.querySelector('.tab[data-tab="play"]').click();
-        playPanel.style.display = 'block';
-        loadMyRooms();
+        document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display='block'; loadMyRooms();
       } catch (e) { alert('خطا'); }
     });
 
@@ -565,10 +474,9 @@
         if (d.status === 'ready' && d.game_id){
           state.gameId = d.game_id; setTimeout(()=> resumeGame(), 140);
         } else {
-          document.querySelector('.tab[data-tab="play"]').click();
-          playPanel.style.display = 'block';
+          document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display='block';
           categoryName.textContent = 'در انتظار حریف';
-          wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>';
+          wordSlots.innerHTML = '<div class="muted" style="padding:12px">در انتظار...</div>';
         }
         loadMyRooms(); loadPublicRooms();
       } catch (e) { alert('خطا'); }
@@ -581,9 +489,7 @@
         if (!d.ok) return;
         if (d.game && d.game.id){
           state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-        } else {
-          categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted-sm" style="padding:12px">در انتظار...</div>';
-        }
+        } else { categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted" style="padding:12px">در انتظار...</div>'; }
       } catch (e) {}
     }
 
@@ -592,8 +498,7 @@
       if (!state.gameId){ alert('بازی هنوز آغاز نشده'); return; }
       socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
       socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-      document.querySelector('.tab[data-tab="play"]').click();
-      playPanel.style.display = 'block';
+      document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display='block';
     }
 
     // ---------- Sockets ----------
@@ -618,7 +523,7 @@
       playersList.innerHTML = '';
       states.forEach(s => {
         const row = document.createElement('div'); row.className='player-row';
-        row.innerHTML = `<div style="font-weight:800">${toFaDigits(s.user_id)}</div><div class="muted-sm">ایندکس: ${toFaDigits(s.current_index||0)} · امتیاز: ${toFaDigits(s.score||0)}</div>`;
+        row.innerHTML = `<div style="font-weight:800">${toFaDigits(s.user_id)}</div><div class="muted">ایندکس: ${toFaDigits(s.current_index||0)} · امتیاز: ${toFaDigits(s.score||0)}</div>`;
         playersList.appendChild(row);
       });
       const opp = states.find(s => s.user_id !== state.myId);
@@ -626,34 +531,37 @@
     });
 
     socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta }) => {
+      const letterN = normalizeFaLetter(letter);
       positions.forEach(origIdx => {
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
           const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = letter; s.classList.add('revealed'); }
+          if (s){ s.textContent = letterN; s.classList.add('revealed'); }
         }
       });
       if (user_id === state.myId){
-        addChip(correctLetters, letter);
+        addChip(correctLetters, letterN);
         state.gameState.score = (Number(state.gameState.score)||0) + (scoreDelta||0);
         scoreMe.textContent = toFaDigits(state.gameState.score);
       }
     });
 
     socket.on('game:letter:wrong', ({ user_id, letter }) => {
-      if (user_id === state.myId) addChip(wrongLetters, letter);
+      const letterN = normalizeFaLetter(letter);
+      if (user_id === state.myId) addChip(wrongLetters, letterN);
     });
 
     socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
+      const letterN = normalizeFaLetter(letter);
       positions.forEach(origIdx => {
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
           const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = letter; s.classList.add('revealed'); }
+          if (s){ s.textContent = letterN; s.classList.add('revealed'); }
         }
       });
       if (user_id === state.myId){
-        addChip(correctLetters, letter);
+        addChip(correctLetters, letterN);
         state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
         scoreMe.textContent = toFaDigits(state.gameState.score);
       }
@@ -672,27 +580,44 @@
       if (!state.gameState || !state.deck || !state.deck.length) return;
       const idx = Number(state.gameState.current_index) || 0;
       const item = state.deck[idx] || { word:'', category:'', level:'medium' };
-      const displayWord = normalizeDisplayWord(item.word);
-      state.indexMap = buildIndexMap(item.word);
+
+      const wordNorm = normalizeFaWordKeepSpaces(item.word); // فاصله‌ها نگه‌داشته می‌شوند
+      state.indexMap = buildIndexMap(wordNorm);
 
       categoryName.textContent = item.category || '';
       levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
       wordIndex.textContent = toFaDigits(idx + 1);
 
       wordSlots.innerHTML = '';
-      for (let i=0;i<displayWord.length;i++){
-        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = i; slot.textContent = '_';
-        wordSlots.appendChild(slot);
+      // رندر: برای فاصله gap و برای حرف slot
+      for (let i=0; i<wordNorm.length; i++){
+        const ch = wordNorm[i];
+        if (ch === ' '){
+          const gap = document.createElement('div'); gap.className = 'gap';
+          wordSlots.appendChild(gap);
+        } else {
+          const dispIdx = state.indexMap[i]; // ایندکس نمایشی بدون احتساب فاصله‌ها
+          const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = dispIdx; slot.textContent = '_';
+          wordSlots.appendChild(slot);
+        }
       }
 
+      // حروف صحیح/غلط
+      const correct = Array.isArray(state.gameState.correct_letters)
+        ? state.gameState.correct_letters.map(normalizeFaLetter)
+        : JSON.parse(state.gameState.correct_letters || '[]').map(normalizeFaLetter);
+
+      const wrong = Array.isArray(state.gameState.wrong_letters)
+        ? state.gameState.wrong_letters.map(normalizeFaLetter)
+        : JSON.parse(state.gameState.wrong_letters || '[]').map(normalizeFaLetter);
+
       correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
-      const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
-      const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
       correct.forEach(l => addChip(correctLetters, l));
       wrong.forEach(l => addChip(wrongLetters, l));
 
-      for (let origIdx=0; origIdx<item.word.length; origIdx++){
-        const ch = item.word[origIdx];
+      // پیش‌نمایش حروفِ درست
+      for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
+        const ch = wordNorm[origIdx];
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx === null || dispIdx === undefined) continue;
         if (correct.includes(ch)){
@@ -701,19 +626,21 @@
         }
       }
 
+      // امتیاز/پیشرفت
       scoreMe.textContent = toFaDigits(Number(state.gameState.score) || 0);
-      progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)}`;
-    }
-
-    function addChip(container, letter){
-      const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter; container.appendChild(c);
+      const totalDisplayLen = normalizeDisplayWord(wordNorm).length;
+      progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)} · ${toFaDigits(totalDisplayLen)} حرف`;
     }
 
     // ---------- Actions ----------
     guessBtn.addEventListener('click', () => {
-      const v = (letterInput.value||'').trim();
-      if (!v || v.length !== 1) return alert('لطفاً یک حرف وارد کنید');
+      const vRaw = (letterInput.value||'').trim();
+      if (!vRaw || vRaw.length !== 1) return alert('لطفاً یک حرف وارد کنید');
+      if (vRaw === ' ') return alert('فاصله جزو حروف نیست');
+
+      const v = normalizeFaLetter(vRaw);
       if (!/^[\u0600-\u06FF]$/.test(v)) return alert('لطفاً حرف فارسی وارد کنید');
+
       socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
       letterInput.value = ''; letterInput.focus();
     });
@@ -747,7 +674,7 @@
     }
 
     // ---------- Misc ----------
-    filterLevel.addEventListener('change', loadPublicRooms);
+    if (filterLevel) filterLevel.addEventListener('change', loadPublicRooms);
     letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
 
     // Initial
