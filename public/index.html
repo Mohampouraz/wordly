@@ -23,14 +23,12 @@
       --shadow-2: 0 12px 40px rgba(16,24,40,0.08);
       color-scheme: light;
     }
-
     *{box-sizing:border-box; font-family:'Vazirmatn',system-ui,-apple-system,Segoe UI,Roboto}
     html,body{height:100%}
     body{
       margin:0; background: var(--bg-gradient); color:#081124; padding:14px;
       direction: rtl; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
     }
-
     .shell{
       max-width:1100px; margin:18px auto; border-radius:20px;
       background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.95));
@@ -38,7 +36,6 @@
       border: 1px solid var(--border); overflow:hidden;
       display:flex; flex-direction:column;
     }
-
     header.appbar{
       display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px;
       backdrop-filter: blur(var(--glass-blur));
@@ -54,7 +51,6 @@
     }
     .brand .title{font-weight:800;font-size:18px}
     .brand .subtitle{font-size:12px;color:var(--muted);margin-top:2px}
-
     .controls {display:flex; gap:10px; align-items:center}
     .btn{
       display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:12px;
@@ -322,21 +318,19 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
-    // ---------- Helpers (digits, word normalization, mapping) ----------
+    // ---------- Helpers ----------
     const toFaDigits = (s) => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    const normalizeDisplayWord = (word) => String(word).replace(/[\u200c\s]/g, ''); // remove ZWNJ and spaces for visual length
+    const normalizeDisplayWord = (word) => String(word).replace(/[\u200c\s]/g, '');
     const buildIndexMap = (word) => {
-      // Map original indices -> display indices (skip ZWNJ U+200C and spaces)
-      const map = [];
-      let disp = 0;
+      const map = []; let disp = 0;
       for (let i=0; i<word.length; i++){
         const ch = word[i];
         if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; }
-        map[i] = disp;
-        disp++;
+        map[i] = disp; disp++;
       }
       return map;
     };
+    function escapeHtml(s){ return String(s).replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     // ---------- State ----------
     const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [] };
@@ -348,6 +342,7 @@
     const roomsModal = document.getElementById('roomsModal');
     const closeRooms = document.getElementById('closeRooms');
     const openRoomsBtn = document.getElementById('openRoomsBtn');
+    const myRoomsBtn = document.getElementById('myRoomsBtn');
 
     const userName = document.getElementById('userName');
     const userId = document.getElementById('userId');
@@ -401,6 +396,7 @@
     function closeModal(){ roomsModal.style.display = 'none'; roomsModal.setAttribute('aria-hidden','true'); document.body.style.overflow='auto'; }
     manageRoomsBtn.addEventListener('click', openModal);
     if (openRoomsBtn) openRoomsBtn.addEventListener('click', openModal);
+    if (myRoomsBtn) myRoomsBtn.addEventListener('click', loadMyRooms);
     closeRooms.addEventListener('click', closeModal);
     window.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
 
@@ -501,13 +497,50 @@
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', ()=> { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
           const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
-          leave.addEventListener('click', async ()=> { await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })}); loadMyRooms(); loadPublicRooms(); });
+          leave.addEventListener('click', async ()=> {
+            await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })});
+            loadMyRooms(); loadPublicRooms();
+            roomStatus.textContent = '—'; playersCount.textContent = '—';
+          });
           el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
         });
       } catch (e) {
         myRoomsList.innerHTML = '<div class="muted-sm">خطا</div>';
       }
     }
+
+    // ---------- Create room ----------
+    createRoomBtn.addEventListener('click', async () => {
+      try {
+        const name = newRoomName.value.trim() || 'اتاق جدید';
+        const level = newRoomLevel.value || 'medium';
+        const maxPlayers = Math.min(8, Math.max(2, parseInt(newRoomMax.value,10)||2));
+
+        const res = await fetch('/rooms/create', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ user_id: state.myId, name, level, max_players: maxPlayers })
+        });
+        const d = await res.json();
+        if (!d.ok){ alert('خطا در ایجاد اتاق'); return; }
+
+        state.roomId = d.room_id;
+        socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+
+        // پاکسازی ورودی‌ها
+        newRoomName.value = ''; newRoomLevel.value = 'medium'; newRoomMax.value = 2;
+
+        // نمایش پنل بازی و بستن مودال
+        document.querySelector('.tab[data-tab="play"]').click();
+        playPanel.style.display = 'block';
+        closeModal();
+
+        // تازه‌سازی لیست‌ها
+        loadMyRooms(); loadPublicRooms();
+      } catch (e) {
+        alert('خطا در ایجاد اتاق');
+      }
+    });
 
     // ---------- Room and game flow ----------
     quickJoin.addEventListener('click', async ()=>{
@@ -593,7 +626,6 @@
     });
 
     socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta }) => {
-      // Use original->display index map
       positions.forEach(origIdx => {
         const dispIdx = state.indexMap[origIdx];
         if (dispIdx !== null && dispIdx !== undefined){
@@ -659,7 +691,6 @@
       correct.forEach(l => addChip(correctLetters, l));
       wrong.forEach(l => addChip(wrongLetters, l));
 
-      // Pre-reveal already-correct letters using mapping
       for (let origIdx=0; origIdx<item.word.length; origIdx++){
         const ch = item.word[origIdx];
         const dispIdx = state.indexMap[origIdx];
@@ -693,6 +724,7 @@
       if (!state.roomId) return;
       await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.myId })});
       document.querySelector('.tab[data-tab="dashboard"]').click();
+      roomStatus.textContent = '—'; playersCount.textContent = '—';
     });
 
     document.getElementById('clearState').addEventListener('click', ()=> { localStorage.clear(); alert('وضعیت محلی پاک شد'); });
@@ -717,8 +749,6 @@
     // ---------- Misc ----------
     filterLevel.addEventListener('change', loadPublicRooms);
     letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
-
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
     // Initial
     loadSuggestedRooms();
