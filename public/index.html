@@ -58,23 +58,16 @@
     .players{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     .player-tag{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:rgba(255,255,255,0.01);color:var(--muted)}
     .footer{margin-top:14px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:8px}
-    /* Responsive rules */
     @media (max-width:900px){
       .game-wrap{grid-template-columns:1fr; }
-      .grid9{grid-template-columns:repeat(3,1fr)}
       .slot{min-width:32px;height:40px;font-size:16px}
       input.letter{width:64px;height:44px}
       .timer{font-size:20px}
     }
     @media (max-width:420px){
-      .grid9{grid-template-columns:repeat(3,1fr);gap:8px}
       .header{flex-direction:column;align-items:flex-start;gap:10px}
       h1{font-size:16px}
-      .tabs{gap:6px}
-      .card{padding:10px}
-      .panel{padding:10px}
       .slot{min-width:28px;height:36px;font-size:14px}
-      .input-row{gap:6px}
       input.letter{width:56px;height:40px}
     }
   </style>
@@ -108,9 +101,7 @@
             <div class="pill" id="roomStatus">وضعیت اتاق: —</div>
             <div class="pill" id="playersCount">بازیکنان: —</div>
           </div>
-
           <div class="players" id="playersList" style="margin-top:10px"></div>
-
           <div class="actions">
             <select id="levelSelect" class="btn" aria-label="انتخاب سطح">
               <option value="easy">آسان</option>
@@ -190,266 +181,286 @@
     </div>
   </div>
 
+  <!-- Telegram Web App SDK (official) -->
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Socket.io -->
   <script src="/socket.io/socket.io.js"></script>
+
   <script>
-    // Minimal but robust client script
+    // state
+    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0 };
+
+    // helpers
     const persianDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     const formatTimer = ms => {
-      const s = Math.max(0, Math.floor(ms/1000));
-      const m = Math.floor(s/60); const r = s%60;
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const m = Math.floor(s / 60); const r = s % 60;
       return persianDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     };
 
-    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs:0 };
-
-    const socket = io();
-
-    // Elements
-    const tabs = document.querySelectorAll('.tab');
-    const views = { dashboard: document.getElementById('view-dashboard'), play: document.getElementById('view-play'), about: document.getElementById('view-about') };
-    tabs.forEach(t=>t.addEventListener('click', ()=>{ tabs.forEach(x=>x.classList.remove('active')); t.classList.add('active'); Object.values(views).forEach(v=>v.classList.remove('active')); views[t.dataset.tab].classList.add('active'); }));
-
+    // DOM refs
     const userNameEl = document.getElementById('userName'), userIdEl = document.getElementById('userId');
     const catGrid = document.getElementById('catGrid'), playersList = document.getElementById('playersList');
     const roomStatus = document.getElementById('roomStatus'), playersCount = document.getElementById('playersCount');
     const joinBtn = document.getElementById('joinRoomBtn'), resumeBtn = document.getElementById('resumeBtn'), levelSelect = document.getElementById('levelSelect');
-
     const categoryName = document.getElementById('categoryName'), levelName = document.getElementById('levelName'), wordIndex = document.getElementById('wordIndex');
     const timerEl = document.getElementById('timer'), wordSlots = document.getElementById('wordSlots');
     const letterInput = document.getElementById('letterInput'), guessBtn = document.getElementById('guessBtn'), hintBtn = document.getElementById('hintBtn'), leaveBtn = document.getElementById('leaveBtn');
     const correctLetters = document.getElementById('correctLetters'), wrongLetters = document.getElementById('wrongLetters');
     const namesDisplay = document.getElementById('namesDisplay'), scoreMe = document.getElementById('scoreMe'), progressMe = document.getElementById('progressMe'), progressOpp = document.getElementById('progressOpp');
+    const tabs = document.querySelectorAll('.tab');
+    const views = { dashboard: document.getElementById('view-dashboard'), play: document.getElementById('view-play'), about: document.getElementById('view-about') };
 
-    // Telegram WebApp detection (optional); fallback guest id
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      const user = tg.initDataUnsafe?.user;
-      state.initData = tg.initData;
-      if (user) {
-        state.myId = user.id;
-        userNameEl.textContent = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : '');
-        userIdEl.textContent = persianDigits(user.id);
-        // send auth to server
-        fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
-      }
-    } else {
-      // generate guest id
-      state.myId = Math.floor(100000 + Math.random()*899999);
-      userNameEl.textContent = 'کاربر مهمان';
-      userIdEl.textContent = persianDigits(state.myId);
-    }
+    // socket
+    const socket = io();
 
-    // Render categories preview (from client side)
-    const categoriesPreview = ['حیوانات','میوه‌ها','شهرها','رنگ‌ها','فصول','اشیا','حرفه‌ها','طبیعت','فن‌آوری'];
-    categoriesPreview.forEach(c => { const d=document.createElement('div'); d.className='card'; d.innerHTML=`<strong>${c}</strong><div style="color:var(--muted);font-size:13px;margin-top:6px">نمونه کلمات</div>`; catGrid.appendChild(d); });
+    // tab handling
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
+      Object.values(views).forEach(v => v.classList.remove('active'));
+      views[t.dataset.tab].classList.add('active');
+    }));
 
-    // Socket events
-    socket.on('room:presence', ({count}) => { playersCount.textContent = 'بازیکنان: ' + persianDigits(count); });
-    socket.on('game:started', ({game_id, deck}) => {
-      state.gameId = game_id;
-      state.deck = deck;
-      // switch to play view and join socket room (ensures presence)
-      state.roomId && socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      // fetch initial game state from server via resume
-      setTimeout(()=> resumeGame(), 150);
-    });
-
-    socket.on('game:state', ({state: gs, deck}) => {
-      state.gameState = gs;
-      state.deck = deck;
-      state.timerMs = gs.timer_ms || 0;
-      renderGame();
-      startTimer();
-    });
-
-    socket.on('game:letter:correct', ({user_id, letter, positions, scoreDelta}) => {
-      // update both UIs: place letter in slots if relevant, update boards
-      if (state.gameState && state.gameState.current_index !== undefined) {
-        positions.forEach(p => {
-          const s = wordSlots.querySelector(`.slot[data-index="${p}"]`);
-          if (s){ s.textContent = letter; s.classList.add('correct'); }
+    // Wait for Telegram SDK to be ready (with timeout)
+    (async function initTelegramWebApp() {
+      function waitForTelegram(timeout = 3000) {
+        return new Promise(resolve => {
+          const start = Date.now();
+          (function check() {
+            if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp);
+            if (Date.now() - start > timeout) return resolve(null);
+            setTimeout(check, 50);
+          })();
         });
       }
-      // if this player
-      if (user_id === state.myId) {
-        appendChip(correctLetters, letter, 'green');
-        const sc = (state.gameState?.score || 0) + (scoreDelta || 0);
-        state.gameState.score = sc; scoreMe.textContent = persianDigits(sc);
+
+      const tg = await waitForTelegram(3500);
+      if (tg) {
+        try {
+          state.initData = tg.initData || '';
+          const user = tg.initDataUnsafe?.user || null;
+          if (user && user.id) {
+            state.myId = user.id;
+            userNameEl.textContent = (user.first_name || '') + (user.last_name ? ' ' + user.last_name : '');
+            userIdEl.textContent = persianDigits(user.id);
+            // Send to server to register/update user
+            fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
+            // Optionally expand webapp inside Telegram
+            try { tg.expand(); } catch (e) {}
+          } else {
+            console.warn('Telegram present but initDataUnsafe.user missing; falling back to guest for dev.');
+            fallbackGuest();
+          }
+        } catch (e) {
+          console.error('Telegram init error', e);
+          fallbackGuest();
+        }
       } else {
-        // opponent guessed correctly -> update opponent progress
-        updateOpponentProgressUI();
+        console.warn('Telegram WebApp not available — likely opened outside Telegram; using guest fallback for dev.');
+        fallbackGuest();
       }
+
+      // render categories preview
+      renderCategories();
+    })();
+
+    function fallbackGuest() {
+      if (!state.myId) {
+        state.myId = Math.floor(100000 + Math.random() * 899999);
+        userNameEl.textContent = 'کاربر مهمان';
+        userIdEl.textContent = persianDigits(state.myId);
+      }
+    }
+
+    function renderCategories() {
+      const cats = ['حیوانات','میوه‌ها','شهرها','رنگ‌ها','فصول','اشیا','حرفه‌ها','طبیعت','فن‌آوری'];
+      catGrid.innerHTML = '';
+      cats.forEach(c => {
+        const el = document.createElement('div'); el.className = 'card';
+        el.innerHTML = `<strong>${c}</strong><div style="color:var(--muted);font-size:13px;margin-top:6px">نمونه کلمات</div>`;
+        catGrid.appendChild(el);
+      });
+    }
+
+    // Socket listeners
+    socket.on('room:presence', ({ count }) => playersCount.textContent = 'بازیکنان: ' + persianDigits(count));
+    socket.on('game:started', ({ game_id, deck }) => {
+      state.gameId = game_id; state.deck = deck;
+      // auto-join socket room channel (include user id)
+      if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+      setTimeout(() => resumeGame(), 100);
     });
 
-    socket.on('game:letter:wrong', ({user_id, letter}) => {
-      appendChip(wrongLetters, letter, 'red');
+    socket.on('game:state', ({ state: gs, deck }) => {
+      state.gameState = gs; state.deck = deck; state.timerMs = Number(gs.timer_ms) || 0;
+      renderGame(); startTimer();
     });
 
-    socket.on('game:hint:reveal', ({user_id, letter, positions, penalty}) => {
+    socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta }) => {
       positions.forEach(p => {
         const s = wordSlots.querySelector(`.slot[data-index="${p}"]`);
-        if (s){ s.textContent = letter; s.classList.add('correct'); }
+        if (s) { s.textContent = letter; s.classList.add('correct'); }
       });
-      appendChip(correctLetters, letter, 'green');
+      if (user_id === state.myId) appendChip(correctLetters, letter, 'green');
+      else updateOpponentProgressUI();
       if (user_id === state.myId) {
-        const sc = Math.max(0,(state.gameState?.score || 0) - penalty);
-        state.gameState.score = sc; scoreMe.textContent = persianDigits(sc);
+        state.gameState = state.gameState || {}; state.gameState.score = (Number(state.gameState.score) || 0) + (scoreDelta || 0);
+        scoreMe.textContent = persianDigits(state.gameState.score || 0);
       }
     });
 
-    socket.on('game:next', ({game_id, by_user, nextIndex, states}) => {
-      // update local state if applicable
+    socket.on('game:letter:wrong', ({ user_id, letter }) => {
+      if (user_id === state.myId) appendChip(wrongLetters, letter, 'red');
+    });
+
+    socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty }) => {
+      positions.forEach(p => {
+        const s = wordSlots.querySelector(`.slot[data-index="${p}"]`);
+        if (s) { s.textContent = letter; s.classList.add('correct'); }
+      });
+      if (user_id === state.myId) {
+        appendChip(correctLetters, letter, 'green');
+        state.gameState = state.gameState || {}; state.gameState.score = Math.max(0, (Number(state.gameState.score) || 0) - (penalty || 0));
+        scoreMe.textContent = persianDigits(state.gameState.score || 0);
+      }
+    });
+
+    socket.on('game:next', ({ game_id, nextIndex, states }) => {
       if (state.gameId === game_id) {
-        // if current user advanced, request fresh state
         socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-        // update opponent progress by states array
         if (Array.isArray(states)) {
           const opp = states.find(s => s.user_id !== state.myId);
-          if (opp) progressOpp.textContent = persianDigits((opp.current_index || 0)+1) + ' / ' + persianDigits(state.deck.length || 10);
+          if (opp) progressOpp.textContent = persianDigits((opp.current_index || 0) + 1) + ' / ' + persianDigits(state.deck.length || 10);
         }
       }
     });
 
-    socket.on('game:finished', ({game_id}) => {
-      if (state.gameId === game_id) {
-        alert('بازی به پایان رسید');
-        // optionally fetch final scores
-      }
+    socket.on('game:finished', ({ game_id }) => {
+      if (state.gameId === game_id) alert('بازی به پایان رسید');
     });
 
     // UI helpers
-    function appendChip(container, letter, cls){
+    function appendChip(container, letter, cls) {
       const c = document.createElement('div'); c.className = 'chip ' + (cls === 'green' ? 'green' : 'red'); c.textContent = letter;
       container.appendChild(c);
     }
 
-    function renderGame(){
+    function renderGame() {
       if (!state.gameState || !state.deck || !state.deck.length) return;
-      const idx = state.gameState.current_index || 0;
+      const idx = Number(state.gameState.current_index) || 0;
       const item = state.deck[idx];
       categoryName.textContent = item.category || '';
       levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
       wordIndex.textContent = persianDigits(idx + 1);
-      // slots
       wordSlots.innerHTML = '';
-      for (let i=0;i<item.word.length;i++){
-        const s = document.createElement('div'); s.className='slot'; s.dataset.index = i; s.textContent = '_';
-        wordSlots.appendChild(s);
+      for (let i = 0; i < String(item.word).length; i++) {
+        const s = document.createElement('div'); s.className = 'slot'; s.dataset.index = i; s.textContent = '_'; wordSlots.appendChild(s);
       }
-      // populate known letters
+      correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
       const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
       const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
       correct.forEach(l => appendChip(correctLetters, l, 'green'));
       wrong.forEach(l => appendChip(wrongLetters, l, 'red'));
-      // reveal correct letters in slots
-      for (let i=0;i<item.word.length;i++){
+      for (let i = 0; i < String(item.word).length; i++) {
         const ch = item.word[i];
-        if (correct.includes(ch)){
+        if (correct.includes(ch)) {
           const slot = wordSlots.querySelector(`.slot[data-index="${i}"]`);
-          if (slot){ slot.textContent = ch; slot.classList.add('correct'); }
+          if (slot) { slot.textContent = ch; slot.classList.add('correct'); }
         }
       }
-      scoreMe.textContent = persianDigits(state.gameState.score || 0);
-      progressMe.textContent = persianDigits((state.gameState.current_index||0) + 1) + ' / ' + persianDigits(state.deck.length || 10);
+      scoreMe.textContent = persianDigits(Number(state.gameState.score) || 0);
+      progressMe.textContent = persianDigits((Number(state.gameState.current_index) || 0) + 1) + ' / ' + persianDigits(state.deck.length || 10);
       updateOpponentProgressUI();
     }
 
-    function updateOpponentProgressUI(){
-      // request room state to compute opponent progress from server
-      if (!state.roomId) return;
-      fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId }) })
-        .then(r=>r.json()).then(d=>{
-          if (!d.ok) return;
-          const g = d.game;
-          const players = d.players || [];
-          namesDisplay.innerHTML = '';
-          players.forEach(p => {
-            const e = document.createElement('div'); e.className='player-tag';
-            e.textContent = 'بازیکن ' + (p.role === 'p1' ? 'اول' : 'دوم') + ' — ' + persianDigits(p.user_id);
-            namesDisplay.appendChild(e);
-          });
-          if (g && g.deck) {
-            // fetch both states
-            fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId }) })
-              .then(res=>res.json()).then(info=>{
-                // simplified: request server for game_states could be added; keep approximate UI
-                progressOpp.textContent = '—';
-              }).catch(()=>{});
-          }
-        }).catch(()=>{});
-    }
-
-    // Join room
-    joinBtn.addEventListener('click', async ()=>{
-      try{
+    // join room
+    joinBtn.addEventListener('click', async () => {
+      try {
         const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, preferred_level: levelSelect.value })});
         const d = await res.json();
         if (!d.ok) return alert('خطا در پیوستن');
         state.roomId = d.room_id;
         roomStatus.textContent = 'وضعیت اتاق: ' + (d.status === 'waiting' ? 'در انتظار' : 'آماده');
-        playersCount.textContent = '—';
-        // join socket room channel; include user id to help server send presence
         socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        // If server already started game it responds with game_id; else it will emit 'game:started' later
         if (d.status === 'ready' && d.game_id) {
-          state.gameId = d.game_id;
-          // Ask for initial state
-          setTimeout(()=> resumeGame(), 120);
+          state.gameId = d.game_id; setTimeout(() => resumeGame(), 200);
         } else {
-          // waiting: switch to play view but show waiting message
-          tabs.forEach(x=>x.classList.remove('active')); document.querySelector('.tab[data-tab="play"]').classList.add('active');
-          Object.values(views).forEach(v=>v.classList.remove('active')); views.play.classList.add('active');
+          // waiting UI
+          tabs.forEach(x => x.classList.remove('active')); document.querySelector('.tab[data-tab="play"]').classList.add('active');
+          Object.values(views).forEach(v => v.classList.remove('active')); views.play.classList.add('active');
           categoryName.textContent = 'در انتظار بازیکن دوم';
-          levelName.textContent = levelSelect.value === 'easy' ? 'آسان' : levelSelect.value === 'hard' ? 'سخت' : 'متوسط';
           wordSlots.innerHTML = '<div style="color:var(--muted);padding:12px">در انتظار حریف...</div>';
         }
-      }catch(e){ alert('خطا در سرور'); console.error(e); }
+      } catch (e) { console.error(e); alert('خطا در اتصال به سرور'); }
     });
 
-    const resumeGame = () => {
+    // resume game
+    resumeBtn.addEventListener('click', () => resumeGame());
+    function resumeGame() {
       if (!state.gameId) return alert('هنوز بازی آغاز نشده');
       socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
       socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-      tabs.forEach(x=>x.classList.remove('active')); document.querySelector('.tab[data-tab="play"]').classList.add('active');
-      Object.values(views).forEach(v=>v.classList.remove('active')); views.play.classList.add('active');
-    };
+      tabs.forEach(x => x.classList.remove('active')); document.querySelector('.tab[data-tab="play"]').classList.add('active');
+      Object.values(views).forEach(v => v.classList.remove('active')); views.play.classList.add('active');
+    }
 
-    // Guess
-    guessBtn.addEventListener('click', ()=>{
+    // guess
+    guessBtn.addEventListener('click', () => {
       const v = (letterInput.value || '').trim();
       if (!v || v.length !== 1) return alert('لطفا یک حرف فارسی وارد کنید');
       if (!/^[\u0600-\u06FF]$/.test(v)) return alert('حرف فارسی وارد کنید');
+      // send safe payload
       socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
       letterInput.value = ''; letterInput.focus();
     });
 
     // hint
-    hintBtn.addEventListener('click', ()=> {
-      socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId });
+    hintBtn.addEventListener('click', () => { socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }); });
+
+    // leave view
+    leaveBtn.addEventListener('click', () => {
+      tabs.forEach(x => x.classList.remove('active')); document.querySelector('.tab[data-tab="dashboard"]').classList.add('active');
+      Object.values(views).forEach(v => v.classList.remove('active')); views.dashboard.classList.add('active');
     });
 
-    leaveBtn.addEventListener('click', ()=> {
-      tabs.forEach(x=>x.classList.remove('active')); document.querySelector('.tab[data-tab="dashboard"]').classList.add('active');
-      Object.values(views).forEach(v=>v.classList.remove('active')); views.dashboard.classList.add('active');
-      // timer persists server-side via periodic 'game:timer' events when playing
-    });
+    // opponent progress helper (best-effort)
+    function updateOpponentProgressUI() {
+      if (!state.roomId) return;
+      // lightweight: request room state (server returns players and game)
+      fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId }) })
+        .then(r => r.json()).then(d => {
+          if (!d.ok) return;
+          namesDisplay.innerHTML = '';
+          d.players.forEach(p => {
+            const el = document.createElement('div'); el.className = 'player-tag';
+            el.textContent = 'بازیکن ' + (p.role === 'p1' ? 'اول' : 'دوم') + ' — ' + persianDigits(p.user_id);
+            namesDisplay.appendChild(el);
+          });
+          // progressOpp left as approximate; server push of game_states would allow precise value
+        }).catch(()=>{});
+    }
 
-    // Timer: persist periodical
+    // timer: client holds and persists safe numeric to server every N seconds
     let timerHandle = null;
     function startTimer(){
       if (timerHandle) clearInterval(timerHandle);
-      timerHandle = setInterval(()=>{
-        state.timerMs = (state.timerMs || 0) + 1000;
+      timerHandle = setInterval(() => {
+        state.timerMs = Math.max(0, Number(state.timerMs || 0) + 1000);
         timerEl.textContent = formatTimer(state.timerMs);
-        if (state.gameId) socket.emit('game:timer', { game_id: state.gameId, user_id: state.myId, timer_ms: state.timerMs });
+        if (state.gameId) {
+          // safe value: finite integer only
+          const safeMs = Number.isFinite(state.timerMs) ? Math.trunc(state.timerMs) : 0;
+          socket.emit('game:timer', { game_id: state.gameId, user_id: state.myId, timer_ms: safeMs });
+        }
       }, 1000);
     }
 
-    // small UX: Enter key to submit
-    letterInput.addEventListener('keydown', (e)=> { if (e.key === 'Enter') guessBtn.click(); });
+    // small UX
+    letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') guessBtn.click(); });
 
-    // Initial UI
-    updateOpponentProgressUI();
+    // initial render
+    renderCategories();
   </script>
 </body>
 </html>
