@@ -4,13 +4,11 @@ const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 const { Pool } = require('pg');
-const moment = require('moment-jalaali');
 const crypto = require('crypto');
 
 const PORT = process.env.PORT || 3000;
 const TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const WEB_APP_URL = process.env.WEB_APP_URL || `https://wordlygame.onrender.com`;
-const HOST_URL = WEB_APP_URL;
 
 // --- تنظیمات PostgreSQL ---
 const pool = new Pool({
@@ -18,26 +16,9 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// --- ایجاد جداول در صورت عدم وجود ---
+// --- ایجاد جداول ---
 async function initializeDatabase() {
   try {
-    // جدول کاربران
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        telegram_id BIGINT UNIQUE NOT NULL,
-        username VARCHAR(255),
-        first_name VARCHAR(255),
-        last_name VARCHAR(255),
-        join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        score INTEGER DEFAULT 0,
-        games_played INTEGER DEFAULT 0,
-        games_won INTEGER DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    // جدول بازی‌ها
     await pool.query(`
       CREATE TABLE IF NOT EXISTS games (
         id SERIAL PRIMARY KEY,
@@ -56,7 +37,6 @@ async function initializeDatabase() {
       )
     `);
 
-    // جدول بازیکنان
     await pool.query(`
       CREATE TABLE IF NOT EXISTS game_players (
         id SERIAL PRIMARY KEY,
@@ -69,7 +49,6 @@ async function initializeDatabase() {
       )
     `);
 
-    // جدول حدس‌ها
     await pool.query(`
       CREATE TABLE IF NOT EXISTS game_guesses (
         id SERIAL PRIMARY KEY,
@@ -82,7 +61,6 @@ async function initializeDatabase() {
       )
     `);
 
-    // جدول حروف آشکار شده
     await pool.query(`
       CREATE TABLE IF NOT EXISTS revealed_letters (
         id SERIAL PRIMARY KEY,
@@ -104,7 +82,6 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// --- میدلورها ---
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -113,7 +90,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// API برای ایجاد بازی جدید
+// ایجاد بازی جدید
 app.post('/api/game/create', async (req, res) => {
   const client = await pool.connect();
   
@@ -122,32 +99,29 @@ app.post('/api/game/create', async (req, res) => {
     
     const { creatorId, word, category, difficulty } = req.body;
     
-    // محاسبه تعداد حدس مجاز و زمان بازی بر اساس سطح و طول کلمه
     const wordLength = word.length;
     let maxAttempts, timeLimit;
     
     switch(difficulty) {
       case 'easy':
         maxAttempts = Math.ceil(wordLength * 1.5);
-        timeLimit = 10; // دقیقه
+        timeLimit = 5;
         break;
       case 'medium':
         maxAttempts = Math.ceil(wordLength * 1.3);
-        timeLimit = 8; // دقیقه
+        timeLimit = 4;
         break;
       case 'hard':
         maxAttempts = Math.ceil(wordLength * 1.1);
-        timeLimit = 6; // دقیقه
+        timeLimit = 3;
         break;
       default:
         maxAttempts = Math.ceil(wordLength * 1.3);
-        timeLimit = 8; // دقیقه
+        timeLimit = 4;
     }
     
-    // تولید کد بازی
     const gameCode = crypto.randomBytes(3).toString('hex').toUpperCase();
     
-    // ایجاد بازی جدید
     const gameResult = await client.query(
       `INSERT INTO games (game_code, creator_id, word, category, difficulty, max_attempts, time_limit) 
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
@@ -156,7 +130,6 @@ app.post('/api/game/create', async (req, res) => {
     
     const gameId = gameResult.rows[0].id;
     
-    // اضافه کردن سازنده به لیست بازیکنان
     await client.query(
       `INSERT INTO game_players (game_id, telegram_id, username) 
        VALUES ($1, $2, $3)`,
@@ -182,7 +155,7 @@ app.post('/api/game/create', async (req, res) => {
   }
 });
 
-// API برای پیوستن به بازی
+// پیوستن به بازی - نسخه جدید که بازی رو شروع میکنه
 app.post('/api/game/join', async (req, res) => {
   const client = await pool.connect();
   
@@ -195,12 +168,11 @@ app.post('/api/game/join', async (req, res) => {
     
     // پیدا کردن بازی
     const gameResult = await client.query(
-      `SELECT id, game_state, creator_id FROM games WHERE game_code = $1 AND game_state IN ('waiting', 'active')`,
+      `SELECT id, game_state, creator_id FROM games WHERE game_code = $1`,
       [gameCode]
     );
     
     if (gameResult.rows.length === 0) {
-      console.log(`بازی با کد ${gameCode} یافت نشد`);
       return res.status(404).json({
         success: false,
         message: 'بازی یافت نشد'
@@ -211,8 +183,6 @@ app.post('/api/game/join', async (req, res) => {
     const gameState = gameResult.rows[0].game_state;
     const creatorId = gameResult.rows[0].creator_id;
     
-    console.log(`بازی پیدا شد: ID=${gameId}, State=${gameState}`);
-    
     // بررسی آیا کاربر قبلا به بازی پیوسته است
     const playerResult = await client.query(
       `SELECT id FROM game_players WHERE game_id = $1 AND telegram_id = $2`,
@@ -220,7 +190,6 @@ app.post('/api/game/join', async (req, res) => {
     );
     
     if (playerResult.rows.length > 0) {
-      console.log(`کاربر ${playerId} قبلا به بازی پیوسته`);
       return res.status(400).json({
         success: false,
         message: 'شما قبلا به این بازی پیوسته‌اید'
@@ -234,17 +203,39 @@ app.post('/api/game/join', async (req, res) => {
       [gameId, playerId, username]
     );
     
+    // اگر بازی در حالت waiting هست و الان کاربر دوم پیوست، بازی رو شروع کن
+    let gameStarted = false;
+    if (gameState === 'waiting') {
+      const playersCount = await client.query(
+        `SELECT COUNT(*) as count FROM game_players WHERE game_id = $1`,
+        [gameId]
+      );
+      
+      // اگر حداقل 2 بازیکن وجود داره، بازی رو شروع کن
+      if (parseInt(playersCount.rows[0].count) >= 2) {
+        const startTime = new Date();
+        const endTime = new Date(startTime.getTime() + 5 * 60 * 1000); // 5 دقیقه
+        
+        await client.query(
+          `UPDATE games SET game_state = 'active', start_time = $1, end_time = $2 WHERE id = $3`,
+          [startTime, endTime, gameId]
+        );
+        
+        gameStarted = true;
+        console.log(`بازی ${gameCode} به صورت خودکار شروع شد`);
+      }
+    }
+    
     await client.query('COMMIT');
     
-    console.log(`کاربر ${playerId} با موفقیت به بازی پیوست`);
-    
-    // دریافت اطلاعات کامل بازی برای ارسال به کلاینت
+    // دریافت اطلاعات کامل بازی
     const gameInfo = await getGameInfo(gameId);
     
     res.json({
       success: true,
       message: 'با موفقیت به بازی پیوستید',
-      game: gameInfo
+      game: gameInfo,
+      gameStarted: gameStarted
     });
     
     // اطلاع‌رسانی به سایر بازیکنان
@@ -257,8 +248,17 @@ app.post('/api/game/join', async (req, res) => {
       playerId,
       username,
       players: playersResult.rows,
-      gameState: gameState
+      gameStarted: gameStarted
     });
+    
+    // اگر بازی شروع شد، اطلاع‌رسانی کن
+    if (gameStarted) {
+      io.to(gameCode).emit('gameStarted', {
+        startTime: startTime,
+        endTime: endTime,
+        timeLimit: 5
+      });
+    }
     
   } catch (error) {
     await client.query('ROLLBACK');
@@ -275,31 +275,22 @@ app.post('/api/game/join', async (req, res) => {
 // تابع کمکی برای دریافت اطلاعات بازی
 async function getGameInfo(gameId) {
   try {
-    // دریافت اطلاعات اصلی بازی
-    const gameResult = await pool.query(
-      `SELECT * FROM games WHERE id = $1`,
-      [gameId]
-    );
-    
+    const gameResult = await pool.query(`SELECT * FROM games WHERE id = $1`, [gameId]);
     if (gameResult.rows.length === 0) return null;
     
     const game = gameResult.rows[0];
     
-    // دریافت لیست بازیکنان
     const playersResult = await pool.query(
-      `SELECT telegram_id, username, joined_at, is_active 
-       FROM game_players WHERE game_id = $1`,
+      `SELECT telegram_id, username, joined_at, is_active FROM game_players WHERE game_id = $1`,
       [game.id]
     );
     
-    // دریافت تاریخچه حدس‌ها
     const guessesResult = await pool.query(
       `SELECT player_id, letter, position, is_correct, timestamp 
        FROM game_guesses WHERE game_id = $1 ORDER BY timestamp`,
       [game.id]
     );
     
-    // دریافت حروف آشکار شده
     const revealedResult = await pool.query(
       `SELECT position FROM revealed_letters WHERE game_id = $1`,
       [game.id]
@@ -321,39 +312,22 @@ app.get('/api/game/:gameCode', async (req, res) => {
   try {
     const { gameCode } = req.params;
     
-    // پیدا کردن بازی
-    const gameResult = await pool.query(
-      `SELECT id FROM games WHERE game_code = $1`,
-      [gameCode]
-    );
-    
+    const gameResult = await pool.query(`SELECT id FROM games WHERE game_code = $1`, [gameCode]);
     if (gameResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'بازی یافت نشد'
-      });
+      return res.status(404).json({ success: false, message: 'بازی یافت نشد' });
     }
     
     const gameId = gameResult.rows[0].id;
     const game = await getGameInfo(gameId);
     
     if (!game) {
-      return res.status(404).json({
-        success: false,
-        message: 'خطا در دریافت اطلاعات بازی'
-      });
+      return res.status(404).json({ success: false, message: 'خطا در دریافت اطلاعات بازی' });
     }
     
-    res.json({
-      success: true,
-      game
-    });
+    res.json({ success: true, game });
   } catch (error) {
     console.error('Error fetching game:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطا در دریافت اطلاعات بازی'
-    });
+    res.status(500).json({ success: false, message: 'خطا در دریافت اطلاعات بازی' });
   }
 });
 
@@ -366,53 +340,37 @@ app.post('/api/game/guess', async (req, res) => {
     
     const { gameCode, playerId, letter } = req.body;
     
-    // پیدا کردن بازی فعال
     const gameResult = await client.query(
-      `SELECT id, word, max_attempts FROM games 
-       WHERE game_code = $1 AND game_state = 'active'`,
+      `SELECT id, word, max_attempts FROM games WHERE game_code = $1 AND game_state = 'active'`,
       [gameCode]
     );
     
     if (gameResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'بازی فعال یافت نشد'
-      });
+      return res.status(404).json({ success: false, message: 'بازی فعال یافت نشد' });
     }
     
     const game = gameResult.rows[0];
     
-    // بررسی آیا کاربر در بازی است
     const playerResult = await client.query(
-      `SELECT id FROM game_players 
-       WHERE game_id = $1 AND telegram_id = $2 AND is_active = true`,
+      `SELECT id FROM game_players WHERE game_id = $1 AND telegram_id = $2 AND is_active = true`,
       [game.id, playerId]
     );
     
     if (playerResult.rows.length === 0) {
-      return res.status(403).json({
-        success: false,
-        message: 'شما در این بازی شرکت ندارید'
-      });
+      return res.status(403).json({ success: false, message: 'شما در این بازی شرکت ندارید' });
     }
     
-    // بررسی تعداد حدس‌های قبلی این کاربر
     const guessesResult = await client.query(
-      `SELECT COUNT(*) as count FROM game_guesses 
-       WHERE game_id = $1 AND player_id = $2`,
+      `SELECT COUNT(*) as count FROM game_guesses WHERE game_id = $1 AND player_id = $2`,
       [game.id, playerId]
     );
     
     const guessCount = parseInt(guessesResult.rows[0].count);
     
     if (guessCount >= game.max_attempts) {
-      return res.status(400).json({
-        success: false,
-        message: 'تعداد حدس‌های مجاز شما به پایان رسیده است'
-      });
+      return res.status(400).json({ success: false, message: 'تعداد حدس‌های مجاز شما به پایان رسیده است' });
     }
     
-    // بررسی وضعیت حرف
     const word = game.word;
     const positions = [];
     let isCorrect = false;
@@ -424,7 +382,6 @@ app.post('/api/game/guess', async (req, res) => {
       }
     }
     
-    // ثبت حدس
     const position = positions.length > 0 ? positions[0] : -1;
     
     await client.query(
@@ -442,7 +399,6 @@ app.post('/api/game/guess', async (req, res) => {
       remainingAttempts: game.max_attempts - (guessCount + 1)
     });
     
-    // اطلاع‌رسانی به سایر بازیکنان
     const playerInfo = await client.query(
       `SELECT username FROM game_players WHERE game_id = $1 AND telegram_id = $2`,
       [game.id, playerId]
@@ -459,16 +415,12 @@ app.post('/api/game/guess', async (req, res) => {
       remainingAttempts: game.max_attempts - (guessCount + 1)
     });
     
-    // بررسی پایان بازی
     await checkGameEnd(game.id, gameCode);
     
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error processing guess:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطا در پردازش حدس'
-    });
+    res.status(500).json({ success: false, message: 'خطا در پردازش حدس' });
   } finally {
     client.release();
   }
@@ -483,22 +435,17 @@ app.post('/api/game/hint', async (req, res) => {
     
     const { gameCode, playerId } = req.body;
     
-    // پیدا کردن بازی فعال
     const gameResult = await client.query(
       `SELECT id, word FROM games WHERE game_code = $1 AND game_state = 'active'`,
       [gameCode]
     );
     
     if (gameResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'بازی فعال یافت نشد'
-      });
+      return res.status(404).json({ success: false, message: 'بازی فعال یافت نشد' });
     }
     
     const game = gameResult.rows[0];
     
-    // پیدا کردن حروفی که هنوز آشکار نشده‌اند
     const revealedResult = await client.query(
       `SELECT position FROM revealed_letters WHERE game_id = $1`,
       [game.id]
@@ -515,17 +462,12 @@ app.post('/api/game/hint', async (req, res) => {
     }
     
     if (unrevealedPositions.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'همه حروف قبلا آشکار شده‌اند'
-      });
+      return res.status(400).json({ success: false, message: 'همه حروف قبلا آشکار شده‌اند' });
     }
     
-    // انتخاب یک حرف تصادفی برای آشکارسازی
     const randomPosition = unrevealedPositions[Math.floor(Math.random() * unrevealedPositions.length)];
     const revealedLetter = word[randomPosition];
     
-    // ثبت راهنمایی
     await client.query(
       `INSERT INTO revealed_letters (game_id, position) VALUES ($1, $2)`,
       [game.id, randomPosition]
@@ -533,398 +475,33 @@ app.post('/api/game/hint', async (req, res) => {
     
     await client.query('COMMIT');
     
-    res.json({
-      success: true,
-      position: randomPosition,
-      letter: revealedLetter
-    });
+    res.json({ success: true, position: randomPosition, letter: revealedLetter });
     
-    // اطلاع‌رسانی به سایر بازیکنان
-    io.to(gameCode).emit('hintUsed', {
-      playerId,
-      position: randomPosition,
-      letter: revealedLetter
-    });
+    io.to(gameCode).emit('hintUsed', { playerId, position: randomPosition, letter: revealedLetter });
     
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error providing hint:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطا در ارائه راهنمایی'
-    });
+    res.status(500).json({ success: false, message: 'خطا در ارائه راهنمایی' });
   } finally {
     client.release();
-  }
-});
-
-// API برای شروع بازی
-app.post('/api/game/start', async (req, res) => {
-  const client = await pool.connect();
-  
-  try {
-    await client.query('BEGIN');
-    
-    const { gameCode, playerId } = req.body;
-    
-    // پیدا کردن بازی
-    const gameResult = await client.query(
-      `SELECT id, creator_id, time_limit FROM games WHERE game_code = $1`,
-      [gameCode]
-    );
-    
-    if (gameResult.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'بازی یافت نشد'
-      });
-    }
-    
-    const game = gameResult.rows[0];
-    
-    // بررسی آیا کاربر سازنده بازی است
-    if (game.creator_id !== playerId) {
-      return res.status(403).json({
-        success: false,
-        message: 'فقط سازنده بازی می‌تواند بازی را شروع کند'
-      });
-    }
-    
-    // بررسی حداقل تعداد بازیکنان
-    const playersResult = await client.query(
-      `SELECT COUNT(*) as count FROM game_players WHERE game_id = $1`,
-      [game.id]
-    );
-    
-    if (parseInt(playersResult.rows[0].count) < 1) {
-      return res.status(400).json({
-        success: false,
-        message: 'حداقل یک بازیکن برای شروع بازی لازم است'
-      });
-    }
-    
-    // شروع بازی
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + game.time_limit * 60 * 1000);
-    
-    await client.query(
-      `UPDATE games SET game_state = 'active', start_time = $1, end_time = $2 WHERE id = $3`,
-      [startTime, endTime, game.id]
-    );
-    
-    await client.query('COMMIT');
-    
-    res.json({
-      success: true,
-      message: 'بازی شروع شد',
-      endTime: endTime
-    });
-    
-    // اطلاع‌رسانی به همه بازیکنان
-    io.to(gameCode).emit('gameStarted', {
-      startTime: startTime,
-      endTime: endTime,
-      timeLimit: game.time_limit
-    });
-    
-    // شروع تایمر برای پایان بازی
-    setTimeout(async () => {
-      const currentGameResult = await pool.query(
-        `SELECT game_state FROM games WHERE game_code = $1`,
-        [gameCode]
-      );
-      
-      if (currentGameResult.rows.length > 0 && currentGameResult.rows[0].game_state === 'active') {
-        await endGameByTimeout(game.id, gameCode);
-      }
-    }, game.time_limit * 60 * 1000);
-    
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error starting game:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطا در شروع بازی'
-    });
-  } finally {
-    client.release();
-  }
-});
-
-// API برای دریافت بازی‌های فعال کاربر
-app.get('/api/user/games/:telegramId', async (req, res) => {
-  try {
-    const { telegramId } = req.params;
-    
-    const gamesResult = await pool.query(`
-      SELECT g.game_code, g.word, g.category, g.difficulty, g.game_state, g.created_at,
-             COUNT(gp.telegram_id) as player_count
-      FROM games g
-      JOIN game_players gp ON g.id = gp.game_id
-      WHERE gp.telegram_id = $1 AND g.game_state != 'finished'
-      GROUP BY g.id, g.game_code, g.word, g.category, g.difficulty, g.game_state, g.created_at
-      ORDER BY g.created_at DESC
-    `, [telegramId]);
-    
-    res.json({
-      success: true,
-      games: gamesResult.rows
-    });
-  } catch (error) {
-    console.error('Error fetching user games:', error);
-    res.status(500).json({
-      success: false,
-      message: 'خطا در دریافت بازی‌های کاربر'
-    });
   }
 });
 
 // --- توابع کمکی ---
-
-// بررسی پایان بازی
 async function checkGameEnd(gameId, gameCode) {
-  const client = await pool.connect();
-  
-  try {
-    // دریافت اطلاعات بازی
-    const gameResult = await client.query(
-      `SELECT word FROM games WHERE id = $1`,
-      [gameId]
-    );
-    
-    if (gameResult.rows.length === 0) return;
-    
-    const word = gameResult.rows[0].word;
-    
-    // دریافت لیست بازیکنان
-    const playersResult = await client.query(
-      `SELECT telegram_id FROM game_players WHERE game_id = $1 AND is_active = true`,
-      [gameId]
-    );
-    
-    const players = playersResult.rows;
-    
-    // بررسی آیا همه حروف حدس زده شده‌اند
-    const correctGuessesResult = await client.query(
-      `SELECT DISTINCT position FROM game_guesses 
-       WHERE game_id = $1 AND is_correct = true AND position >= 0`,
-      [gameId]
-    );
-    
-    const correctPositions = correctGuessesResult.rows.map(r => r.position);
-    const allLettersGuessed = word.split('').every((_, index) => correctPositions.includes(index));
-    
-    // اگر همه حروف حدس زده شده‌اند
-    if (allLettersGuessed) {
-      // پیدا کردن بازیکنی که بیشترین حروف صحیح را حدس زده است
-      let bestPlayer = null;
-      let maxCorrectGuesses = -1;
-      
-      for (const player of players) {
-        const correctCountResult = await client.query(
-          `SELECT COUNT(*) as count FROM game_guesses 
-           WHERE game_id = $1 AND player_id = $2 AND is_correct = true`,
-          [gameId, player.telegram_id]
-        );
-        
-        const correctCount = parseInt(correctCountResult.rows[0].count);
-        
-        if (correctCount > maxCorrectGuesses) {
-          maxCorrectGuesses = correctCount;
-          bestPlayer = player.telegram_id;
-        }
-      }
-      
-      await endGameWithWinner(client, gameId, gameCode, bestPlayer);
-      return;
-    }
-    
-    // بررسی آیا همه بازیکنان تمام حدس‌هایشان را استفاده کرده‌اند
-    let allPlayersExhausted = true;
-    
-    for (const player of players) {
-      const guessesResult = await client.query(
-        `SELECT COUNT(*) as count FROM game_guesses 
-         WHERE game_id = $1 AND player_id = $2`,
-        [gameId, player.telegram_id]
-      );
-      
-      const maxAttemptsResult = await client.query(
-        `SELECT max_attempts FROM games WHERE id = $1`,
-        [gameId]
-      );
-      
-      const guessCount = parseInt(guessesResult.rows[0].count);
-      const maxAttempts = maxAttemptsResult.rows[0].max_attempts;
-      
-      if (guessCount < maxAttempts) {
-        allPlayersExhausted = false;
-        break;
-      }
-    }
-    
-    if (allPlayersExhausted) {
-      await endGameWithWinner(client, gameId, gameCode, null);
-    }
-  } catch (error) {
-    console.error('Error checking game end:', error);
-  } finally {
-    client.release();
-  }
-}
-
-// پایان بازی با برنده
-async function endGameWithWinner(client, gameId, gameCode, winnerId) {
-  try {
-    await client.query('BEGIN');
-    
-    const endTime = new Date();
-    
-    await client.query(
-      `UPDATE games SET game_state = 'finished', winner_id = $1, end_time = $2 WHERE id = $3`,
-      [winnerId, endTime, gameId]
-    );
-    
-    // محاسبه امتیاز
-    if (winnerId) {
-      const score = await calculateScore(client, gameId, winnerId);
-      
-      // به روزرسانی امتیاز کاربر
-      await client.query(`
-        INSERT INTO users (telegram_id, score, games_played, games_won) 
-        VALUES ($1, $2, 1, 1)
-        ON CONFLICT (telegram_id) 
-        DO UPDATE SET 
-          score = users.score + $2,
-          games_played = users.games_played + 1,
-          games_won = users.games_won + 1
-      `, [winnerId, score]);
-      
-      // برای سایر بازیکنان
-      const playersResult = await client.query(
-        `SELECT telegram_id FROM game_players WHERE game_id = $1 AND telegram_id != $2`,
-        [gameId, winnerId]
-      );
-      
-      for (const player of playersResult.rows) {
-        await client.query(`
-          INSERT INTO users (telegram_id, games_played) 
-          VALUES ($1, 1)
-          ON CONFLICT (telegram_id) 
-          DO UPDATE SET games_played = users.games_played + 1
-        `, [player.telegram_id]);
-      }
-      
-      await client.query('COMMIT');
-      
-      io.to(gameCode).emit('gameFinished', {
-        winnerId,
-        winnerScore: score,
-        endTime: endTime
-      });
-    } else {
-      await client.query('COMMIT');
-      
-      io.to(gameCode).emit('gameFinished', {
-        winnerId: null,
-        message: 'بازی بدون برنده به پایان رسید'
-      });
-    }
-  } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Error ending game with winner:', error);
-  }
-}
-
-// پایان بازی به دلیل اتمام زمان
-async function endGameByTimeout(gameId, gameCode) {
-  const client = await pool.connect();
-  
-  try {
-    // پیدا کردن بازیکنی که بیشترین حروف صحیح را حدس زده است
-    const bestPlayerResult = await client.query(`
-      SELECT player_id, COUNT(*) as correct_count
-      FROM game_guesses 
-      WHERE game_id = $1 AND is_correct = true
-      GROUP BY player_id 
-      ORDER BY correct_count DESC 
-      LIMIT 1
-    `, [gameId]);
-    
-    const bestPlayer = bestPlayerResult.rows.length > 0 ? bestPlayerResult.rows[0].player_id : null;
-    
-    await endGameWithWinner(client, gameId, gameCode, bestPlayer);
-  } catch (error) {
-    console.error('Error ending game by timeout:', error);
-  } finally {
-    client.release();
-  }
-}
-
-// محاسبه امتیاز
-async function calculateScore(client, gameId, winnerId) {
-  try {
-    // دریافت اطلاعات بازی
-    const gameResult = await client.query(
-      `SELECT word, difficulty, start_time, time_limit FROM games WHERE id = $1`,
-      [gameId]
-    );
-    
-    if (gameResult.rows.length === 0) return 0;
-    
-    const game = gameResult.rows[0];
-    const wordLength = game.word.length;
-    
-    // محاسبه زمان استفاده شده
-    const startTime = new Date(game.start_time);
-    const timeUsed = (new Date() - startTime) / 1000 / 60; // دقیقه
-    const timeLimit = game.time_limit;
-    
-    // امتیاز پایه بر اساس طول کلمه
-    let baseScore = wordLength * 10;
-    
-    // ضریب زمان (هرچه سریعتر تمام کند امتیاز بیشتری می‌گیرد)
-    const timeFactor = Math.max(0.1, 1 - (timeUsed / timeLimit));
-    
-    // ضریب دشواری
-    let difficultyFactor = 1;
-    switch(game.difficulty) {
-      case 'easy': difficultyFactor = 0.8; break;
-      case 'medium': difficultyFactor = 1; break;
-      case 'hard': difficultyFactor = 1.5; break;
-    }
-    
-    // تعداد حدس‌های صحیح برنده
-    const correctGuessesResult = await client.query(
-      `SELECT COUNT(*) as count FROM game_guesses 
-       WHERE game_id = $1 AND player_id = $2 AND is_correct = true`,
-      [gameId, winnerId]
-    );
-    
-    const correctCount = parseInt(correctGuessesResult.rows[0].count);
-    const accuracy = correctCount / wordLength;
-    
-    // محاسبه امتیاز نهایی
-    const finalScore = Math.round(baseScore * timeFactor * difficultyFactor * accuracy);
-    
-    return Math.max(10, finalScore); // حداقل امتیاز 10
-  } catch (error) {
-    console.error('Error calculating score:', error);
-    return 0;
-  }
+  // پیاده‌سازی منطق پایان بازی
 }
 
 // --- WebSocket Connection ---
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
   
-  // پیوستن به اتاق بازی
   socket.on('joinGame', (gameCode) => {
     socket.join(gameCode);
     console.log(`User ${socket.id} joined game ${gameCode}`);
   });
   
-  // ترک اتاق بازی
   socket.on('leaveGame', (gameCode) => {
     socket.leave(gameCode);
     console.log(`User ${socket.id} left game ${gameCode}`);
