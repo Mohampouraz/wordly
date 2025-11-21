@@ -201,7 +201,6 @@ const sendRoomState = async (roomId) => {
     }
 };
 
-// FIX: Added r.created_at to SELECT and g.id, r.created_at to GROUP BY to resolve the 42803 error.
 const getActiveRoomsList = async (level = null) => {
     let q = `SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, r.reveal_mode, r.created_at, COUNT(rp.user_id) AS players, g.id AS game_id
              FROM rooms r 
@@ -211,7 +210,7 @@ const getActiveRoomsList = async (level = null) => {
     const params = [];
     if (level) { params.push(level); q += ` AND r.level = $${params.length}`; }
     q += ` 
-    GROUP BY r.id, g.id, r.created_at -- FIX: Added g.id and r.created_at to GROUP BY
+    GROUP BY r.id, g.id, r.created_at
     ORDER BY r.created_at DESC LIMIT 100;`;
     const out = await pool.query(q, params);
     // Correctly return players count as number
@@ -222,11 +221,11 @@ const getActiveRoomsList = async (level = null) => {
 // Function to finish the game
 const finishGame = async (gameId, roomId) => {
     try {
-        // Update room and game status to finished
-        await pool.query(`UPDATE rooms SET status='finished' WHERE id=$1;`, [roomId]);
+        // 1. Update room and game status to finished
+        // We set room status to 'finished' AFTER fetching results, as players need the room context to receive the event.
         await pool.query(`UPDATE games SET status='finished', finished_at=NOW() WHERE id=$1;`, [gameId]);
         
-        // 1. Fetch final states and user data, ordered by score (DESC) and time (ASC) for ranking
+        // 2. Fetch final states and user data, ordered by score (DESC) and time (ASC) for ranking
         const resultsQuery = await pool.query(`
             SELECT 
                 gs.user_id, gs.score, gs.timer_ms, gs.current_index AS words_guessed, 
@@ -250,15 +249,22 @@ const finishGame = async (gameId, roomId) => {
             }
         }));
 
-        // 2. Broadcast results
+        // 3. Broadcast results
         io.to(roomId).emit('game:finished', { game_id: gameId, room_id: roomId, results });
         
-        // 3. Kick everyone out of the socket.io room (Optional but helpful for cleanup)
+        // 4. Update room status to finished (to prevent new joins)
+        await pool.query(`UPDATE rooms SET status='finished' WHERE id=$1;`, [roomId]);
+        
+        // 5. Kick everyone out of the socket.io room (Optional but helpful for cleanup)
+        // NOTE: Commented out to allow the client to receive the 'game:finished' event before being kicked.
+        // The client should navigate away and disconnect gracefully.
+        /*
         const socketsInRoom = io.sockets.adapter.rooms.get(roomId) || new Set();
         for (const socketId of Array.from(socketsInRoom)) {
             const socket = io.sockets.sockets.get(socketId);
             socket?.leave(roomId);
         }
+        */
 
     } catch(e) {
         console.error("Error in finishGame:", e);
@@ -269,8 +275,14 @@ const finishGame = async (gameId, roomId) => {
 const advanceToNextWord = async (gameId, userId, currentIndex, deck, roomId) => {
     const nextIndex = currentIndex + 1;
     
-    // Update guessed_count before checking for game finish
-    await pool.query(`UPDATE game_states SET guessed_count=guessed_count+1, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [gameId, userId]);
+    // FIX: Add score for word completion (25 points)
+    await pool.query(`
+        UPDATE game_states SET 
+            guessed_count=guessed_count+1, 
+            score=score + 25, 
+            last_update=NOW() 
+        WHERE game_id=$1 AND user_id=$2;
+    `, [gameId, userId]);
 
     if (nextIndex >= deck.length) {
         // END OF DECK: Finish the game for all players in the room
@@ -280,16 +292,20 @@ const advanceToNextWord = async (gameId, userId, currentIndex, deck, roomId) => 
     
     // Continue to next word: reset letters and calculate new allowed wrong count
     const nextWordStrict = normalizeFaWordStrict(deck[nextIndex].word);
+    
+    // The allowed_wrong calculation needs to be robust for the next word
+    const newAllowedWrong = ceil(nextWordStrict.length / 2);
+
     await pool.query(`
         UPDATE game_states SET 
             current_index=$3, 
             correct_letters='[]'::jsonb, 
             wrong_letters='[]'::jsonb, 
             hints_used=0, 
-            allowed_wrong=CEIL(LENGTH(REPLACE($4, '\u200c', '')) / 2),
+            allowed_wrong=$4, -- FIX: Use the calculated allowed wrong count
             last_update=NOW()
         WHERE game_id=$1 AND user_id=$2;
-    `, [gameId, userId, nextIndex, nextWordStrict]);
+    `, [gameId, userId, nextIndex, newAllowedWrong]);
 
     // Notify room/game update
     await sendRoomState(roomId);
@@ -365,6 +381,30 @@ app.get('/rooms/list', async (req, res) => {
     res.status(500).json({ ok:false }); 
   }
 });
+
+app.post('/rooms/myrooms', async (req, res) => {
+    try {
+        const { user_id } = req.body;
+        if (!user_id) return res.status(400).json({ ok: false });
+        
+        // Find an active game/room where the user is a player
+        const query = await pool.query(`
+            SELECT r.id, r.name, r.status, g.id AS game_id
+            FROM rooms r
+            JOIN room_players rp ON r.id = rp.room_id
+            LEFT JOIN games g ON r.id = g.room_id AND r.status = 'in_game'
+            WHERE rp.user_id = $1 AND r.status <> 'finished'
+            ORDER BY r.created_at DESC
+            LIMIT 1;
+        `, [user_id]);
+
+        res.json({ ok: true, rooms: query.rows });
+    } catch(e) {
+        console.error("Error in /rooms/myrooms:", e);
+        res.status(500).json({ ok: false });
+    }
+});
+
 
 app.post('/rooms/create', async (req, res) => {
   const { user_id, name, level, max_players, reveal_mode } = req.body;
@@ -467,6 +507,7 @@ io.on('connection', (socket) => {
 
       // 3. Join the socket.io room
       socket.join(room_id);
+      if (!socketMeta.has(socket.id)) socketMeta.set(socket.id, { user_id: uid, room_ids: new Set() }); // Safety check
       socketMeta.get(socket.id)?.room_ids.add(room_id);
 
       // 4. Fetch the full room state and send to the joining user
@@ -485,19 +526,26 @@ io.on('connection', (socket) => {
             const gameId = crypto.randomUUID();
             const deck = newGameDeckForRoom(room_id, room.level);
             
+            // FIX: Check if deck is empty before starting
+            if(deck.length === 0) {
+                 return socket.emit('error', { message: 'کلمه‌ای برای این سطح پیدا نشد.' });
+            }
+
             await pool.query(`INSERT INTO games (id, room_id, deck, level, status, started_at) VALUES ($1,$2,$3,$4,'in_game',NOW());`, 
               [gameId, room_id, JSON.stringify(deck), room.level]);
             await pool.query(`UPDATE rooms SET status='in_game' WHERE id=$1;`, [room_id]);
             
             // Create game states for all players
             const players = await pool.query(`SELECT user_id FROM room_players WHERE room_id=$1;`, [room_id]);
+            const firstWordStrict = normalizeFaWordStrict(deck[0].word);
+            const initialAllowedWrong = ceil(firstWordStrict.length / 2); // Initial calculation
+            
             for (const p of players.rows) {
-                const firstWordStrict = normalizeFaWordStrict(deck[0].word);
                 await pool.query(`
                     INSERT INTO game_states (game_id, user_id, allowed_wrong) 
                     VALUES ($1, $2, $3) 
-                    ON CONFLICT DO NOTHING;
-                `, [gameId, p.user_id, ceil(firstWordStrict.length / 2)]);
+                    ON CONFLICT (game_id, user_id) DO NOTHING;
+                `, [gameId, p.user_id, initialAllowedWrong]); // FIX: Use the calculated allowed_wrong
             }
             
             io.to(room_id).emit('game:start', { game_id: gameId, room_id });
@@ -532,6 +580,7 @@ io.on('connection', (socket) => {
             
             // Re-join the room (socket.io room)
             socket.join(room_id);
+            if (!socketMeta.has(socket.id)) socketMeta.set(socket.id, { user_id: uid, room_ids: new Set() }); // Safety check
             socketMeta.get(socket.id)?.room_ids.add(room_id);
 
             const roomState = await getRoomState(room_id);
@@ -570,7 +619,10 @@ io.on('connection', (socket) => {
       // Check if room is empty or needs status update
       const count = await pool.query(`SELECT COUNT(*) AS count FROM room_players WHERE room_id=$1;`, [room_id]);
       if (Number(count.rows[0].count) === 0) {
+          // If the room is empty, mark it as finished
           await pool.query(`UPDATE rooms SET status='finished' WHERE id=$1;`, [room_id]);
+          // Also mark the associated game as finished if one exists
+          await pool.query(`UPDATE games SET status='finished', finished_at=NOW() WHERE room_id=$1 AND status='in_game';`, [room_id]);
       } else {
           // Broadcast updated room state to remaining players
           await sendRoomState(room_id);
@@ -632,6 +684,14 @@ io.on('connection', (socket) => {
           wrongLetters.push(normalizedLetter);
           // -5 points for wrong guess
           newScore = -5;
+          
+          // FIX: Check for game over condition (all wrong guesses used up)
+          if (wrongLetters.length >= allowed_wrong) {
+             // Game over for this word, but don't advance yet.
+             // The client handles the revealed word based on the state update (getGameState logic).
+             // The user gets penalized, but the word is just revealed.
+             // No further score change is needed here.
+          }
       }
       
       // Update state
@@ -648,8 +708,7 @@ io.on('connection', (socket) => {
       const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
       
       if(isWin) {
-         // 20 bonus points for completing the word
-         await pool.query(`UPDATE game_states SET score=score + 20 WHERE game_id=$1 AND user_id=$2;`, [game_id, uid]);
+         // FIX: Removed the 20 bonus points here as it's added inside advanceToNextWord now (total 25)
          await advanceToNextWord(game_id, uid, idx, deck, room_id);
       } else {
          // If not a win, just update state for the current player
@@ -669,7 +728,7 @@ io.on('connection', (socket) => {
 
         const q = await pool.query(`
             SELECT 
-                gs.current_index, gs.correct_letters, gs.wrong_letters, gs.hints_used, gs.allowed_wrong, -- Corrected column name to allowed_wrong
+                gs.current_index, gs.correct_letters, gs.wrong_letters, gs.hints_used, gs.allowed_wrong,
                 g.deck, r.id AS room_id
             FROM game_states gs
             JOIN games g ON gs.game_id = g.id
@@ -716,8 +775,7 @@ io.on('connection', (socket) => {
         const isWin = Array.from(requiredLetters).every(char => newCorrectLetters.includes(char));
 
         if(isWin) {
-            // 20 bonus points for completing the word (even if with a hint)
-            await pool.query(`UPDATE game_states SET score=score + 20 WHERE game_id=$1 AND user_id=$2;`, [game_id, uid]);
+            // FIX: Removed bonus points here, added in advanceToNextWord (total 25)
             await advanceToNextWord(game_id, uid, idx, deck, room_id);
         } else {
             // If not a win, just update state for the current player
@@ -731,17 +789,17 @@ io.on('connection', (socket) => {
   });
 
 
-  // Handler for history request
+  // FIX: History request handler completed
   socket.on('history:request', async ({ user_id }) => {
     try {
         if (!user_id) return;
         const uid = Number(user_id);
         
-        // Join finished games and game states for this user
+        // 1. Get all game states for this user in finished games
         const historyQuery = await pool.query(`
             SELECT 
                 g.id AS game_id, g.level, g.finished_at AS end_time, r.name AS room_name,
-                gs.score, gs.timer_ms, gs.current_index AS words_guessed
+                gs.user_id, gs.score, gs.timer_ms, gs.current_index AS words_guessed
             FROM games g
             JOIN game_states gs ON g.id = gs.game_id
             JOIN rooms r ON g.room_id = r.id
@@ -750,29 +808,31 @@ io.on('connection', (socket) => {
         `, [uid]);
         
         const history = [];
-        for (const row of historyQuery.rows) {
-            // Find total players for ranking calculation
-            const totalPlayersQuery = await pool.query(`SELECT COUNT(*) as total_players FROM game_states WHERE game_id=$1;`, [row.game_id]);
-            const totalPlayers = Number(totalPlayersQuery.rows[0].total_players);
+        for (const userGame of historyQuery.rows) {
+            const gameId = userGame.game_id;
             
-            // Calculate rank (by score DESC, then time_ms ASC)
+            // 2. Calculate rank for this specific game
             const rankQuery = await pool.query(`
-                SELECT user_id, score, timer_ms
+                SELECT user_id
                 FROM game_states 
                 WHERE game_id=$1
-                ORDER BY score DESC, timer_ms ASC;
-            `, [row.game_id]);
+                ORDER BY score DESC, timer_ms ASC; -- FIX: Ranking by score (DESC) then time (ASC)
+            `, [gameId]);
             
-            const myRank = rankQuery.rows.findIndex(r => r.user_id === uid) + 1;
+            const myRankIndex = rankQuery.rows.findIndex(r => r.user_id === uid);
+            const myRank = myRankIndex !== -1 ? myRankIndex + 1 : 0;
+
+            // 3. Find total players for display
+            const totalPlayers = rankQuery.rows.length;
 
             history.push({
-                game_id: row.game_id,
-                room_name: row.room_name,
-                level: row.level,
-                end_time: row.end_time,
-                score: Number(row.score),
-                timer_ms: Number(row.timer_ms),
-                words_guessed: Number(row.words_guessed),
+                game_id: gameId,
+                room_name: userGame.room_name,
+                level: userGame.level,
+                end_time: userGame.end_time,
+                score: Number(userGame.score),
+                timer_ms: Number(userGame.timer_ms),
+                words_guessed: Number(userGame.words_guessed),
                 total_players: totalPlayers,
                 rank: myRank
             });
@@ -801,9 +861,8 @@ io.on('connection', (socket) => {
     
     // Remove room association from socketMeta
     for (const rid of Array.from(m.room_ids)) {
-        // Clean up socket.io room manually if the room is still active
+        // Clean up socket.io room manually
         socket.leave(rid);
-        // We don't remove from DB on simple disconnect, rely on 'room:leave' button.
     }
     
     socketMeta.delete(socket.id);
