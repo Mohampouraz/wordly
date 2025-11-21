@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
   <title>وردلی رقابتی</title>
   
-  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <script>
     (function detectUi(){
@@ -98,7 +98,7 @@
     .game-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
     .timer-box { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 8px; }
     
-    /* FIX: Description Box */
+    /* استایل توضیحات کلمه */
     .description-box {
       background: #eff6ff; color: #1e40af; padding: 12px; border-radius: 12px;
       text-align: center; font-size: 14px; line-height: 1.6; margin-bottom: 16px; 
@@ -154,7 +154,7 @@
   <header>
     <div class="logo"><span>و</span>وردلی رقابتی</div>
     <div class="user-info">
-      <b id="headerUsername">مهمان</b>
+      <b id="headerUsername">...</b>
       <span id="headerUserId" style="opacity:0.6">ID: ...</span>
     </div>
   </header>
@@ -264,52 +264,78 @@ const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[
 const normalize = c => { if(!c) return ''; const m = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (m[c]||c).normalize('NFC'); };
 const $ = id => document.getElementById(id);
 
+// وضعیت گلوبال
 const state = {
   user: null, roomId: null, gameId: null, deck: [],
   gameState: {}, allStates: [], timerInterval: null, timerMs: 0
 };
 
-// --- 1. INIT WITH TELEGRAM ---
+// --- 1. INIT & AUTHENTICATION ---
 (async function init(){
-  let uid = localStorage.getItem('w_uid');
-  if(!uid) { uid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', uid); }
-  
-  state.user = { id: uid, name: 'کاربر ' + String(uid).slice(-4), photo: null };
+  // 1. ابتدا پیش‌فرض (مهمان) را تنظیم می‌کنیم
+  let localUid = localStorage.getItem('w_uid');
+  if(!localUid) { 
+    localUid = Math.floor(100000 + Math.random()*900000); 
+    localStorage.setItem('w_uid', localUid); 
+  }
+  state.user = { 
+    id: localUid, 
+    name: 'کاربر ' + String(localUid).slice(-4), 
+    photo: null 
+  };
 
-  // Telegram Logic
+  // 2. بررسی وجود تلگرام وب‌اپ
+  let isTelegram = false;
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
+    tg.ready();
     tg.expand();
     
+    // بررسی دقیق initDataUnsafe
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+       isTelegram = true;
        const u = tg.initDataUnsafe.user;
+       
+       // استخراج صحیح نام
+       const firstName = u.first_name || '';
+       const lastName = u.last_name || '';
+       const fullName = (firstName + ' ' + lastName).trim() || 'کاربر تلگرام';
+
        state.user.id = u.id;
-       state.user.name = (u.first_name + ' ' + (u.last_name || '')).trim();
+       state.user.name = fullName;
        state.user.photo = u.photo_url;
-       // Sync with DB
+
+       // همگام‌سازی با سرور (ذخیره اطلاعات واقعی)
        try {
          await fetch('/auth/telegram', {
            method: 'POST', headers: {'Content-Type':'application/json'},
            body: JSON.stringify({ user: u })
          });
-       } catch(e){}
+       } catch(e) { console.error('Auth Sync Error', e); }
     }
   }
   
-  $('headerUsername').textContent = state.user.name;
-  $('headerUserId').textContent = toFaDigits(state.user.id);
+  // 3. به‌روزرسانی UI هدر
+  updateHeaderUI();
 
+  // 4. ادامه بارگذاری
   checkActiveGame();
   loadPublicRooms();
 })();
 
+function updateHeaderUI() {
+  $('headerUsername').textContent = state.user.name;
+  $('headerUserId').textContent = toFaDigits(state.user.id);
+}
+
+// --- HELPER: Active Game Check ---
 async function checkActiveGame(){
   try {
     const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
     const d = await res.json();
     if(d.ok && d.rooms && d.rooms.length > 0) {
       const r = d.rooms[0];
-      // Only prompt resume if still playing
+      // اگر بازی در جریان است، بنر نمایش داده شود
       if(r.status === 'playing') {
         $('resumeBanner').classList.remove('hidden');
         $('resumeRoomName').textContent = r.name;
@@ -343,7 +369,7 @@ const showTab = (tab) => {
 $('btnBackMenu').onclick = () => showTab('dashboard');
 document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.target));
 
-// --- 3. SOCKET ---
+// --- 3. SOCKET LOGIC ---
 const socket = io();
 socket.on('connect', () => {
   if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id });
@@ -354,6 +380,7 @@ socket.on('game:started', (data) => {
 });
 socket.on('game:state', (data) => {
   let gs = data.state;
+  // پارس کردن JSON های دیتابیس اگر رشته باشند
   if(typeof gs.correct_letters === 'string') gs.correct_letters = JSON.parse(gs.correct_letters);
   if(typeof gs.wrong_letters === 'string') gs.wrong_letters = JSON.parse(gs.wrong_letters);
   updateState(gs.game_id, data.deck, gs, data.players);
@@ -379,9 +406,8 @@ socket.on('game:next', (data) => {
   if(data.game_id !== state.gameId) return;
   if(data.states) state.allStates = data.states;
   
-  // If I am the user, reset local state logic (backend handles clean up, this is just UI sync)
   if(String(data.by_user) === String(state.user.id)) {
-     // Clear input
+     // ریست کردن ورودی‌ها برای کلمه جدید
      $('txtLetter').value = '';
      state.gameState.correct_letters = [];
      state.gameState.wrong_letters = [];
@@ -389,12 +415,10 @@ socket.on('game:next', (data) => {
      renderGame();
      updatePlayersUI();
      
-     // Show animation
      const slots = $('slotsContainer');
      slots.style.opacity = 0;
      setTimeout(() => slots.style.opacity = 1, 300);
   } else {
-    // Opponent advanced, I might not have
     updatePlayersUI();
   }
 });
@@ -414,7 +438,7 @@ socket.on('game:letter:wrong', (data) => {
   const isMe = String(data.user_id) === String(state.user.id);
   if(isMe) {
     if(!state.gameState.wrong_letters.includes(data.letter)) state.gameState.wrong_letters.push(data.letter);
-    renderGame(); // Re-render to update count
+    renderGame(); 
     $('txtLetter').classList.add('shake');
     setTimeout(()=> $('txtLetter').classList.remove('shake'), 400);
   }
@@ -437,7 +461,7 @@ socket.on('game:finished', () => {
   showTab('dashboard');
 });
 
-// --- 4. LOGIC ---
+// --- 4. GAME LOGIC (JOIN/LEAVE) ---
 async function enterRoomMode(roomId, skipApi = false) {
   if(!skipApi) {
     const res = await fetch('/rooms/join', {
@@ -454,7 +478,7 @@ async function enterRoomMode(roomId, skipApi = false) {
   fetch('/rooms/state', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId }) })
   .then(r=>r.json()).then(d => {
     if(d.ok && d.game) {
-       // FIX: Call game:resume if game exists
+       // اتصال به بازی فعال
        socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
     } else {
        showTab('game');
@@ -488,13 +512,12 @@ async function loadPublicRooms(){
 }
 $('btnRefresh').onclick = loadPublicRooms; $('filterLevel').onchange = loadPublicRooms;
 
-// --- 5. RENDER ---
+// --- 5. RENDER GAME UI ---
 function renderGame() {
   if(!state.deck.length) return;
   const idx = Number(state.gameState.current_index) || 0;
   const wordObj = state.deck[idx];
   if(!wordObj) {
-      // Game possibly finished or invalid index
       $('lblDescription').textContent = 'پایان بازی';
       return;
   }
@@ -503,7 +526,7 @@ function renderGame() {
   $('lblCategory').textContent = wordObj.category;
   $('lblLevel').textContent = trLevel(wordObj.level);
   
-  // FIX: Populate Description
+  // نمایش توضیحات کلمه
   $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
 
   const word = normalize(wordObj.word);
@@ -512,9 +535,8 @@ function renderGame() {
   
   const correctLetters = state.gameState.correct_letters || [];
   const wrongLetters = state.gameState.wrong_letters || [];
-  
-  // Render Allowed Wrong
   const allowedWrong = Number(state.gameState.allowed_wrong) || 0;
+  
   $('lblWrongCount').textContent = toFaDigits(wrongLetters.length);
   $('lblAllowedWrong').textContent = toFaDigits(allowedWrong);
   
@@ -549,7 +571,7 @@ function updatePlayersUI(rawList) {
   });
 }
 
-// --- 6. INPUT ---
+// --- 6. INPUT HANDLERS ---
 $('btnGuess').onclick = () => {
   const val = $('txtLetter').value;
   if(!val) return $('txtLetter').focus();
