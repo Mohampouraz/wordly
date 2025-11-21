@@ -9,8 +9,15 @@ const { Pool } = require('pg');
 const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 
-// فراخوانی فایل کلمات. فرض بر این است که این فایل یک آرایه از اشیاء { word: string, description: string, level: string } را صادر می‌کند.
-const wordsData = require('./words');
+// فراخوانی فایل کلمات و اطمینان از اینکه خروجی یک آرایه است.
+const importedData = require('./words');
+// اگر آرایه نبود، به دنبال ویژگی 'words' یا 'default' می‌گردیم.
+const wordsData = Array.isArray(importedData) ? importedData : importedData.words || importedData.default || [];
+
+if (wordsData.length === 0) {
+    console.error("WARNING: words.js was loaded but contains no words. Please check the file's export format (expected: module.exports = [...] or module.exports = { words: [...] }).");
+}
+
 
 /* ----------------------------------------------------------------
    UTILITIES
@@ -176,6 +183,14 @@ async function advanceToNextWord(game_id, user_id, word_index, deck, roomId, isW
     if (isGameOver) {
         await pool.query(`UPDATE games SET status='completed' WHERE id=$1;`, [game_id]);
         io.to(roomId).emit('game:update', { game_id, status: 'completed' });
+        // یک ثانیه صبر برای اطمینان از ارسال به‌روزرسانی نهایی
+        setTimeout(async () => {
+             // ارسال آخرین وضعیت کامل بازی به همه بازیکنان
+            const fullGameState = await getFullGameState(game_id, user_id);
+            if (fullGameState) {
+                io.to(roomId).emit('game:full_state', fullGameState);
+            }
+        }, 1000); 
         return;
     }
 
@@ -365,6 +380,13 @@ io.on('connection', (socket) => {
   // -------------------------
   // GAMES
   // -------------------------
+  
+  socket.on('game:fetch_state', async ({ game_id, user_id }) => {
+      try {
+          const fullGameState = await getFullGameState(game_id, user_id);
+          socket.emit('game:full_state', fullGameState);
+      } catch (e) { console.error('Error fetching game state:', e); }
+  });
   
   socket.on('game:guess', async ({ game_id, user_id, letter }) => {
     try {
