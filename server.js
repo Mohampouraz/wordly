@@ -54,7 +54,6 @@ const normalizeFaWordKeepSpaces = word => {
   return w.normalize('NFC');
 };
 
-// حذف تمام فاصله‌ها برای محاسبه طول دقیق و شرط برد
 const normalizeFaWordStrict = word => {
   let w = normalizeFaWordKeepSpaces(word);
   return w.replace(/[\s\u200c\u200d\u200b\u00a0]/g, '');
@@ -71,7 +70,6 @@ const newGameDeckForRoom = (roomId, level = 'medium') => {
     }
   }
   if (!all.length) return [];
-  
   let seed = 0;
   for (let i = 0; i < roomId.length; i++) seed = (seed * 31 + roomId.charCodeAt(i)) >>> 0;
   const a = all.slice();
@@ -115,32 +113,19 @@ const ensureSchema = async () => {
 /* ----------------------------------------------------------------
    API ROUTES
 ---------------------------------------------------------------- */
-// ذخیره اطلاعات تلگرام در دیتابیس
 app.post('/auth/telegram', async (req, res) => {
   const { user } = req.body;
   try {
     const uid = Number(user?.id);
     if (!uid) return res.status(400).json({ ok:false });
-    
-    // ساخت نام کامل از روی اطلاعات تلگرام
     const fullname = `${user.first_name || ''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || `کاربر ${uid}`;
-    
     await pool.query(`
       INSERT INTO users (id, username, first_name, last_name, fullname, language_code, photo_url)
       VALUES ($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT (id) DO UPDATE SET 
-        first_name = EXCLUDED.first_name, 
-        last_name = EXCLUDED.last_name, 
-        fullname = EXCLUDED.fullname, 
-        photo_url = EXCLUDED.photo_url, 
-        updated_at = NOW();
+      ON CONFLICT (id) DO UPDATE SET fullname = EXCLUDED.fullname, photo_url = EXCLUDED.photo_url, updated_at = NOW();
     `, [uid, user.username, user.first_name, user.last_name, fullname, user.language_code, user.photo_url]);
-    
     res.json({ ok:true });
-  } catch (e) { 
-    console.error(e);
-    res.status(500).json({ ok:false }); 
-  }
+  } catch (e) { res.status(500).json({ ok:false }); }
 });
 
 app.get('/rooms/list', async (req, res) => {
@@ -195,9 +180,10 @@ app.post('/rooms/join', async (req, res) => {
 
       for (const p of players.rows) {
         const strictLen = normalizeFaWordStrict(deck[0]?.word || '').length;
-        const hintsAllowed = Math.max(1, floor(strictLen / 3)); // Hint rule
-        const allowedWrong = Math.max(1, ceil(strictLen * 1.5)); // 1.5x Rule
+        const hintsAllowed = Math.max(1, floor(strictLen / 3));
+        const allowedWrong = Math.max(1, ceil(strictLen * 1.5));
         
+        // timer_ms starts at 0
         await pool.query(`INSERT INTO game_states (game_id,user_id,current_index,correct_letters,wrong_letters,hints_used,hints_allowed,score,guessed_count,allowed_wrong,timer_ms) 
           VALUES ($1,$2,0,'[]','[]',0,$3,0,0,$4,0) ON CONFLICT DO NOTHING;`, 
           [gameId, p.user_id, hintsAllowed, allowedWrong]);
@@ -259,6 +245,7 @@ async function getGameStates(gameId) {
   return q.rows;
 }
 
+// FIXED: Do NOT reset timer_ms in this function so it persists
 async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
   const nextIndex = currentIdx + 1;
   const deckLen = Array.isArray(deck) ? deck.length : 0;
@@ -272,10 +259,10 @@ async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
   const nextWord = String(deck[nextIndex]?.word || '');
   const strictLen = normalizeFaWordStrict(nextWord).length;
   
-  // Rules for next word
   const hintsAllowedNext = Math.max(1, floor(strictLen / 3));
-  const allowedWrongNext = Math.max(1, ceil(strictLen * 1.5)); // 1.5x Rule applied here too
+  const allowedWrongNext = Math.max(1, ceil(strictLen * 1.5));
 
+  // Removed: timer_ms=0 (Keeps the timer running cumulative)
   await pool.query(`
     UPDATE game_states 
     SET current_index=$3, correct_letters='[]', wrong_letters='[]', hints_used=0, hints_allowed=$4, allowed_wrong=$5, last_update=NOW() 
@@ -334,7 +321,6 @@ io.on('connection', (socket) => {
       
       const currentWordOrig = String(deck[idx]?.word || '');
       const currentWord = normalizeFaWordKeepSpaces(currentWordOrig);
-      
       const normalized = normalizeFaLetter(String(letter).trim());
       if (!normalized || normalized.length !== 1) return;
 
@@ -372,7 +358,6 @@ io.on('connection', (socket) => {
            if(roomId) socket.to(roomId).emit('game:letter:correct', { user_id, letter: null, positions: [], scoreDelta, player: updatedPlayer.rows[0], shared: false });
         }
 
-        // WIN CHECK (Strict)
         const currentWordStrict = normalizeFaWordStrict(currentWordOrig);
         const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
         const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
@@ -388,22 +373,15 @@ io.on('connection', (socket) => {
           [game_id, user_id, JSON.stringify(wrongLetters)]);
         
         const strictLen = normalizeFaWordStrict(currentWordOrig).length;
-        
-        // Ensure allowedWrong matches rule
         const allowedWrong = Number(gs.allowed_wrong) || Math.max(1, ceil(strictLen * 1.5));
-        
         const payload = { user_id, letter: normalized, wrongCount: wrongLetters.length, allowedWrong };
+        
         socket.emit('game:letter:wrong', payload);
 
-        // FAILURE CHECK (1.5x Rule)
         if (wrongLetters.length >= allowedWrong) {
-          const penalty = 5 * correctLetters.length; // Penalty logic
+          const penalty = 5 * correctLetters.length;
           await pool.query(`UPDATE game_states SET score = GREATEST(score - $3, 0) WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, penalty]);
-          
-          // Emit fail info (optional UI enhancement)
           socket.emit('game:feedback', { type: 'word-failed', word: currentWordOrig });
-          
-          // Advance immediately
           await advanceToNextWord(game_id, user_id, idx, deck, roomId);
         }
       }
@@ -429,7 +407,6 @@ io.on('connection', (socket) => {
 
       let correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
       
-      // Filter candidates
       const candidates = currentWord.split('').filter(ch => ch.trim() !== '' && ch !== '\u200c' && !correctLetters.includes(ch));
       const uniqueCandidates = [...new Set(candidates)];
       
@@ -449,6 +426,7 @@ io.on('connection', (socket) => {
       const roomId = gameRow.rows[0]?.room_id;
       
       const payload = { user_id, letter: reveal, positions, penalty };
+      // Send to self
       socket.emit('game:hint:reveal', payload);
 
       if(roomId) {
