@@ -3,514 +3,269 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
-  <title>وردلی رقابتی — نسخه حرفه‌ای</title>
+  <title>وردلی رقابتی — نسخه پیشرفته</title>
 
   <script>
-    (function detectAndApplyUiMode(){
-      function supportsCssVariables(){ return window.CSS && window.CSS.supports && window.CSS.supports('--a','0'); }
-      function supportsBackdropFilter(){ try { return window.CSS && window.CSS.supports && (window.CSS.supports('backdrop-filter','blur(4px)') || window.CSS.supports('-webkit-backdrop-filter','blur(4px)')); } catch(e){ return false; } }
-      var useGlassy = supportsCssVariables() && supportsBackdropFilter();
-      if (useGlassy) {
-        document.documentElement.classList.add('glassy-ui');
-        document.documentElement.setAttribute('data-ui-mode','glassy');
-      } else {
-        document.documentElement.classList.add('legacy-ui');
-      }
+    (function detectUi(){
+      const supportsBackdrop = CSS.supports && (CSS.supports('backdrop-filter','blur(10px)') || CSS.supports('-webkit-backdrop-filter','blur(10px)'));
+      if(supportsBackdrop) document.documentElement.classList.add('glassy');
+      else document.documentElement.classList.add('flat');
     })();
   </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
-    /* --- Modern Design System --- */
     :root {
-      --font-main: 'Vazirmatn', system-ui, -apple-system, sans-serif;
-      
-      /* Color Palette */
-      --bg-app: #f0f2f5;
-      --bg-gradient: linear-gradient(135deg, #ece9f6 0%, #eef2f3 100%);
-      --panel-bg: rgba(255, 255, 255, 0.85);
-      --panel-border: rgba(255, 255, 255, 0.6);
-      
-      --primary: #6366f1;     /* Indigo */
-      --primary-dark: #4f46e5;
-      --secondary: #ec4899;   /* Pink */
-      --accent: #8b5cf6;      /* Violet */
-      
-      --text-main: #1e293b;
-      --text-muted: #64748b;
-      
+      --font: 'Vazirmatn', sans-serif;
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --bg-body: #f3f4f6;
+      --bg-panel: #ffffff;
+      --text-main: #1f2937;
+      --text-muted: #6b7280;
       --success: #10b981;
       --danger: #ef4444;
-      --warning: #f59e0b;
+      --radius: 16px;
+      --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
 
-      --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
-      --shadow-md: 0 8px 16px rgba(0,0,0,0.06);
-      --shadow-lg: 0 20px 40px rgba(0,0,0,0.08);
-      
-      --radius-sm: 8px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
-      
-      --slot-size: 48px;
+    .glassy {
+      --bg-body: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
+      --bg-panel: rgba(255, 255, 255, 0.8);
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
-    html, body {
-      height: 100%; margin: 0; padding: 0;
-      font-family: var(--font-main);
-      background: var(--bg-app);
-      color: var(--text-main);
-      overflow-x: hidden;
-    }
+    body { margin: 0; font-family: var(--font); background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; }
 
-    body.glassy-ui {
-      background: var(--bg-gradient);
-      background-attachment: fixed;
-    }
-
-    /* Layout */
-    .app {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 16px;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .shell {
-      background: var(--panel-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      flex: 1;
-      transition: transform 0.2s ease;
+    .app-container {
+      display: flex; flex-direction: column; height: 100%; max-width: 1200px; margin: 0 auto;
     }
 
     /* Header */
-    header.appbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 24px;
-      background: rgba(255,255,255,0.4);
-      border-bottom: 1px solid rgba(0,0,0,0.05);
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 20px; background: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(0,0,0,0.05);
     }
+    .logo { font-weight: 900; font-size: 20px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .logo span { background: var(--primary); color: white; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; }
+    
+    .user-info { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
+    .user-info b { font-size: 14px; }
 
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .badge {
-      width: 48px; height: 48px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      color: white;
-      border-radius: var(--radius-md);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px; font-weight: 900;
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    /* Main Layout */
+    .main-grid {
+      display: grid; grid-template-columns: 1fr 320px; gap: 20px; padding: 20px;
+      flex: 1; overflow: hidden;
     }
-    .title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-    .subtitle { font-size: 12px; color: var(--text-muted); font-weight: 500; }
-
-    .user-chip { text-align: left; }
-    #userName { font-weight: 700; font-size: 14px; }
-    #userId { font-size: 11px; color: var(--text-muted); font-family: monospace; }
-
-    /* Tabs */
-    nav.mini-tabs {
-      display: flex; padding: 8px 24px; gap: 12px;
-      background: rgba(255,255,255,0.3);
-    }
-    .tab {
-      border: none; background: transparent;
-      padding: 10px 16px;
-      border-radius: var(--radius-md);
-      color: var(--text-muted);
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      font-family: var(--font-main);
-    }
-    .tab:hover { background: rgba(0,0,0,0.03); color: var(--primary); }
-    .tab.active {
-      background: white;
-      color: var(--primary-dark);
-      box-shadow: var(--shadow-sm);
-    }
-
-    /* Main Content Grid */
-    main.content {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
-      padding: 24px;
-      flex: 1;
-    }
-    @media (max-width: 850px) {
-      main.content { grid-template-columns: 1fr; padding: 16px; }
-    }
+    @media (max-width: 800px) { .main-grid { grid-template-columns: 1fr; overflow-y: auto; } }
 
     /* Panels */
     .panel {
-      background: #fff;
-      border-radius: var(--radius-md);
-      padding: 20px;
-      box-shadow: var(--shadow-sm);
-      border: 1px solid rgba(0,0,0,0.03);
-      margin-bottom: 16px;
+      background: var(--bg-panel); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 20px; display: flex; flex-direction: column;
+      border: 1px solid rgba(255,255,255,0.5);
     }
-    .panel:last-child { margin-bottom: 0; }
-    .panel h3 { margin: 0 0 12px 0; font-size: 16px; font-weight: 800; color: var(--text-main); }
+    .glassy .panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
-    /* Game Area */
-    .hero { display: flex; flex-direction: column; gap: 16px; }
-    .hero .left { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-    
-    /* Select & Buttons */
-    select {
-      padding: 10px 30px 10px 14px;
-      border-radius: var(--radius-sm);
-      border: 1px solid #e2e8f0;
-      background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat left 10px center;
-      background-size: 10px;
-      appearance: none;
-      font-family: var(--font-main);
-      font-weight: 500;
+    /* Tabs */
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 15px; padding: 0 20px; }
+    .tab-btn {
+      border: none; background: transparent; padding: 10px 0;
+      font-family: var(--font); font-weight: 700; color: var(--text-muted);
+      cursor: pointer; position: relative; transition: 0.3s;
     }
-    
+    .tab-btn.active { color: var(--primary); }
+    .tab-btn.active::after {
+      content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 3px;
+      background: var(--primary); border-radius: 10px;
+    }
+
+    /* Buttons */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center;
-      padding: 10px 20px;
-      border-radius: var(--radius-sm);
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-family: var(--font-main);
-      font-size: 14px;
+      border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer;
+      font-family: var(--font); font-weight: 700; font-size: 14px;
+      transition: transform 0.1s; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     }
     .btn:active { transform: scale(0.96); }
-    
-    .btn.primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-      color: #fff;
-      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-    }
-    .btn.primary:hover { box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); transform: translateY(-1px); }
-    
-    .btn.ghost {
-      background: transparent;
-      color: var(--text-muted);
-      border: 1px solid transparent;
-    }
-    .btn.ghost:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
+    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+    .btn-ghost { background: rgba(0,0,0,0.05); color: var(--text-main); }
+    .btn-danger { background: #fee2e2; color: var(--danger); }
 
-    /* Game Slots */
-    .word-slots {
-      display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; justify-content: center;
+    /* Rooms List */
+    .room-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 300px; }
+    .room-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px; background: white; border-radius: 12px; border: 1px solid #e5e7eb;
+    }
+    .room-info h4 { margin: 0 0 4px 0; font-size: 15px; }
+    .room-meta { font-size: 12px; color: var(--text-muted); }
+
+    /* Game Area */
+    .game-header { display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center; }
+    .timer-box { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 8px; }
+    
+    .slots-area {
+      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0;
     }
     .slot {
-      width: var(--slot-size); height: calc(var(--slot-size) * 1.2);
-      background: #fff;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
+      width: 48px; height: 56px; border: 2px solid #d1d5db; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 22px; font-weight: 800;
-      box-shadow: 0 4px 0 #cbd5e1;
-      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      position: relative;
+      font-size: 24px; font-weight: 800; background: white;
+      transition: all 0.3s ease;
     }
-    .slot.revealed {
-      background: white;
-      border-color: #94a3b8;
-      box-shadow: 0 4px 0 #64748b;
-      color: var(--text-main);
-    }
-    .slot.correct {
-      background: var(--success);
-      border-color: #059669;
-      box-shadow: 0 4px 0 #047857;
-      color: white;
-      animation: pop 0.4s forwards;
-    }
-    .slot.wrong {
-      background: var(--danger);
-      border-color: #dc2626;
-      color: white;
-      animation: shake 0.4s;
-    }
-    .slot.gap {
-      width: 16px; height: auto; border: none; background: transparent; box-shadow: none;
-    }
-    .slot.opponent {
-      border-style: dashed;
-      opacity: 0.8;
-    }
+    .slot.gap { border: none; background: transparent; width: 10px; }
+    .slot.correct { background: var(--success); border-color: var(--success); color: white; transform: translateY(-4px); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); }
+    .slot.revealed { background: #f3f4f6; border-color: #9ca3af; }
 
-    @keyframes pop { 0%{transform:scale(0.8)} 50%{transform:scale(1.1)} 100%{transform:scale(1)} }
-    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
-
-    /* Controls */
-    .controls-row {
-      display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 24px;
+    .input-area { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .letter-input {
+      width: 60px; height: 60px; text-align: center; font-size: 24px; font-weight: 700;
+      border: 2px solid var(--primary); border-radius: 12px; outline: none;
     }
-    input.letter {
-      width: 60px; height: 60px;
-      font-size: 24px; text-align: center; font-weight: 700;
-      border: 2px solid var(--primary);
-      border-radius: 14px;
-      background: #fff;
-      outline: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    input.letter:focus { box-shadow: 0 0 0 4px rgba(99,102,241,0.2); }
-
-    /* Chips (Correct/Wrong) */
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-height: 32px; }
-    .chip-letter {
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 16px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .chip-letter.correct { background: var(--success); color: white; }
-    .chip-letter.wrong { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
-
-    /* Room List & Modal */
-    .rooms-list { display: grid; gap: 10px; }
-    .room-row {
-      background: #fff; padding: 14px; border-radius: 12px;
-      border: 1px solid #f1f5f9;
-      display: flex; justify-content: space-between; align-items: center;
-      transition: transform 0.2s;
-    }
-    .room-row:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-    .room-title { font-weight: 700; color: var(--text-main); }
     
-    .modal-backdrop {
-      position: fixed; inset: 0; z-index: 2000;
-      background: rgba(15, 23, 42, 0.6);
-      backdrop-filter: blur(4px);
-      display: flex; align-items: center; justify-content: center; padding: 16px;
-    }
-    .modal-card {
-      width: 100%; max-width: 900px; background: #fff;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      display: flex; flex-direction: column;
-      max-height: 90vh; overflow: hidden;
-    }
-    .modal-head { padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-    .modal-body { padding: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 24px; overflow-y: auto; }
-    @media(max-width: 800px){ .modal-body { grid-template-columns: 1fr; } }
+    .chips-container { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; min-height: 30px; }
+    .chip { padding: 4px 10px; border-radius: 20px; font-size: 14px; font-weight: 700; }
+    .chip.correct { background: #d1fae5; color: #065f46; }
+    .chip.wrong { background: #fee2e2; color: #991b1b; }
 
-    /* Footer */
-    footer {
-      margin-top: auto; padding: 20px; border-top: 1px solid rgba(0,0,0,0.05);
-      display: flex; justify-content: space-between; color: var(--text-muted); font-size: 12px;
+    /* Players Side Panel */
+    .player-card {
+      background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px;
+      border: 1px solid #f3f4f6; display: flex; justify-content: space-between; align-items: center;
+    }
+    .player-card.me { border: 2px solid var(--primary-light); background: #eef2ff; }
+    .p-name { font-weight: 700; font-size: 14px; }
+    .p-score { font-weight: 900; color: var(--primary); font-size: 16px; }
+    .p-status { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-content {
+      background: white; padding: 24px; border-radius: 20px; width: 90%; max-width: 500px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
     }
 
     /* Utility */
-    .muted { color: var(--text-muted); }
-    .pill {
-      background: #f1f5f9; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      display: inline-flex; align-items: center;
-    }
-    .timer { font-family: monospace; font-weight: 700; color: var(--primary); font-size: 16px; }
-    .shake { animation: shake 0.4s; }
+    .hidden { display: none !important; }
+    .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
   </style>
 </head>
 <body>
 
-<div class="app">
-  <div class="shell" role="application" aria-label="وردلی رقابتی">
+<div class="app-container">
+  <header>
+    <div class="logo">
+      <span>و</span>
+      وردلی رقابتی
+    </div>
+    <div class="user-info">
+      <b id="headerUsername">مهمان</b>
+      <span id="headerUserId" style="opacity:0.6">ID: ...</span>
+    </div>
+  </header>
+
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-target="dashboard">لابی</button>
+    <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
+  </nav>
+
+  <div class="main-grid">
     
-    <header class="appbar">
-      <div class="brand">
-        <div class="badge">و</div>
-        <div>
-          <div class="title">وردلی</div>
-          <div class="subtitle">رقابت آنلاین کلمات</div>
-        </div>
-      </div>
-      <div class="controls">
-        <div class="user-chip">
-          <div id="userName">مهمان</div>
-          <div id="userId">—</div>
-        </div>
-        <button id="manageRoomsBtn" class="btn ghost">اتاق‌ها</button>
-      </div>
-    </header>
-
-    <nav class="mini-tabs">
-      <button class="tab active" data-tab="dashboard">لابی</button>
-      <button class="tab" data-tab="play">بازی</button>
-      <button class="tab" data-tab="about">درباره</button>
-    </nav>
-
-    <main class="content">
-      <section>
-        
-        <div class="panel hero">
-          <div class="left" style="justify-content: space-between; width: 100%;">
-            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-               <select id="levelSelect">
-                <option value="easy">آسان</option>
-                <option value="medium" selected>متوسط</option>
-                <option value="hard">سخت</option>
-              </select>
-              <button id="quickJoin" class="btn primary">بازی سریع</button>
-              <button id="resumeGame" class="btn ghost">ادامه بازی</button>
-            </div>
-            <div class="meta" style="display:flex; gap:8px; align-items:center;">
-               <div class="pill">وضعیت: <span id="roomStatus">—</span></div>
-               <div class="pill">بازیکنان: <span id="playersCount">0</span></div>
-            </div>
-          </div>
+    <div class="content-area">
+      
+      <section id="view-dashboard" class="panel" style="height:100%">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+          <h3>اتاق‌های بازی</h3>
+          <button id="btnNewRoom" class="btn btn-primary">ساخت اتاق +</button>
         </div>
 
-        <div id="dashboardPanel" class="panel">
-          <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-             <h3>اتاق‌های پیشنهادی</h3>
-             <button id="refreshRooms" class="btn ghost" style="padding:4px 8px; font-size:12px;">بروزرسانی</button>
+        <div id="resumeBanner" class="hidden" style="background: #eff6ff; border: 1px solid #bfdbfe; padding:12px; border-radius:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-weight:800; color:#1e40af">بازی در جریان دارید</div>
+            <div style="font-size:12px; color:#3b82f6" id="resumeRoomName">...</div>
           </div>
-          <div id="roomsList" class="rooms-list"></div>
+          <button id="btnResume" class="btn btn-primary" style="font-size:12px;">بازگشت به بازی</button>
         </div>
 
-        <div id="playPanel" class="panel" style="display:none">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
-            <div>
-              <h3 style="margin-bottom:4px;">زمین بازی</h3>
-              <div id="playSubtitle" class="muted" style="font-size:12px;">کلمه را حدس بزنید</div>
-            </div>
-            <div style="text-align:left; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
-               <div class="timer" id="timer">۰۰:۰۰</div>
-               <div style="font-size:12px;" class="muted"><span id="categoryName">—</span> | <span id="levelName">—</span></div>
-               <div class="pill">مرحله <span id="wordIndex" style="margin:0 4px">1</span> / 10</div>
-            </div>
-          </div>
-
-          <div id="wordSlots" class="word-slots">
-            </div>
-
-          <div class="controls-row">
-            <input id="letterInput" class="letter" maxlength="1" inputmode="text" placeholder="؟" autocomplete="off" />
-            <button id="guessBtn" class="btn primary" style="height:50px; min-width:80px;">ثبت</button>
-            <button id="hintBtn" class="btn" style="height:50px;">راهنما</button>
-          </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:20px;">
-            <div>
-              <div style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--success);">حروف صحیح شما</div>
-              <div id="correctLetters" class="chips"></div>
-            </div>
-            <div>
-              <div style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--danger);">حروف غلط شما</div>
-              <div id="wrongLetters" class="chips"></div>
-            </div>
-          </div>
-          
-          <div style="margin-top:16px; text-align:center;">
-             <button id="leaveBtn" class="btn ghost" style="color:var(--danger);">ترک بازی</button>
-          </div>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+           <select id="filterLevel" style="padding:8px; border-radius:8px; border:1px solid #ccc">
+             <option value="">همه سطوح</option>
+             <option value="easy">آسان</option>
+             <option value="medium">متوسط</option>
+             <option value="hard">سخت</option>
+           </select>
+           <button id="btnRefresh" class="btn btn-ghost">بروزرسانی</button>
         </div>
 
-        <div id="aboutPanel" class="panel" style="display:none">
-          <h3>درباره بازی</h3>
-          <p class="muted" style="line-height:1.8;">
-            نسخه بهینه شده بازی کلمات. با دوستان خود رقابت کنید و دایره لغات خود را بسنجید.
-          </p>
+        <div id="roomsListContainer" class="room-list">
+          <div style="text-align:center; color:#999; margin-top:20px;">در حال بارگذاری...</div>
         </div>
-
       </section>
 
-      <aside class="right">
-        <div class="panel">
-           <h3>جدول امتیازات</h3>
-           <div id="playersList" style="display:flex; flex-direction:column; gap:12px;"></div>
+      <section id="view-game" class="panel hidden" style="height:100%">
+        <div class="game-header">
+          <div>
+            <h3 style="margin:0">کلمه <span id="lblWordIndex">۱</span> از ۱۰</h3>
+            <div style="font-size:12px; color:#666"><span id="lblCategory">...</span> | <span id="lblLevel">...</span></div>
+          </div>
+          <div class="timer-box" id="lblTimer">۰۰:۰۰</div>
         </div>
 
-        <div class="panel" style="background: linear-gradient(180deg, #fff, #f8fafc);">
-           <div style="display:flex; justify-content:space-between; align-items:center;">
-             <span class="muted">امتیاز شما</span>
-             <span id="scoreMe" style="font-size:24px; font-weight:900; color:var(--primary);">0</span>
-           </div>
-           <hr style="border:0; border-top:1px solid #eee; margin:12px 0;">
-           <div style="font-size:13px;">
-             <div style="margin-bottom:4px;">پیشرفت شما: <span id="progressMe" style="float:left; font-weight:700;">—</span></div>
-             <div class="muted">پیشرفت حریف: <span id="progressOpp" style="float:left;">—</span></div>
-           </div>
+        <div id="slotsContainer" class="slots-area"></div>
+
+        <div style="margin-top:auto; margin-bottom:20px;">
+          <div class="input-area">
+            <input id="txtLetter" class="letter-input" maxlength="1" placeholder="؟" autocomplete="off">
+            <button id="btnGuess" class="btn btn-primary" style="min-width:80px">ثبت</button>
+            <button id="btnHint" class="btn btn-ghost">راهنما</button>
+          </div>
+
+          <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--success)">حروف صحیح شما</div>
+          <div id="chipsCorrect" class="chips-container" style="margin-bottom:16px;"></div>
+          
+          <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--danger)">حروف غلط شما</div>
+          <div id="chipsWrong" class="chips-container"></div>
         </div>
+      </section>
 
-        <div class="panel">
-           <h3>تنظیمات</h3>
-           <div style="display:flex; flex-wrap:wrap; gap:8px;">
-             <button id="openRoomsBtn" class="btn" style="flex:1; font-size:12px;">مدیریت اتاق</button>
-             <button id="clearState" class="btn ghost" style="flex:1; font-size:12px;">ریست</button>
-           </div>
-        </div>
-      </aside>
+    </div>
 
-    </main>
-
-    <footer>
-      <div>نسخه وب‌اپلیکیشن</div>
-      <div>طراحی واکنش‌گرا</div>
-    </footer>
+    <aside class="panel">
+      <h4 style="margin-top:0">بازیکنان</h4>
+      <div id="playersListContainer" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto; flex:1;">
+        <div style="text-align:center; color:#999; font-size:12px;">در انتظار...</div>
+      </div>
+      
+      <hr style="border:0; border-top:1px solid #eee; margin:16px 0;">
+      
+      <div id="gameControls" class="hidden">
+         <button id="btnLeave" class="btn btn-danger" style="width:100%; margin-bottom:8px;">ترک بازی</button>
+         <button id="btnBackMenu" class="btn btn-ghost" style="width:100%">بازگشت به منو (بدون خروج)</button>
+      </div>
+    </aside>
 
   </div>
 </div>
 
-<div id="roomsModal" class="modal-backdrop" style="display:none">
-  <div class="modal-card">
-    <div class="modal-head">
-       <h3>مدیریت اتاق‌ها</h3>
-       <button id="closeRooms" class="btn ghost">بستن</button>
-    </div>
-    <div class="modal-body">
-       <div>
-         <div style="display:flex; gap:8px; margin-bottom:12px;">
-            <select id="filterLevel" style="flex:1;">
-               <option value="">همه سطوح</option>
-               <option value="easy">آسان</option>
-               <option value="medium">متوسط</option>
-               <option value="hard">سخت</option>
-            </select>
-            <span class="muted" style="align-self:center; font-size:12px;">تعداد: <span id="publicRoomsCount">0</span></span>
-         </div>
-         <div id="publicRoomsList" class="rooms-list" style="max-height:300px; overflow-y:auto; padding:2px;"></div>
-       </div>
-
-       <div style="display:flex; flex-direction:column; gap:16px;">
-          <div class="panel" style="border:1px solid var(--primary); margin:0;">
-             <h4 style="margin-top:0;">ساخت اتاق جدید</h4>
-             <div style="display:flex; flex-direction:column; gap:10px;">
-               <input id="newRoomName" placeholder="نام اتاق" style="padding:10px; border:1px solid #cbd5e1; border-radius:8px;">
-               <div style="display:flex; gap:8px;">
-                 <select id="newRoomLevel" style="flex:1;"><option value="medium">متوسط</option><option value="easy">آسان</option><option value="hard">سخت</option></select>
-                 <input id="newRoomMax" type="number" value="2" min="2" max="8" style="width:60px; padding:10px; border:1px solid #cbd5e1; border-radius:8px;">
-               </div>
-               <button id="createRoomBtn" class="btn primary" style="width:100%;">ایجاد</button>
-             </div>
-          </div>
-          
-          <div>
-             <h4 style="margin-bottom:8px;">اتاق‌های من</h4>
-             <button id="myRoomsBtn" class="btn ghost" style="width:100%; margin-bottom:8px; display:none;">بروزرسانی لیست</button>
-             <div id="myRoomsList" class="rooms-list" style="max-height:150px; overflow-y:auto;"></div>
-          </div>
-
-          <div style="display:none;">
-             <div id="correctLettersModal"></div>
-             <div id="wrongLettersModal"></div>
-          </div>
-       </div>
+<div id="modalCreate" class="modal-backdrop">
+  <div class="modal-content">
+    <h3>ساخت اتاق جدید</h3>
+    <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
+      <input id="inpRoomName" placeholder="نام اتاق" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
+      <select id="inpRoomLevel" style="padding:10px; border:1px solid #ddd; border-radius:8px;">
+        <option value="medium">سطح: متوسط</option>
+        <option value="easy">سطح: آسان</option>
+        <option value="hard">سطح: سخت</option>
+      </select>
+      <div style="display:flex; gap:10px;">
+        <button id="btnSubmitCreate" class="btn btn-primary" style="flex:1">ایجاد</button>
+        <button id="btnCloseModal" class="btn btn-ghost" style="flex:1">لغو</button>
+      </div>
     </div>
   </div>
 </div>
@@ -518,512 +273,434 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
 /* ----------------------------------------------------------------
-   CORE UTILITIES & HELPERS
+   1. CORE & UTILS
 ---------------------------------------------------------------- */
 const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-
-function normalizeFaLetter(ch){
-  if (!ch) return '';
-  const map = {'\u064A':'\u06CC','\u0643':'\u06A9'};
-  return (map[ch] || ch).normalize('NFC');
-}
-
-// Aggressive normalization for comparison
-function normalizeFaWord(word){
-  if (!word) return '';
-  // Remove tashkeel, tatweel, etc.
-  let w = String(word).replace(/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
-  // Normalize yeh/kaf
-  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
-  // Remove ALL whitespace for logic check
-  w = w.replace(/\s/g, '').replace(/\u200c/g, '');
-  return w.normalize('NFC');
-}
-
-// Normalization for display (keeps spaces as placeholders)
-function normalizeForDisplay(word){
-  const out = [];
-  let w = String(word).replace(/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
-  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
-  for (let ch of w) {
-    if (ch === '\u200c' || ch === ' ') out.push(' ');
-    else out.push(ch);
-  }
-  return out;
-}
-
-function buildIndexMap(rawWord){
-  // Maps original string index to display slot index (skipping spaces)
-  // But wait, our slots include gaps. Let's map: 
-  // If char is letter -> new index. If space -> null (or gap handling).
-  // For simple logic: map[original_index] = display_slot_index
-  const map = [];
-  let disp = 0;
-  // Pre-normalize purely for length checks
-  let w = String(rawWord).replace(/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
-  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
-  
-  const charArr = normalizeForDisplay(w);
-  for(let i=0; i<w.length; i++){
-     // The logic in original code was slightly fuzzy. 
-     // We will trust `normalizeForDisplay` array length matching visual slots.
-     map[i] = i; 
-  }
-  return map;
-}
-
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-
-/* ----------------------------------------------------------------
-   STATE & REFERENCES
----------------------------------------------------------------- */
-const state = { 
-  myId: null, roomId: null, gameId: null, 
-  deck: [], gameState: {}, timerMs: 0, indexMap: [], 
-  composing: false 
+const normalize = c => {
+  if(!c) return '';
+  const m = {'\u064A':'\u06CC','\u0643':'\u06A9'};
+  return (m[c]||c).normalize('NFC');
 };
+const $ = id => document.getElementById(id);
 
-const socket = (typeof io !== 'undefined') ? io() : { emit(){}, on(){}, off(){} };
-
-// DOM Elements (Preserving IDs)
-const els = {
-  tabs: document.querySelectorAll('.tab'),
-  manageRoomsBtn: document.getElementById('manageRoomsBtn'),
-  roomsModal: document.getElementById('roomsModal'),
-  closeRooms: document.getElementById('closeRooms'),
-  openRoomsBtn: document.getElementById('openRoomsBtn'),
-  userName: document.getElementById('userName'),
-  userId: document.getElementById('userId'),
-  levelSelect: document.getElementById('levelSelect'),
-  quickJoin: document.getElementById('quickJoin'),
-  resumeGame: document.getElementById('resumeGame'),
-  roomStatus: document.getElementById('roomStatus'),
-  playersCount: document.getElementById('playersCount'),
-  dashboardPanel: document.getElementById('dashboardPanel'),
-  roomsList: document.getElementById('roomsList'),
-  publicRoomsList: document.getElementById('publicRoomsList'),
-  myRoomsList: document.getElementById('myRoomsList'),
-  refreshRooms: document.getElementById('refreshRooms'),
-  filterLevel: document.getElementById('filterLevel'),
-  createRoomBtn: document.getElementById('createRoomBtn'),
-  newRoomName: document.getElementById('newRoomName'),
-  newRoomLevel: document.getElementById('newRoomLevel'),
-  newRoomMax: document.getElementById('newRoomMax'),
-  playPanel: document.getElementById('playPanel'),
-  categoryName: document.getElementById('categoryName'),
-  levelName: document.getElementById('levelName'),
-  wordIndex: document.getElementById('wordIndex'),
-  timer: document.getElementById('timer'),
-  wordSlots: document.getElementById('wordSlots'),
-  letterInput: document.getElementById('letterInput'),
-  guessBtn: document.getElementById('guessBtn'),
-  hintBtn: document.getElementById('hintBtn'),
-  leaveBtn: document.getElementById('leaveBtn'),
-  correctLetters: document.getElementById('correctLetters'),
-  wrongLetters: document.getElementById('wrongLetters'),
-  playersList: document.getElementById('playersList'),
-  scoreMe: document.getElementById('scoreMe'),
-  progressMe: document.getElementById('progressMe'),
-  progressOpp: document.getElementById('progressOpp'),
-  publicRoomsCount: document.getElementById('publicRoomsCount'),
-  myRoomsBtn: document.getElementById('myRoomsBtn'),
-  correctLettersModal: document.getElementById('correctLettersModal'),
-  wrongLettersModal: document.getElementById('wrongLettersModal')
+const state = {
+  user: null,
+  roomId: null,
+  gameId: null,
+  deck: [],
+  gameState: {}, // my local state
+  allStates: [], // opponent states
+  timerInterval: null,
+  timerMs: 0
 };
 
 /* ----------------------------------------------------------------
-   INITIALIZATION
+   2. INIT & AUTH
 ---------------------------------------------------------------- */
-// User ID Setup
-(function initUser(){
+(function init(){
   let uid = localStorage.getItem('w_uid');
   if(!uid) { uid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', uid); }
-  state.myId = uid;
-  els.userId.textContent = toFaDigits(uid);
-  els.userName.textContent = 'کاربر ' + toFaDigits(String(uid).slice(-3));
-  loadSuggestedRooms();
+  state.user = { id: uid, name: 'کاربر ' + String(uid).slice(-4) };
+  
+  $('headerUsername').textContent = state.user.name;
+  $('headerUserId').textContent = toFaDigits(uid);
+
+  checkActiveGame(); // Check if we are already in a room
+  loadPublicRooms();
 })();
 
-/* ----------------------------------------------------------------
-   TAB & MODAL LOGIC
----------------------------------------------------------------- */
-els.tabs.forEach(t => t.addEventListener('click', () => {
-  els.tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
-  const tab = t.dataset.tab;
-  document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
-  els.playPanel.style.display = (tab === 'play') ? 'block' : 'none';
-  els.dashboardPanel.style.display = (tab === 'dashboard') ? 'block' : 'none';
-}));
-
-function openModal(){ 
-  els.roomsModal.style.display = 'flex'; 
-  loadPublicRooms(); 
-  loadMyRooms(); 
-}
-function closeModal(){ els.roomsModal.style.display = 'none'; }
-
-els.manageRoomsBtn.addEventListener('click', openModal);
-if(els.openRoomsBtn) els.openRoomsBtn.addEventListener('click', openModal);
-els.closeRooms.addEventListener('click', closeModal);
-
-/* ----------------------------------------------------------------
-   GAME LOGIC: NEXT WORD CHECK
----------------------------------------------------------------- */
-let _nextLock = false;
-
-function isCurrentWordComplete(){
-  if (!state.gameState || !state.deck || !state.deck.length) return false;
-  
-  const idx = Number(state.gameState.current_index) || 0;
-  const item = state.deck[idx];
-  if (!item || !item.word) return false;
-
-  // Use rigorous normalization
-  const targetWord = normalizeFaWord(item.word); // e.g. "کتابخانه"
-  
-  // Get correct letters array safely
-  let correct = [];
+// Check if I'm already in a room (Persistence Fix)
+async function checkActiveGame(){
   try {
-     correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : 
-               JSON.parse(state.gameState.correct_letters || '[]');
-  } catch(e){ correct = []; }
-
-  // Check if every unique letter in targetWord exists in correct array
-  const uniqueChars = [...new Set(targetWord.split(''))];
-  const allFound = uniqueChars.every(ch => correct.includes(ch));
-
-  return allFound;
-}
-
-function scheduleNextWord(triggerId){
-  if (_nextLock) return;
-  _nextLock = true;
-  
-  // UI Feedback: Show completed word for a moment
-  setTimeout(() => {
-    // Only emit if WE are the ones detecting it to avoid storm, 
-    // but ensuring at least one client sends it.
-    if(socket && socket.emit) {
-      console.log(">> Emitting game:next");
-      socket.emit('game:next', { game_id: state.gameId, user_id: state.myId, triggered_by: triggerId || state.myId });
-    }
-    _nextLock = false;
-  }, 1000);
-}
-
-/* ----------------------------------------------------------------
-   RENDERER
----------------------------------------------------------------- */
-function renderGame(){
-  if (!state.gameState || !state.deck || !state.deck.length) return;
-
-  const idx = Number(state.gameState.current_index) || 0;
-  const item = state.deck[idx] || { word:'', category:'', level:'' };
-  
-  // Update Header Info
-  els.categoryName.textContent = item.category || 'عمومی';
-  els.levelName.textContent = item.level === 'easy' ? 'آسان' : (item.level==='hard'?'سخت':'متوسط');
-  els.wordIndex.textContent = toFaDigits(idx + 1);
-
-  // Build Slots
-  const charArr = normalizeForDisplay(item.word); // Includes spaces
-  const logicWord = normalizeFaWord(item.word);   // Clean for checking correctness
-
-  // Safe correct letters
-  let correct = [];
-  try {
-     correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : 
-               JSON.parse(state.gameState.correct_letters || '[]');
-  } catch(e){ correct=[]; }
-
-  // Build UI if empty or length mismatch
-  // Note: we rebuild to ensure fresh animations
-  els.wordSlots.innerHTML = '';
-  
-  let pureCharIndex = 0;
-  
-  charArr.forEach((ch, i) => {
-    if (ch === ' ') {
-      const gap = document.createElement('div');
-      gap.className = 'slot gap';
-      els.wordSlots.appendChild(gap);
-    } else {
-      const slot = document.createElement('div');
-      slot.className = 'slot';
-      // Check if this specific letter is revealed
-      const isRevealed = correct.includes(ch);
+    const res = await fetch('/rooms/myrooms', { 
+      method:'POST', headers:{'Content-Type':'application/json'}, 
+      body: JSON.stringify({ user_id: state.user.id })
+    });
+    const d = await res.json();
+    if(d.ok && d.rooms && d.rooms.length > 0) {
+      // User is in a room. Show Resume Banner.
+      const r = d.rooms[0]; // Take the most recent
+      $('resumeBanner').classList.remove('hidden');
+      $('resumeRoomName').textContent = r.name;
       
-      if (isRevealed) {
-        slot.textContent = ch;
-        slot.classList.add('revealed', 'correct');
-      } else {
-        slot.textContent = '';
-      }
-      els.wordSlots.appendChild(slot);
-      pureCharIndex++;
+      // Bind the resume button to JUST join socket, not API join
+      $('btnResume').onclick = () => {
+        enterRoomMode(r.id, true); // true = skip API join
+      };
+    } else {
+      $('resumeBanner').classList.add('hidden');
     }
-  });
-
-  // Render Chips
-  renderChips(correct, state.gameState.wrong_letters);
-
-  // Stats
-  els.scoreMe.textContent = toFaDigits(state.gameState.score || 0);
-  els.progressMe.textContent = toFaDigits(idx + 1) + ' از ' + toFaDigits(state.deck.length);
-  
-  // Check completion immediately after render
-  if (isCurrentWordComplete()) {
-    scheduleNextWord(state.myId);
-  }
-}
-
-function renderChips(correctArr, wrongArr){
-  // Ensure arrays
-  let c = Array.isArray(correctArr) ? correctArr : JSON.parse(correctArr||'[]');
-  let w = Array.isArray(wrongArr) ? wrongArr : JSON.parse(wrongArr||'[]');
-  
-  els.correctLetters.innerHTML = '';
-  els.wrongLetters.innerHTML = '';
-
-  c.forEach(l => {
-    const el = document.createElement('div'); el.className = 'chip-letter correct'; el.textContent = l;
-    els.correctLetters.appendChild(el);
-  });
-  
-  w.forEach(l => {
-    const el = document.createElement('div'); el.className = 'chip-letter wrong'; el.textContent = l;
-    els.wrongLetters.appendChild(el);
-  });
-}
-
-function updatePlayersList(list){
-  els.playersList.innerHTML = '';
-  (list || []).forEach(p => {
-    const row = document.createElement('div');
-    row.style.cssText = "display:flex; justify-content:space-between; font-size:13px; padding:8px; background:#f8fafc; border-radius:8px;";
-    const isMe = String(p.user_id) === String(state.myId);
-    const name = (p.fullname || 'کاربر ' + toFaDigits(String(p.user_id).slice(-3))) + (isMe ? ' (شما)' : '');
-    
-    row.innerHTML = `<div><b>${name}</b></div><div class="muted">امتیاز: ${toFaDigits(p.score||0)}</div>`;
-    els.playersList.appendChild(row);
-    
-    if(!isMe) {
-       els.progressOpp.textContent = toFaDigits((p.current_index||0)+1) + ' از ' + toFaDigits(state.deck.length);
-    }
-  });
+  } catch(e) {}
 }
 
 /* ----------------------------------------------------------------
-   SOCKET EVENTS
+   3. NAVIGATION & UI SWITCHING
 ---------------------------------------------------------------- */
-socket.on('game:started', ({ game_id, deck, reveal_mode, players }) => {
-  state.gameId = game_id;
-  state.deck = deck || [];
-  state.gameState = { current_index: 0, correct_letters: [], wrong_letters: [], score: 0 };
+const showTab = (tab) => {
+  document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
   
-  // Auto Switch Tab
-  document.querySelector('.tab[data-tab="play"]').click();
-  renderGame();
-  updatePlayersList(players);
+  if(tab === 'game') {
+    $('view-game').classList.remove('hidden');
+    $('gameTabBtn').style.display = 'inline-block';
+    $('gameTabBtn').classList.add('active');
+    $('gameControls').classList.remove('hidden');
+  } else {
+    $('view-dashboard').classList.remove('hidden');
+    document.querySelector('[data-target="dashboard"]').classList.add('active');
+    $('gameControls').classList.add('hidden');
+    checkActiveGame(); // Refresh banner
+    loadPublicRooms();
+  }
+};
+
+$('btnBackMenu').onclick = () => showTab('dashboard');
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.onclick = () => showTab(b.dataset.target);
+});
+
+/* ----------------------------------------------------------------
+   4. SOCKET MANAGER
+---------------------------------------------------------------- */
+const socket = io();
+
+socket.on('connect', () => {
+  // If we have a room ID in state, rejoin socket channel
+  if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id });
+});
+
+// GAME STARTED
+socket.on('game:started', (data) => {
+  state.gameId = data.game_id;
+  state.deck = data.deck;
+  // Reset local state for new game
+  state.gameState = { score:0, correct_letters:[], wrong_letters:[], current_index:0 };
+  state.allStates = data.players || []; // Initial players list
+  
   startTimer();
+  renderGame();
+  updatePlayersUI();
+  showTab('game');
 });
 
-socket.on('game:state', ({ state: gs, deck, players }) => {
-  if(deck) state.deck = deck;
-  if(gs) {
-    state.gameState = gs;
-    // Force Parse Correct Letters Here to avoid bugs downstream
-    if(typeof state.gameState.correct_letters === 'string') {
-      try { state.gameState.correct_letters = JSON.parse(state.gameState.correct_letters); } catch(e){ state.gameState.correct_letters=[]; }
-    }
-    if(typeof state.gameState.wrong_letters === 'string') {
-      try { state.gameState.wrong_letters = JSON.parse(state.gameState.wrong_letters); } catch(e){ state.gameState.wrong_letters=[]; }
-    }
-    state.timerMs = Number(gs.timer_ms) || 0;
-  }
+// GAME STATE (My State)
+socket.on('game:state', (data) => {
+  // Called on Resume
+  state.gameId = data.state.game_id;
+  state.gameState = data.state;
+  if(typeof state.gameState.correct_letters === 'string') state.gameState.correct_letters = JSON.parse(state.gameState.correct_letters);
+  if(typeof state.gameState.wrong_letters === 'string') state.gameState.wrong_letters = JSON.parse(state.gameState.wrong_letters);
   
-  document.querySelector('.tab[data-tab="play"]').click();
-  els.playPanel.style.display = 'block';
+  state.deck = data.deck;
+  state.allStates = data.players || []; // Important: Resume sends players list
+  state.timerMs = Number(data.state.timer_ms) || 0;
   
+  startTimer();
   renderGame();
-  updatePlayersList(players);
+  updatePlayersUI();
+  showTab('game');
 });
 
-socket.on('game:letter:correct', ({ user_id, letter, scoreDelta, player }) => {
-  const isMe = String(user_id) === String(state.myId);
-  
-  // Update Local State
-  let cur = state.gameState.correct_letters || [];
-  if(!Array.isArray(cur)) cur = []; // safety
-  if(!cur.includes(letter)) {
-    cur.push(letter);
-    state.gameState.correct_letters = cur;
-  }
-  
-  // Update Score if me
-  if(isMe && player) state.gameState.score = player.score;
+// OPPONENT UPDATES (Crucial for displaying progress)
+socket.on('game:states', (data) => {
+  if(data.game_id !== state.gameId) return;
+  state.allStates = data.states; // Update the master list
+  updatePlayersUI(); // Refresh Sidebar
+});
 
-  // Re-render to update slots and chips
-  renderGame();
+// NEXT WORD
+socket.on('game:next', (data) => {
+  if(data.game_id !== state.gameId) return;
+  
+  // Update states list immediately to show opponent progress
+  if(data.states) {
+    state.allStates = data.states;
+    updatePlayersUI();
+  }
+
+  // If *I* am the one who finished, handled by my logic.
+  // But if server forces next, we need to respect it (handled via state re-fetch usually, or we can trust the event).
+  // The server code emits 'game:next' with 'nextIndex'. 
+  if (String(data.by_user) === String(state.user.id)) {
+      // It was me, I already cleared via local logic? No, wait for server to be safe or clear here.
+      // Let's clear local visual state for transition
+  }
+});
+
+// FEEDBACK EVENTS
+socket.on('game:letter:correct', (data) => {
+  const isMe = String(data.user_id) === String(state.user.id);
+  
+  // Update master state list for score
+  const pIndex = state.allStates.findIndex(p => String(p.user_id) === String(data.user_id));
+  if(pIndex >= 0 && data.player) {
+      state.allStates[pIndex] = { ...state.allStates[pIndex], ...data.player };
+  }
+  updatePlayersUI();
 
   if(isMe) {
-     // Flash input green?
+    // Add to local correct letters if not there
+    if(!state.gameState.correct_letters.includes(data.letter)) {
+      state.gameState.correct_letters.push(data.letter);
+    }
+    state.gameState.score = data.player.score;
+    renderGame(); // Re-render slots
   }
 });
 
-socket.on('game:letter:wrong', ({ user_id, letter }) => {
-  if(String(user_id) === String(state.myId)) {
-     let w = state.gameState.wrong_letters || [];
-     if(!Array.isArray(w)) w = [];
-     if(!w.includes(letter)) {
-       w.push(letter);
-       state.gameState.wrong_letters = w;
-     }
-     renderGame(); // Updates chips
-     
-     els.letterInput.classList.add('shake');
-     setTimeout(()=> els.letterInput.classList.remove('shake'), 400);
+socket.on('game:letter:wrong', (data) => {
+  const isMe = String(data.user_id) === String(state.user.id);
+  if(isMe) {
+    if(!state.gameState.wrong_letters.includes(data.letter)) {
+      state.gameState.wrong_letters.push(data.letter);
+    }
+    renderGame();
+    $('txtLetter').classList.add('shake');
+    setTimeout(()=> $('txtLetter').classList.remove('shake'), 400);
   }
 });
 
-socket.on('game:next', ({ game_id }) => {
-  if(state.gameId !== game_id) return;
-  // Visually indicate loading next word
-  els.wordSlots.style.opacity = '0.5';
-  setTimeout(()=> els.wordSlots.style.opacity = '1', 500);
+socket.on('game:finished', () => {
+  alert('بازی پایان یافت!');
+  showTab('dashboard');
 });
 
 /* ----------------------------------------------------------------
-   INPUT & ACTIONS
+   5. ROOM LOGIC (Join/Create/Leave)
 ---------------------------------------------------------------- */
-els.letterInput.addEventListener('input', () => {
-  const v = els.letterInput.value;
-  if(v) {
-     const n = normalizeFaLetter(v);
-     if(/^[\u0600-\u06FF]$/.test(n)) {
-        els.letterInput.value = n;
-     } else {
-        els.letterInput.value = '';
-     }
+// Entry Point
+async function enterRoomMode(roomId, skipApi = false) {
+  if(!skipApi) {
+    // Try to join via API first
+    const res = await fetch('/rooms/join', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ room_id: roomId, user_id: state.user.id })
+    });
+    const d = await res.json();
+    if(!d.ok) {
+      // If error is "full" but we are actually in it (checked via MyRooms previously), we can skip.
+      // But safe fallback is alert.
+      if(d.error === 'full') alert('اتاق پر است.');
+      else alert('خطا در ورود به اتاق');
+      return;
+    }
   }
-});
-
-els.letterInput.addEventListener('keydown', (e) => {
-  if(e.key === 'Enter') els.guessBtn.click();
-});
-
-els.guessBtn.addEventListener('click', () => {
-  const val = els.letterInput.value;
-  if(!val) return els.letterInput.focus();
   
-  socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: val });
-  els.letterInput.value = '';
-  els.letterInput.focus();
-});
+  // Success or Skipping API
+  state.roomId = roomId;
+  socket.emit('join-room', { room_id: roomId, user_id: state.user.id });
+  
+  // Ask for game state immediately
+  fetch('/rooms/state', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ room_id: roomId })
+  }).then(r=>r.json()).then(d => {
+    if(d.ok && d.game) {
+       socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
+    } else {
+       // Waiting room
+       showTab('game');
+       $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی توسط میزبان...<br>یا تکمیل ظرفیت اتاق.</div>';
+       updatePlayersUI(d.players || []); // Show who is in lobby
+    }
+  });
+}
+
+// Leave
+$('btnLeave').onclick = async () => {
+  if(!state.roomId) return;
+  if(!confirm('آیا مطمئن هستید؟ پیشرفت شما از بین می‌رود.')) return;
+  
+  await fetch('/rooms/leave', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ room_id: state.roomId, user_id: state.user.id })
+  });
+  state.roomId = null;
+  state.gameId = null;
+  showTab('dashboard');
+};
+
+// Load Public Rooms
+async function loadPublicRooms(){
+  const lvl = $('filterLevel').value;
+  const res = await fetch('/rooms/list' + (lvl ? '?level='+lvl : ''));
+  const d = await res.json();
+  const cont = $('roomsListContainer');
+  cont.innerHTML = '';
+  
+  if(!d.rooms || d.rooms.length === 0) {
+    cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px">اتاقی یافت نشد</div>';
+    return;
+  }
+  
+  d.rooms.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'room-item';
+    div.innerHTML = `
+      <div class="room-info">
+        <h4>${esc(r.name)}</h4>
+        <div class="room-meta">${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر | ${trLevel(r.level)}</div>
+      </div>
+      <button class="btn btn-primary" onclick="enterRoomMode('${r.id}')">پیوستن</button>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+$('btnRefresh').onclick = loadPublicRooms;
+$('filterLevel').onchange = loadPublicRooms;
 
 /* ----------------------------------------------------------------
-   TIMER
+   6. GAME RENDERER & LOGIC
 ---------------------------------------------------------------- */
-let timerInt = null;
+function renderGame() {
+  if(!state.deck.length) return;
+  
+  const idx = Number(state.gameState.current_index) || 0;
+  const wordObj = state.deck[idx];
+  if(!wordObj) return; // Game might be done
+
+  // Header Info
+  $('lblWordIndex').textContent = toFaDigits(idx + 1);
+  $('lblCategory').textContent = wordObj.category || 'عمومی';
+  $('lblLevel').textContent = trLevel(wordObj.level);
+  
+  // Slots
+  const word = normalize(wordObj.word);
+  // We need to map letters for display. 
+  // Simple logic: iterate characters, if space render gap.
+  const container = $('slotsContainer');
+  container.innerHTML = '';
+  
+  const correctLetters = state.gameState.correct_letters || [];
+  
+  [...word].forEach(char => {
+    if(char === ' ' || char === '\u200c') {
+      const gap = document.createElement('div'); gap.className='slot gap';
+      container.appendChild(gap);
+    } else {
+      const slot = document.createElement('div'); slot.className='slot';
+      if(correctLetters.includes(char)) {
+        slot.textContent = char;
+        slot.classList.add('correct');
+      }
+      container.appendChild(slot);
+    }
+  });
+
+  // Chips
+  renderChips('chipsCorrect', correctLetters, 'correct');
+  renderChips('chipsWrong', state.gameState.wrong_letters||[], 'wrong');
+}
+
+function renderChips(id, arr, cls) {
+  const el = $(id);
+  el.innerHTML = '';
+  arr.forEach(l => {
+    const c = document.createElement('div'); c.className = `chip ${cls}`; c.textContent = l;
+    el.appendChild(c);
+  });
+}
+
+// Side Panel Update (Opponent Stats)
+function updatePlayersUI(rawList) {
+  const list = rawList || state.allStates || [];
+  const cont = $('playersListContainer');
+  cont.innerHTML = '';
+  
+  if(!list.length) {
+     cont.innerHTML = '<div style="text-align:center; color:#999; font-size:12px;">...</div>';
+     return;
+  }
+
+  list.forEach(p => {
+    const isMe = String(p.user_id) === String(state.user.id);
+    const div = document.createElement('div');
+    div.className = 'player-card' + (isMe ? ' me' : '');
+    
+    // Determine Progress Text
+    let progressTxt = 'لابی';
+    if(typeof p.current_index !== 'undefined') {
+       progressTxt = `کلمه ${toFaDigits((p.current_index||0) + 1)} از ${toFaDigits(state.deck.length||10)}`;
+    }
+    
+    const name = p.fullname || ('کاربر ' + toFaDigits(String(p.user_id).slice(-4)));
+
+    div.innerHTML = `
+      <div>
+        <div class="p-name">${esc(name)} ${isMe ? '(شما)' : ''}</div>
+        <div class="p-status">${progressTxt}</div>
+      </div>
+      <div class="p-score">${toFaDigits(p.score || 0)}</div>
+    `;
+    cont.appendChild(div);
+  });
+}
+
+/* ----------------------------------------------------------------
+   7. GAME INPUTS
+---------------------------------------------------------------- */
+$('btnGuess').onclick = () => {
+  const val = $('txtLetter').value;
+  if(!val) return $('txtLetter').focus();
+  socket.emit('game:guess', { game_id: state.gameId, user_id: state.user.id, letter: val });
+  $('txtLetter').value = '';
+  $('txtLetter').focus();
+};
+
+$('txtLetter').onkeydown = (e) => { if(e.key === 'Enter') $('btnGuess').click(); };
+$('txtLetter').oninput = (e) => {
+   const v = normalize(e.target.value);
+   if(v && /^[\u0600-\u06FF]$/.test(v)) e.target.value = v;
+   else e.target.value = '';
+};
+
+$('btnHint').onclick = () => {
+  socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
+};
+
+/* ----------------------------------------------------------------
+   8. HELPERS & TIMER
+---------------------------------------------------------------- */
 function startTimer(){
-  if(timerInt) clearInterval(timerInt);
-  timerInt = setInterval(() => {
+  if(state.timerInterval) clearInterval(state.timerInterval);
+  state.timerInterval = setInterval(() => {
     state.timerMs += 1000;
-    const s = Math.floor(state.timerMs / 1000);
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    els.timer.textContent = toFaDigits(String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'));
+    const s = Math.floor(state.timerMs/1000);
+    const m = Math.floor(s/60);
+    const sec = s%60;
+    $('lblTimer').textContent = toFaDigits(String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'));
   }, 1000);
 }
 
-/* ----------------------------------------------------------------
-   ROOMS API (Keep functionality, just clean up)
----------------------------------------------------------------- */
-async function loadSuggestedRooms(){
-  try {
-    const lvl = els.levelSelect.value;
-    const res = await fetch('/rooms/list?level=' + lvl);
-    const data = await res.json();
-    els.roomsList.innerHTML = '';
-    if(data.rooms && data.rooms.length) {
-       data.rooms.forEach(r => {
-         const d = document.createElement('div'); d.className='room-row';
-         d.innerHTML = `<div class="room-title">${escapeHtml(r.name)} <span class="muted" style="font-weight:400; font-size:12px;">(${toFaDigits(r.players)}/${toFaDigits(r.max_players)})</span></div><button class="btn small" onclick="joinRoom('${r.id}')">پیوستن</button>`;
-         els.roomsList.appendChild(d);
-       });
-    } else {
-       els.roomsList.innerHTML = '<div class="muted" style="text-align:center; padding:10px;">اتاقی یافت نشد</div>';
-    }
-  } catch(e){}
-}
+function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
+function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
 
-async function joinRoom(rid){
-  const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({room_id:rid, user_id:state.myId}) });
+/* ----------------------------------------------------------------
+   9. MODAL LOGIC
+---------------------------------------------------------------- */
+$('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
+$('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
+
+$('btnSubmitCreate').onclick = async () => {
+  const name = $('inpRoomName').value;
+  const level = $('inpRoomLevel').value;
+  
+  $('btnSubmitCreate').textContent = '...';
+  const res = await fetch('/rooms/create', {
+     method:'POST', headers:{'Content-Type':'application/json'},
+     body: JSON.stringify({ user_id: state.user.id, name, level, max_players: 2 })
+  });
   const d = await res.json();
+  $('btnSubmitCreate').textContent = 'ایجاد';
+  
   if(d.ok) {
-    state.roomId = d.room_id;
-    socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-    if(d.game_id) {
-      state.gameId = d.game_id;
-      socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
-    } else {
-      // Waiting mode
-      document.querySelector('.tab[data-tab="play"]').click();
-      els.wordSlots.innerHTML = '<div style="padding:20px;">در انتظار شروع بازی...</div>';
-    }
-    closeModal();
+     $('modalCreate').style.display = 'none';
+     enterRoomMode(d.room_id, true); // Skip API join since create adds us
   } else {
-    alert('خطا در پیوستن');
+     alert('خطا در ایجاد اتاق');
   }
-}
-
-window.joinRoom = joinRoom; // Global expose for inline onclick
-
-/* ----------------------------------------------------------------
-   OTHER LISTENERS
----------------------------------------------------------------- */
-els.levelSelect.addEventListener('change', loadSuggestedRooms);
-els.refreshRooms.addEventListener('click', loadSuggestedRooms);
-
-els.quickJoin.addEventListener('click', async () => {
-  const name = 'اتاق ' + toFaDigits(Math.floor(Math.random()*1000));
-  const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id:state.myId, name, level: els.levelSelect.value, max_players:2 }) });
-  const d = await res.json();
-  if(d.ok) joinRoom(d.room_id);
-});
-
-els.createRoomBtn.addEventListener('click', async () => {
-  const name = els.newRoomName.value || 'اتاق من';
-  const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id:state.myId, name, level: els.newRoomLevel.value, max_players: els.newRoomMax.value }) });
-  const d = await res.json();
-  if(d.ok) joinRoom(d.room_id);
-});
-
-// Load Public Rooms for Modal
-async function loadPublicRooms(){
-  const res = await fetch('/rooms/list');
-  const d = await res.json();
-  els.publicRoomsList.innerHTML = '';
-  els.publicRoomsCount.textContent = toFaDigits(d.rooms ? d.rooms.length : 0);
-  if(d.rooms) d.rooms.forEach(r => {
-     const row = document.createElement('div'); row.className='room-row';
-     row.innerHTML = `<div class="room-title">${escapeHtml(r.name)}</div><button class="btn small" onclick="joinRoom('${r.id}')">ورود</button>`;
-     els.publicRoomsList.appendChild(row);
-  });
-}
-
-async function loadMyRooms(){
-  const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:state.myId}) });
-  const d = await res.json();
-  els.myRoomsList.innerHTML = '';
-  if(d.rooms) d.rooms.forEach(r => {
-     const row = document.createElement('div'); row.className='room-row';
-     row.innerHTML = `<div>${escapeHtml(r.name)}</div><button class="btn small" onclick="joinRoom('${r.id}')">بازگشت</button>`;
-     els.myRoomsList.appendChild(row);
-  });
-}
-
-if(els.myRoomsBtn) els.myRoomsBtn.addEventListener('click', loadMyRooms);
+};
 
 </script>
 </body>
