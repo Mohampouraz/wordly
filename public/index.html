@@ -181,42 +181,6 @@
     @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0);
     } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0);
     } 40%, 60% { transform: translate3d(4px, 0, 0); } }
-
-    /* NEW: History Styles */
-    .history-list-scroll {
-      overflow-y: auto;
-      flex: 1; 
-      padding-top: 5px;
-    }
-    .history-list { display: flex; flex-direction: column; gap: 10px; }
-    .history-item {
-      background: var(--bg-panel); padding: 15px; border-radius: var(--radius);
-      border: 1px solid #e5e7eb; display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-    }
-    .history-item .game-info {
-        grid-column: 1 / 3;
-        display: flex; justify-content: space-between; align-items: center;
-        border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px;
-    }
-    .history-item .date { font-size: 13px; color: var(--text-muted); }
-    .history-item .game-result {
-        grid-column: 1 / 3;
-        display: flex; justify-content: space-around; font-size: 15px; font-weight: 500;
-    }
-    .history-item .game-meta {
-        grid-column: 1 / 3;
-        display: flex; justify-content: space-around; font-size: 12px; color: var(--text-muted);
-        margin-top: 5px;
-    }
-    .rank-badge {
-        font-weight: 800; padding: 4px 10px; border-radius: 8px;
-        background: #f3f4f6; color: var(--text-main); font-size: 14px;
-    }
-    .rank-badge.rank-1 { background: #ffe6a7; color: #b76e00; } /* Gold */
-    .rank-badge.rank-2 { background: #e5e5e5; color: #4b5563; } /* Silver */
-    .rank-badge.rank-3 { background: #e4ccb1; color: #7f5c40; } /* Bronze */
   </style>
 </head>
 <body>
@@ -232,7 +196,6 @@
 
   <nav class="nav-tabs">
     <button class="tab-btn active" data-target="dashboard">لابی</button>
-    <button class="tab-btn" data-target="history">تاریخچه بازی‌ها</button>
     <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
   </nav>
 
@@ -241,24 +204,24 @@
       
       <section id="view-dashboard" class="panel" style="height:100%">
         <div 
-          style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h3>اتاق‌های بازی</h3>
           <button id="btnNewRoom" class="btn btn-primary">ساخت اتاق +</button>
         </div>
         <div id="resumeBanner" class="hidden" style="background:#eff6ff; border:1px solid #bfdbfe; padding:12px; border-radius:12px;
-          margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+    margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
           <div>
             <div style="font-weight:800;
-              color:#1e40af">بازی در جریان دارید</div>
+    color:#1e40af">بازی در جریان دارید</div>
             <div style="font-size:12px;
-              color:#3b82f6" id="resumeRoomName">...</div>
+    color:#3b82f6" id="resumeRoomName">...</div>
           </div>
           <button id="btnResume" class="btn btn-primary" style="font-size:12px;">بازگشت به بازی</button>
         </div>
         <div style="display:flex;
-          gap:10px; margin-bottom:10px;">
+    gap:10px; margin-bottom:10px;">
            <select id="filterLevel" style="padding:8px; border-radius:8px;
-             border:1px solid #ccc">
+    border:1px solid #ccc">
              <option value="">همه سطوح</option>
              <option value="easy">آسان</option>
              <option value="medium">متوسط</option>
@@ -267,17 +230,10 @@
            <button id="btnRefresh" class="btn btn-ghost">بروزرسانی</button>
         </div>
         
-        <div id="roomsListContainer" class="room-list">
+    <div id="roomsListContainer" class="room-list">
           <div style="text-align:center; color:#999;
-            margin-top:20px;">در حال بارگذاری...</div>
+    margin-top:20px;">در حال بارگذاری...</div>
         </div>
-      </section>
-
-      <section id="view-history" class="panel hidden" style="height:100%">
-          <h3 style="margin-top:0">تاریخچه بازی‌های شما</h3>
-          <div id="historyListContainer" class="history-list-scroll">
-               <p class="text-center" style="color:#999; margin-top:20px;">در حال بارگذاری...</p>
-          </div>
       </section>
 
       <section id="view-game" class="panel hidden" style="height:100%">
@@ -285,41 +241,48 @@
           <div>
             <h3 style="margin:0">کلمه <span id="lblWordIndex">۱</span> از ۱۰</h3>
             <div style="font-size:12px;
-              color:#666"><span id="lblCategory">...</span> | <span id="lblLevel">...</span></div>
+    color:#666"><span id="lblCategory">...</span> | <span id="lblLevel">...</span></div>
           </div>
           <div class="timer-box" id="lblTimer">۰۰:۰۰</div>
         </div>
         <div id="slotsContainer" class="slots-area"></div>
         <div style="margin-top:auto;
-          margin-bottom:20px;">
+    margin-bottom:20px;">
           <div class="input-area">
             <input id="txtLetter" class="letter-input" maxlength="1" placeholder="؟" autocomplete="off">
             <button id="btnGuess" class="btn btn-primary" style="min-width:80px">ثبت</button>
             <button id="btnHint" class="btn btn-ghost">راهنما</button>
           </div>
+          
           <div style="text-align:center;
-            font-size:12px; margin-bottom:10px;"> مجاز: <span id="lblWrongCount">0</span> / <span id="lblAllowedWrong">-</span> </div>
-          <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700;
-            color:var(--success)">حروف صحیح</div>
+    font-size:12px; margin-bottom:10px;">
+             مجاز: <span id="lblWrongCount">0</span> / <span id="lblAllowedWrong">-</span>
+          </div>
+
+          <div style="text-align:center;
+    margin-bottom:8px; font-size:12px; font-weight:700; color:var(--success)">حروف صحیح</div>
           <div id="chipsCorrect" class="chips-container" style="margin-bottom:16px;"></div>
-          <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700;
-            color:var(--danger)">حروف غلط</div>
+          <div style="text-align:center;
+    margin-bottom:8px; font-size:12px; font-weight:700; color:var(--danger)">حروف غلط</div>
           <div id="chipsWrong" class="chips-container"></div>
         </div>
       </section>
+
     </div>
+
     <aside class="panel">
       <h4 style="margin-top:0">بازیکنان</h4>
-      <div id="playersListContainer" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto;
-        flex:1;">
-        <div style="text-align:center; color:#999; font-size:12px;">در انتظار...</div>
+      <div id="playersListContainer" style="display:flex;
+    flex-direction:column; gap:8px; overflow-y:auto; flex:1;">
+        <div style="text-align:center; color:#999;
+    font-size:12px;">در انتظار...</div>
       </div>
       <hr style="border:0; border-top:1px solid #eee;
-        margin:16px 0;">
+    margin:16px 0;">
       <div id="gameControls" class="hidden">
-        <button id="btnLeave" class="btn btn-danger" style="width:100%;
-          margin-bottom:8px;">ترک بازی</button>
-        <button id="btnBackMenu" class="btn btn-ghost" style="width:100%">بازگشت به منو</button>
+         <button id="btnLeave" class="btn btn-danger" style="width:100%;
+    margin-bottom:8px;">ترک بازی</button>
+         <button id="btnBackMenu" class="btn btn-ghost" style="width:100%">بازگشت به منو</button>
       </div>
     </aside>
   </div>
@@ -329,304 +292,315 @@
   <div class="modal-content">
     <h3>ساخت اتاق جدید</h3>
     <div style="display:flex;
-      flex-direction:column; gap:12px;">
-      <input id="txtRoomName" placeholder="نام اتاق (اختیاری)" class="text-input"/>
-      <select id="selLevel" class="text-input">
+    flex-direction:column; gap:12px; margin-top:16px;">
+      <input id="inpRoomName" placeholder="نام اتاق" style="padding:10px; border:1px solid #ddd;
+    border-radius:8px;">
+      <select id="inpRoomLevel" style="padding:10px; border:1px solid #ddd;
+    border-radius:8px;">
         <option value="medium">سطح: متوسط</option>
         <option value="easy">سطح: آسان</option>
         <option value="hard">سطح: سخت</option>
       </select>
-      <select id="selMaxPlayers" class="text-input">
-        <option value="2">حداکثر بازیکن: ۲</option>
-        <option value="3">حداکثر بازیکن: ۳</option>
-        <option value="4">حداکثر بازیکن: ۴</option>
-      </select>
-      <select id="selRevealMode" class="text-input">
-        <option value="private">حالت کلمات: خصوصی (فقط خودم کلمه را می‌بینم)</option>
-        <option value="shared">حالت کلمات: مشترک (همه یک کلمه را می‌بینند)</option>
-      </select>
-    </div>
-    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
-      <button id="btnCloseModal" class="btn btn-ghost">انصراف</button>
-      <button id="btnCreateRoom" class="btn btn-primary">ایجاد</button>
+      <div style="display:flex;
+    gap:10px;">
+        <button id="btnSubmitCreate" class="btn btn-primary" style="flex:1">ایجاد</button>
+        <button id="btnCloseModal" class="btn btn-ghost" style="flex:1">لغو</button>
+      </div>
     </div>
   </div>
 </div>
 
-<div id="modalGameFinished" class="modal-backdrop">
-    <div class="modal-content" style="text-align:center">
-        <h3 style="color:var(--primary)">بازی به پایان رسید!</h3>
-        <p>تمام کلمات حدس زده شدند و نتایج نهایی مشخص شد:</p>
-        <div id="finalResultsContainer" style="display:flex; flex-direction:column; gap:10px; margin:20px 0; max-height: 250px; overflow-y: auto;">
-            </div>
-        <button onclick="window.location.reload();" class="btn btn-primary" style="width:100%">بازگشت به لابی</button>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 <script>
+const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const normalize = c => { if(!c) return ''; const m = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (m[c]||c).normalize('NFC'); };
 const $ = id => document.getElementById(id);
-let state = {
-  TWA: window.Telegram?.WebApp,
-  user: null,
-  socket: null,
-  rooms: [],
-  gameId: null,
-  gameDeck: null,
-  gameState: null,
-  timerInterval: null,
-  timerMs: 0,
-  revealMode: 'private',
-  isHost: false
+
+const state = {
+  user: null, roomId: null, gameId: null, deck: [],
+  gameState: {}, allStates: [], timerInterval: null, timerMs: 0
 };
 
-const normalize = ch => {
-  if (!ch) return '';
-  const map = { '\u064A':'\u06CC', '\u0643':'\u06A9' };
-  return (map[ch] || ch).normalize('NFC');
-};
-
-const toFaDigits = n => {
-  return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-};
-
-// NEW: Function to robustly display user name (ایراد اول)
-function getUserDisplayName(user) {
-  if (!user) return 'کاربر ناشناس';
-  let displayName = '';
-  // Prioritize first and last name from Telegram WebApp
-  if (user.first_name) {
-    displayName += esc(user.first_name);
-  }
-  if (user.last_name) {
-    if (displayName) displayName += ' ';
-    displayName += esc(user.last_name);
-  }
-  if (displayName) return displayName;
+// --- 1. INIT WITH TELEGRAM ---
+(async function init(){
+  let uid = localStorage.getItem('w_uid');
+ 
+  if(!uid) { uid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', uid); }
   
-  // Fallback to username
-  if (user.username) return '@' + esc(user.username);
-  
-  // Final fallback
-  return 'کاربر'; 
-}
+  state.user = { id: Number(uid), name: 'کاربر ' + String(uid).slice(-4), photo: null };
 
-// NEW: Function to format duration for history (ایراد دوم)
-function formatDuration(ms) {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-}
-
-function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
-function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
-
-function updateUi() {
-  if (state.user) {
-    // UPDATED: Use the new function for the header name
-    $('headerUsername').textContent = getUserDisplayName(state.user); 
-    $('headerUserId').textContent = 'ID: ' + state.user.id;
-  }
-  
-  // Tab logic
-  const viewDashboard = $('view-dashboard');
-  const viewGame = $('view-game');
-  const viewHistory = $('view-history'); 
-
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.onclick = (e) => {
-          const target = e.target.getAttribute('data-target');
-          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-          e.target.classList.add('active');
-
-          viewDashboard.classList.add('hidden');
-          viewGame.classList.add('hidden');
-          viewHistory.classList.add('hidden'); 
-
-          if (target === 'dashboard') {
-              viewDashboard.classList.remove('hidden');
-          } else if (target === 'game') {
-              viewGame.classList.remove('hidden');
-          } else if (target === 'history') { // Handle history tab (ایراد دوم)
-              viewHistory.classList.remove('hidden');
-              // Request history data from server
-              socket.emit('history:request', { user_id: state.user.id });
-          }
-          
-          if (state.TWA) {
-              if (target === 'dashboard' || target === 'history') {
-                  state.TWA.MainButton.hide();
-              } else if (target === 'game' && state.gameId) {
-                  state.TWA.MainButton.show();
-              }
-          }
-      };
-  });
-}
-
-function renderRooms(rooms) {
-  const container = $('roomsListContainer');
-  if (!rooms || rooms.length === 0) {
-    container.innerHTML = '<div style="text-align:center; color:#999; margin-top:20px;">هیچ اتاق فعالی یافت نشد.</div>';
-    return;
-  }
-
-  container.innerHTML = rooms.map(room => `
-    <div class="room-item">
-      <div class="room-info">
-        <h4>${esc(room.name)}</h4>
-        <div class="room-meta">
-          ${trLevel(room.level)} |
-          ${toFaDigits(room.players)}/${toFaDigits(room.max_players)} بازیکن |
-          ${room.reveal_mode === 'shared' ? 'مشترک' : 'خصوصی'}
-        </div>
-      </div>
-      ${room.status === 'waiting' ? 
-        `<button class="btn btn-primary btn-join" data-room-id="${esc(room.id)}">ورود</button>` :
-        `<button class="btn btn-ghost" disabled>در حال بازی</button>`
-      }
-    </div>
-  `).join('');
-
-  document.querySelectorAll('.btn-join').forEach(btn => {
-    btn.onclick = () => {
-      const room_id = btn.getAttribute('data-room-id');
-      socket.emit('room:join', { room_id, user_id: state.user.id });
-    };
-  });
-}
-
-function renderRoom(room) {
-  if (!room.game_id) {
-    $('gameControls').classList.add('hidden');
-    $('playersListContainer').innerHTML = `<p style="text-align:center; color:#999;">منتظر شروع بازی...</p>`;
-    return;
-  }
-
-  // UPDATED: Use getUserDisplayName for player list (ایراد اول)
-  const playersHtml = room.players.map(p => {
-      const isSelf = p.user_id === state.user.id;
-      return `
-    <div class="player-card ${isSelf ? 'me' : ''}">
-        <div>
-            <div class="p-name">${getUserDisplayName(p.user)}</div>
-            <div class="p-status">${p.role === 'host' ? 'میزبان' : 'بازیکن'} | کلمات حدس‌زده: ${toFaDigits(p.guessed_count || 0)}</div>
-        </div>
-        <div class="p-score">${toFaDigits(p.score || 0)}</div>
-    </div>
-  `}).join('');
-  
-  $('playersListContainer').innerHTML = playersHtml;
-  $('gameControls').classList.remove('hidden');
-
-  if (room.status === 'in_game' && room.game_id) {
-    $('gameTabBtn').style.display = 'inline-block';
+  // Telegram Logic
+  if (window.Telegram && window.Telegram.WebApp) {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
     
-    // Auto-switch to game tab if this is a join/resume action
-    if ($('view-dashboard').classList.contains('active') && state.gameId === room.game_id) {
-        $('gameTabBtn').click();
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+       const u = tg.initDataUnsafe.user;
+       state.user.id = u.id;
+       state.user.name = (u.first_name + ' ' + (u.last_name || '')).trim();
+       state.user.photo = u.photo_url;
+       // Sync with DB
+       try {
+         await fetch('/auth/telegram', {
+           method: 'POST', headers: {'Content-Type':'application/json'},
+           body: JSON.stringify({ user: u })
+         });
+       } catch(e){}
     }
   }
+  
+  $('headerUsername').textContent = state.user.name;
+  $('headerUserId').textContent = 'ID: ' + toFaDigits(state.user.id);
+
+  // CRITICAL FIX: Send auth signal to socket
+  socket.emit('auth', { user_id: state.user.id });
+
+  checkActiveGame();
+  loadPublicRooms();
+})();
+async function checkActiveGame(){
+  try {
+    // NOTE: Requires /rooms/myrooms endpoint on server
+    const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
+    const d = await res.json();
+    if(d.ok && d.rooms && d.rooms.length > 0) {
+      const r = d.rooms[0];
+      $('resumeBanner').classList.remove('hidden');
+      $('resumeRoomName').textContent = r.name;
+      // We will rely on socket 'room:resume' for actual game state loading
+      $('btnResume').onclick = () => {
+         state.roomId = r.id; 
+         socket.emit('room:resume', { user_id: state.user.id });
+         showTab('game'); // Show game tab while resuming
+      };
+    } else {
+      $('resumeBanner').classList.add('hidden');
+    }
+  } catch(e) {}
 }
 
-function renderGame(gameState) {
-  state.gameState = gameState;
-  state.gameId = gameState.game_id;
-  state.gameDeck = gameState.deck;
-  state.timerMs = gameState.timer_ms;
-
-  const currentWord = gameState.deck[gameState.current_index];
-  const { correct_letters, wrong_letters, allowed_wrong, current_index, deck, score } = gameState;
-  const wordText = currentWord.word;
-  const isShared = gameState.reveal_mode === 'shared';
-  
-  $('lblWordIndex').textContent = toFaDigits(current_index + 1);
-  $('lblCategory').textContent = currentWord.category;
-  $('lblLevel').textContent = trLevel(currentWord.level);
-  $('lblAllowedWrong').textContent = toFaDigits(allowed_wrong);
-  $('lblWrongCount').textContent = toFaDigits(wrong_letters.length);
-
-  // Slots
-  let slotsHtml = '';
-  for (let i = 0; i < wordText.length; i++) {
-    const char = normalize(wordText[i]);
-    if (char === ' ' || char === '\u200c' || char === '\u200d') { // Space or zero-width non-joiner
-      slotsHtml += '<div class="slot gap"></div>';
-    } else {
-      const isCorrect = correct_letters.includes(char);
-      const content = isCorrect ? char : (isShared ? (correct_letters.includes(char) ? char : '') : '');
-      const cls = isCorrect ? 'correct' : (isShared ? 'revealed' : '');
-      slotsHtml += `<div class="slot ${cls}">${esc(content)}</div>`;
-    }
-  }
-  $('slotsContainer').innerHTML = slotsHtml;
-
-  // Chips (Correct)
-  $('chipsCorrect').innerHTML = [...new Set(correct_letters.filter(c => !wrong_letters.includes(c)))]
-    .sort()
-    .map(c => `<span class="chip correct">${esc(c)}</span>`)
-    .join('');
-
-  // Chips (Wrong)
-  $('chipsWrong').innerHTML = [...new Set(wrong_letters)]
-    .sort()
-    .map(c => `<span class="chip wrong">${esc(c)}</span>`)
-    .join('');
-
-  if (wrong_letters.length >= allowed_wrong) {
-    // Game over for this word (if not shared) or just failure
-    $('btnGuess').disabled = true;
-    $('btnHint').disabled = true;
-    $('txtLetter').disabled = true;
-    $('txtLetter').value = 'ناکام';
-    $('txtLetter').classList.add('shake');
+// --- 2. NAVIGATION ---
+const showTab = (tab) => {
+  document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  if(tab === 'game') {
+    $('view-game').classList.remove('hidden');
+    $('gameTabBtn').style.display = 'inline-block';
+    $('gameTabBtn').classList.add('active');
+    $('gameControls').classList.remove('hidden');
   } else {
-    $('btnGuess').disabled = false;
-    $('btnHint').disabled = false;
-    $('txtLetter').disabled = false;
-    $('txtLetter').focus();
-    $('txtLetter').classList.remove('shake');
+    $('view-dashboard').classList.remove('hidden');
+    document.querySelector('[data-target="dashboard"]').classList.add('active');
+    $('gameControls').classList.add('hidden');
+    // Reload dashboard content when returning
+    checkActiveGame();
+    loadPublicRooms();
   }
+};
+$('btnBackMenu').onclick = () => { 
+   if(state.timerInterval) clearInterval(state.timerInterval);
+   showTab('dashboard'); 
+};
+document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.target));
+
+// --- 3. SOCKET ---
+const socket = io();
+socket.on('connect', () => {
+  if(state.user.id) socket.emit('auth', { user_id: state.user.id });
+});
+
+// NEW LISTENER: Initial successful room join
+socket.on('room:joined', (data) => {
+    state.roomId = data.room_id;
+    // Show loading state until game:state arrives (if game is running)
+    showTab('game');
+    $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>';
+    updatePlayersUI(data.room.players);
+});
+
+// NEW LISTENER: General room updates (players, scores)
+socket.on('room:state', (data) => {
+    if (data.room_id !== state.roomId) return; 
+    // This is primarily for score/player list updates in real-time
+    updatePlayersUI(data.room.players);
+});
+
+// CORRECTED LISTENER: Game state updates
+socket.on('game:state', (data) => {
+  const gs = data.game_state;
+  const room = data.room; // Contains updated player scores
+
+  if(typeof gs.correct_letters === 'string') gs.correct_letters = JSON.parse(gs.correct_letters);
+  if(typeof gs.wrong_letters === 'string') gs.wrong_letters = JSON.parse(gs.wrong_letters);
+
+  state.gameId = data.game_id;
+  state.deck = gs.deck;
+  state.gameState = gs;
+  state.timerMs = Number(gs.timer_ms) || 0;
   
   startTimer();
-}
+  renderGame();
+  updatePlayersUI(room.players); // Use player list from room data
+  showTab('game');
+});
 
-// NEW: Function to render game history (ایراد دوم)
-function renderHistory(history) {
-    const container = $('historyListContainer');
-    if (!history || history.length === 0) {
-        container.innerHTML = '<p class="text-center" style="color:#999; margin-top:20px;">تاریخچه بازی‌های شما خالی است.</p>';
-        return;
+// OLD/REDUNDANT LISTENERS REMOVED. Keeping the following for simple feedback:
+
+socket.on('game:finished', (data) => {
+  // Simple alert, better to show a modal with data.results
+  alert('بازی پایان یافت! نتایج در لابی قابل مشاهده است.');
+  showTab('dashboard');
+});
+
+// NEW LISTENER: Server-side error handler
+socket.on('error', (data) => {
+  console.error("Socket Error:", data.message);
+  alert(data.message || 'خطای ناشناخته در بازی.');
+});
+
+// --- 4. LOGIC ---
+async function enterRoomMode(roomId, skipApi = false) {
+  if(!skipApi) {
+    // If not skipping, we use the API only to ensure the user is registered in room_players table.
+    // The server handles the final join logic and state delivery via socket.
+    try {
+        const res = await fetch('/rooms/join', {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ room_id: roomId, user_id: state.user.id })
+        });
+        const d = await res.json();
+        if(!d.ok) {
+            // Server error message is sent here, if available
+            return alert(d.message || 'خطا در پیوستن به اتاق.');
+        }
+    } catch(e) {
+        console.error("API Join Error:", e);
+        return alert('خطا در اتصال به سرور برای پیوستن.');
     }
-
-    const historyHtml = history.map(game => {
-        let rankClass = '';
-        if (game.rank === 1) rankClass = 'rank-1';
-        else if (game.rank === 2) rankClass = 'rank-2';
-        else if (game.rank === 3) rankClass = 'rank-3';
-
-        return `
-        <div class="history-item">
-            <div class="game-info">
-                <span class="rank-badge ${rankClass}">رتبه ${toFaDigits(game.rank)}</span>
-                <span class="date">${new Date(game.end_time).toLocaleDateString('fa-IR', { year: 'numeric', month: 'numeric', day: 'numeric' })}</span>
-            </div>
-            <div class="game-result">
-                <span>امتیاز: <b style="color:var(--primary)">${toFaDigits(game.score)}</b></span>
-                <span>کلمات: ${toFaDigits(game.words_guessed)}</span>
-                <span>زمان: ${toFaDigits(formatDuration(game.timer_ms))}</span>
-            </div>
-            <div class="game-meta">
-                <span>سطح: ${trLevel(game.level)}</span>
-                <span>(${toFaDigits(game.rank)} از ${toFaDigits(game.total_players)} بازیکن)</span>
-            </div>
-        </div>
-        `;
-    }).join('');
-
-    container.innerHTML = `<div class="history-list">${historyHtml}</div>`;
+  }
+  
+  state.roomId = roomId;
+  // Send socket event to officially join and receive state
+  socket.emit('room:join', { room_id: roomId, user_id: state.user.id });
+  
+  // Show loading state immediately
+  showTab('game');
+  $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در حال اتصال و بارگذاری...</div>';
 }
+
+$('btnLeave').onclick = async () => {
+  if(!state.roomId || !confirm('آیا مطمئن هستید؟ با ترک بازی، امتیاز شما ثبت نمی‌شود.')) return;
+  // Send socket event to leave the room (preferred over API call)
+  socket.emit('room:leave', { room_id: state.roomId, user_id: state.user.id });
+  
+  state.roomId = null;
+  state.gameId = null; 
+  if(state.timerInterval) clearInterval(state.timerInterval);
+  showTab('dashboard');
+};
+socket.on('room:left', () => {
+   state.roomId = null;
+   state.gameId = null; 
+   if(state.timerInterval) clearInterval(state.timerInterval);
+   showTab('dashboard');
+});
+
+
+async function loadPublicRooms(){
+  const lvl = $('filterLevel').value;
+  const res = await fetch('/rooms/list' + (lvl ? '?level='+lvl : ''));
+  const d = await res.json();
+  const cont = $('roomsListContainer');
+  cont.innerHTML = '';
+  if(!d.rooms || !d.rooms.length) return cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px">اتاقی یافت نشد</div></div>';
+  d.rooms.forEach(r => {
+    const div = document.createElement('div'); div.className = 'room-item';
+    div.innerHTML = `<div class="room-info"><h4>${esc(r.name)}</h4><div class="room-meta">${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر | ${trLevel(r.level)}</div></div><button class="btn btn-primary" onclick="enterRoomMode('${r.id}')">پیوستن</button>`;
+    cont.appendChild(div);
+  });
+}
+$('btnRefresh').onclick = loadPublicRooms; $('filterLevel').onchange = loadPublicRooms;
+
+// --- 5. RENDER ---
+function renderGame() {
+  if(!state.deck.length) return;
+  const idx = Number(state.gameState.current_index) || 0;
+  const wordObj = state.deck[idx];
+  if(!wordObj) return;
+
+  $('lblWordIndex').textContent = toFaDigits(idx + 1);
+  $('lblCategory').textContent = wordObj.category;
+  $('lblLevel').textContent = trLevel(wordObj.level);
+  
+  // Ensure word normalization is correct for display
+  const word = String(wordObj.word).replace(/[\u0640]/g,''); // Remove Keshideh (ـ) for display length
+  const container = $('slotsContainer');
+  container.innerHTML = '';
+  
+  const correctLetters = state.gameState.correct_letters || [];
+  const wrongLetters = state.gameState.wrong_letters || [];
+  
+  // Render Allowed Wrong
+  const allowedWrong = Number(state.gameState.allowed_wrong) || 0;
+  $('lblWrongCount').textContent = toFaDigits(wrongLetters.length);
+  $('lblAllowedWrong').textContent = toFaDigits(allowedWrong);
+  
+  [...word].forEach(char => {
+    // Check for space, zero-width non-joiner, or half space
+    if(char === ' ' || char === '\u200c' || char === '\u200b' || char === '\u00a0') {
+      const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap);
+    } else {
+      const slot = document.createElement('div'); slot.className='slot';
+      const normalizedChar = normalize(char);
+      // Use normalized character for checking, but original character for display if possible
+      if(correctLetters.includes(normalizedChar)) { 
+          slot.textContent = char; 
+          slot.classList.add('correct'); 
+      }
+      container.appendChild(slot);
+    }
+  });
+  renderChips('chipsCorrect', correctLetters, 'correct');
+  renderChips('chipsWrong', wrongLetters, 'wrong');
+}
+
+function renderChips(id, arr, cls) {
+  const el = $(id); el.innerHTML = '';
+  // Sort for better presentation
+  arr.sort().forEach(l => { const c = document.createElement('div'); c.className=`chip ${cls}`; c.textContent=l; el.appendChild(c); });
+}
+
+function updatePlayersUI(list) {
+  const cont = $('playersListContainer'); cont.innerHTML = '';
+  list.forEach(p => {
+    const isMe = String(p.user_id) === String(state.user.id);
+    const div = document.createElement('div'); div.className = 'player-card' + (isMe ? ' me' : '');
+    
+    // FIX: Retrieve name from the nested 'user' object from server
+    const userDisplayName = p.user ? (p.user.first_name + ' ' + (p.user.last_name || '')).trim() || p.user.username || 'کاربر' : 'کاربر';
+    
+    let progressTxt = 'لابی';
+    if(typeof p.guessed_count !== 'undefined') { // Check for game status using guessed_count
+        progressTxt = `کلمه ${toFaDigits((p.guessed_count||0) + 1)} از ${toFaDigits(state.deck.length || 10)}`;
+    }
+    
+    div.innerHTML = `<div><div class="p-name">${esc(userDisplayName)} ${isMe?'(شما)':''}</div><div class="p-status">${progressTxt}</div></div><div class="p-score">${toFaDigits(p.score||0)}</div>`;
+    cont.appendChild(div);
+  });
+}
+
+// --- 6. INPUT ---
+$('btnGuess').onclick = () => {
+  const val = $('txtLetter').value;
+  if(!val) return $('txtLetter').focus();
+  // FIX: Changed event name to match server
+  socket.emit('game:guess_letter', { game_id: state.gameId, user_id: state.user.id, letter: val });
+  $('txtLetter').value = ''; $('txtLetter').focus();
+};
+$('txtLetter').onkeydown = (e) => { if(e.key === 'Enter') $('btnGuess').click(); };
+$('txtLetter').oninput = (e) => { const v=normalize(e.target.value);
+  e.target.value = (v && /^[\u0600-\u06FF]$/.test(v)) ? v : ''; };
+$('btnHint').onclick = () => socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
 
 function startTimer(){
   if(state.timerInterval) clearInterval(state.timerInterval);
@@ -634,237 +608,36 @@ function startTimer(){
     state.timerMs += 1000;
     const s = Math.floor(state.timerMs/1000);
     $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'));
+    
+    // CRITICAL FIX: Send timer update to server every second
+    if(state.gameId && state.user.id) {
+       socket.emit('game:timer', { game_id: state.gameId, user_id: state.user.id, timer_ms: state.timerMs });
+    }
   }, 1000);
 }
+function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
+function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
 
-// Initial setup
-document.addEventListener('DOMContentLoaded', () => {
-  updateUi();
-  if (state.TWA) {
-    state.TWA.ready();
-    state.TWA.expand();
-    state.TWA.MainButton.setText('ثبت حدس');
-    state.TWA.MainButton.onClick(() => $('btnGuess').click());
-
-    if (state.TWA.initDataUnsafe.user) {
-      state.user = state.TWA.initDataUnsafe.user;
-      fetch('/auth/telegram', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: state.user })
-      });
-      // Try to resume game immediately after auth
-      socket.emit('room:resume', { user_id: state.user.id });
-    } else {
-       // Fallback for testing without TWA
-       state.user = { id: 1000000000, first_name: 'کاربر', last_name: 'تست', username: 'tester' };
-    }
+$('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
+$('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
+$('btnSubmitCreate').onclick = async () => {
+  const roomName = $('inpRoomName').value || 'اتاق خصوصی';
+  const roomLevel = $('inpRoomLevel').value;
+  const maxPlayers = 2; // Hardcoded, can be a setting
+  
+  const res = await fetch('/rooms/create', { 
+      method:'POST', 
+      headers:{'Content-Type':'application/json'}, 
+      body: JSON.stringify({ user_id: state.user.id, name: roomName, level: roomLevel, max_players: maxPlayers }) 
+  });
+  const d = await res.json();
+  if(d.ok) { 
+      $('modalCreate').style.display = 'none'; 
+      enterRoomMode(d.room_id, true); // Pass true to skip the unnecessary join API call
   } else {
-    // Fallback for testing without TWA
-    state.user = { id: 1000000000, first_name: 'کاربر', last_name: 'تست', username: 'tester' };
+      alert('خطا در ایجاد اتاق: ' + (d.message || 'خطای ناشناخته'));
   }
-
-  // Connect Socket.IO
-  const socketProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const socketUrl = `${socketProtocol}://${window.location.host}`;
-  state.socket = io(socketUrl);
-  const socket = state.socket;
-
-  socket.on('connect', () => {
-    console.log('Connected to server');
-    if (state.user) {
-      socket.emit('auth', { user_id: state.user.id });
-      fetchRooms();
-    }
-  });
-
-  socket.on('rooms:list', (data) => {
-    state.rooms = data.rooms;
-    renderRooms(data.rooms);
-  });
-  
-  socket.on('room:joined', (data) => {
-    console.log('Joined room:', data.room_id);
-    state.roomId = data.room_id;
-    state.isHost = data.is_host;
-    state.revealMode = data.reveal_mode;
-    renderRoom(data.room);
-    
-    // Switch view
-    document.querySelector('.tab-btn[data-target="game"]').click();
-  });
-
-  socket.on('room:left', (data) => {
-    console.log('Left room:', data.room_id);
-    state.roomId = null;
-    state.isHost = false;
-    state.gameId = null;
-    state.revealMode = 'private';
-    $('gameTabBtn').style.display = 'none';
-    if(state.timerInterval) clearInterval(state.timerInterval);
-    
-    // Switch view
-    document.querySelector('.tab-btn[data-target="dashboard"]').click();
-    fetchRooms(); // Refresh room list
-  });
-
-  socket.on('room:state', (data) => {
-    // Only update if we are in this room
-    if (data.room.id === state.roomId) {
-      renderRoom(data.room);
-      if (data.room.game_state) {
-        renderGame(data.room.game_state);
-      }
-    }
-    // Also check if any player is in a resumed game and update banner
-    const resumedRoom = data.rooms.find(r => r.game_id && r.players.some(p => p.user_id === state.user.id));
-    if (resumedRoom && resumedRoom.id !== state.roomId) {
-        $('resumeBanner').classList.remove('hidden');
-        $('resumeRoomName').textContent = `بازی در اتاق: ${esc(resumedRoom.name)}`;
-        $('btnResume').setAttribute('data-room-id', resumedRoom.id);
-    } else {
-        $('resumeBanner').classList.add('hidden');
-    }
-  });
-  
-  socket.on('game:state', (data) => {
-    if (data.game_id === state.gameId) {
-        renderGame(data.game_state);
-        renderRoom(data.room); // Update player scores/status
-    }
-  });
-  
-  socket.on('game:start', (data) => {
-    if (data.room_id === state.roomId) {
-      state.gameId = data.game_id;
-      $('gameTabBtn').style.display = 'inline-block';
-      $('gameTabBtn').click(); // Switch to game view
-    }
-  });
-
-  // NEW: History list handler (ایراد دوم)
-  socket.on('history:list', (data) => {
-      renderHistory(data.history);
-  });
-
-  // NEW: Game Finished handler (ایراد سوم)
-  socket.on('game:finished', (data) => {
-      // Clear interval when game ends
-      if(state.timerInterval) clearInterval(state.timerInterval);
-      state.timerInterval = null;
-      state.gameId = null;
-      $('gameTabBtn').style.display = 'none';
-
-      const resultsHtml = data.results.map(r => {
-          let color = '#ccc';
-          if (r.rank === 1) color = '#FFD700'; // Gold
-          else if (r.rank === 2) color = '#C0C0C0'; // Silver
-          else if (r.rank === 3) color = '#CD7F32'; // Bronze
-          
-          return `
-              <div style="display:flex; justify-content:space-between; padding:8px 12px; border-radius:8px; background:#f9f9f9; border-right:4px solid ${color}">
-                  <span style="font-weight:700">${r.rank === 1 ? '🥇' : (r.rank === 2 ? '🥈' : (r.rank === 3 ? '🥉' : toFaDigits(r.rank) + '.'))} ${getUserDisplayName(r.user)}</span>
-                  <span>امتیاز: ${toFaDigits(r.score)}</span>
-              </div>
-          `;
-      }).join('');
-
-      $('finalResultsContainer').innerHTML = resultsHtml;
-      $('modalGameFinished').style.display = 'flex';
-  });
-
-  socket.on('error', (data) => {
-    state.TWA?.showAlert(data.message || 'خطای ناشناخته در سرور');
-  });
-
-  // Event Listeners
-  $('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
-  $('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
-  $('btnBackMenu').onclick = () => document.querySelector('.tab-btn[data-target="dashboard"]').click();
-  $('btnLeave').onclick = () => {
-      state.TWA?.showConfirm('آیا مطمئنید که می‌خواهید از اتاق خارج شوید؟', (isConfirmed) => {
-          if (isConfirmed) {
-              socket.emit('room:leave', { room_id: state.roomId, user_id: state.user.id });
-          }
-      });
-  };
-  $('btnResume').onclick = (e) => {
-      const room_id = e.target.getAttribute('data-room-id');
-      if(room_id) {
-         socket.emit('room:join', { room_id, user_id: state.user.id });
-      }
-  };
-  $('btnRefresh').onclick = fetchRooms;
-
-  $('btnCreateRoom').onclick = () => {
-    const roomName = $('txtRoomName').value.trim();
-    const level = $('selLevel').value;
-    const maxPlayers = $('selMaxPlayers').value;
-    const revealMode = $('selRevealMode').value;
-    
-    if (!state.user) return;
-
-    $('modalCreate').style.display = 'none';
-    socket.emit('room:create', { 
-      user_id: state.user.id, 
-      name: roomName, 
-      level, 
-      max_players: maxPlayers,
-      reveal_mode: revealMode
-    });
-  };
-
-  $('btnGuess').onclick = () => {
-    const val = normalize($('txtLetter').value);
-    if (!val || val.length !== 1) {
-      state.TWA?.showAlert('فقط یک حرف فارسی وارد کنید.');
-      return;
-    }
-    socket.emit('game:guess_letter', { game_id: state.gameId, user_id: state.user.id, letter: val });
-    $('txtLetter').value = ''; $('txtLetter').focus();
-  };
-  
-  $('txtLetter').onkeydown = (e) => { if(e.key === 'Enter') $('btnGuess').click(); };
-  $('txtLetter').oninput = (e) => { 
-      const v=normalize(e.target.value); 
-      e.target.value = (v && /^[\u0600-\u06FF]$/.test(v)) ? v : ''; 
-  };
-
-  $('btnHint').onclick = () => {
-       state.TWA?.showConfirm('آیا می‌خواهید از راهنما استفاده کنید؟ (امتیاز منفی دارد)', (isConfirmed) => {
-          if (isConfirmed) {
-              socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
-          }
-      });
-  };
-
-  $('filterLevel').onchange = fetchRooms;
-
-  // Function to fetch rooms and send current timer to server
-  function fetchRooms() {
-    const level = $('filterLevel').value;
-    fetch('/rooms/list?level=' + level)
-      .then(res => res.json())
-      .then(data => {
-        if(data.ok) {
-          state.rooms = data.rooms;
-          renderRooms(data.rooms);
-        }
-      });
-  }
-  
-  // Timer sync with server
-  setInterval(() => {
-    if (state.gameId && state.user && state.timerMs > 0) {
-      socket.emit('game:timer', { 
-        game_id: state.gameId, 
-        user_id: state.user.id, 
-        timer_ms: state.timerMs 
-      });
-    }
-  }, 5000);
-});
-
+};
 </script>
 </body>
 </html>
