@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>وردلی رقابتی — نسخه سازگار</title>
+  <title>وردلی رقابتی — نسخه حرفه‌ای و بهینه</title>
 
-  <!-- سریع: تشخیص حالت UI (glassy / legacy) پیش از بارگذاری CSS -->
+  <!-- UI mode detection (glassy / legacy) اجرا قبل از لود CSS -->
   <script>
     (function detectAndApplyUiMode(){
       function supportsCssVariables(){ return window.CSS && window.CSS.supports && window.CSS.supports('--a','0'); }
@@ -38,291 +38,336 @@
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
 
   <style>
+    /* ---------- design tokens ---------- */
     :root{
-      --bg-glass: radial-gradient(1200px 600px at 20% -10%, #eaf3ff 0%, #f8fbff 30%, #ffffff 60%);
-      --bg-plain: #f5f7fb;
+      --bg-glass: radial-gradient(1000px 500px at 10% -20%, #eaf4ff 0%, #fbfdff 35%, #ffffff 70%);
+      --bg-plain: #f6f8fb;
       --panel: #ffffff;
       --muted: #6b7280;
-      --text: #081124;
-      --border: rgba(15,23,42,0.12);
+      --text: #071728;
+      --border: rgba(15,23,42,0.08);
       --accent: #4f46e5;
       --accent-2: #06b6d4;
       --success: #10b981;
       --danger: #ef4444;
-      --radius: 12px;
+      --radius: 14px;
       --glass-blur: 12px;
-      --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
+      --card-shadow: 0 10px 30px rgba(16,24,40,0.08);
+      --card-elev: 0 18px 50px rgba(16,24,40,0.10);
+      --fast: 180ms;
+      --ease: cubic-bezier(.2,.9,.2,1);
     }
 
-    *{box-sizing:border-box;font-family:'Vazirmatn',system-ui,Segoe UI,Roboto,-apple-system}
-    html,body{height:100%;margin:0}
-    body{min-height:100vh;color:var(--text);-webkit-text-size-adjust:100%}
+    /* ---------- reset & base ---------- */
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:'Vazirmatn', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+    body{min-height:100vh;color:var(--text);-webkit-text-size-adjust:100%;background:var(--bg-plain);-webkit-font-smoothing:antialiased}
+    .app{max-width:1100px;margin:16px auto;padding:12px;display:flex;flex-direction:column;gap:12px}
 
-    /* base shell (legacy-friendly) */
-    body { background: var(--bg-plain); }
+    /* ---------- shell card (center) ---------- */
     .shell{
-      max-width:1100px;margin:10px auto;padding:0;
-      height:100vh; max-height:100vh; overflow:auto;
-      border-radius:12px;
+      border-radius:18px;
+      overflow:hidden;
       background:var(--panel);
-      box-shadow:var(--shadow-1);
       border:1px solid var(--border);
+      box-shadow:var(--card-shadow);
+      transition:box-shadow var(--fast) var(--ease), transform var(--fast) var(--ease);
+      display:flex;flex-direction:column;min-height:78vh;
     }
+    .shell:focus-within{box-shadow:var(--card-elev);transform:translateY(-4px)}
 
-    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--border)}
-    .brand{display:flex;gap:10px;align-items:center}
-    .badge{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 6px 18px rgba(79,70,229,0.12)}
-    .title{font-weight:800;font-size:16px}
+    /* ---------- header ---------- */
+    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);gap:12px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .badge{
+      width:52px;height:52px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;font-weight:900;color:white;
+      background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      box-shadow:0 8px 24px rgba(79,70,229,0.12);
+      font-size:20px;
+    }
+    .title{font-weight:800;font-size:18px}
     .subtitle{font-size:12px;color:var(--muted)}
-    .controls{display:flex;gap:8px;align-items:center}
 
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(13,20,36,0.10);cursor:pointer;font-weight:700;font-size:14px;background:#f9fafb;color:#223;transition:transform .15s ease,box-shadow .18s ease}
-    .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,0.06)}
-    .btn.ghost{background:#f9fafb;color:var(--muted)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:1px solid transparent;box-shadow:0 10px 28px rgba(79,70,229,0.18)}
+    .controls{display:flex;align-items:center;gap:8px}
+    .user-chip{display:flex;flex-direction:column;align-items:flex-end;line-height:1}
+    .user-chip #userName{font-weight:700}
+    .user-chip .muted{font-size:12px;color:var(--muted)}
 
-    nav.mini-tabs{display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border);background:#f7f9fc}
-    .tab{padding:8px 10px;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
-    .tab.active{color:var(--accent);background:#eef2ff;border-color:#e0e7ff}
+    /* ---------- nav tabs ---------- */
+    nav.mini-tabs{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff,#fafcff)}
+    .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent;transition:all var(--fast) var(--ease)}
+    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border-color:rgba(79,70,229,0.06);box-shadow:0 6px 18px rgba(79,70,229,0.06)}
 
-    main.content{display:grid;grid-template-columns:1fr minmax(220px, 32%);gap:12px;padding:12px}
-    @media (max-width:980px){ main.content{grid-template-columns:1fr} }
+    /* ---------- layout content ---------- */
+    main.content{display:grid;grid-template-columns:1fr 320px;gap:16px;padding:16px}
+    @media (max-width:980px){ main.content{grid-template-columns:1fr; padding:12px} }
 
-    .panel{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow-1);border-radius:var(--radius);padding:12px}
-    .hero{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;border-radius:10px;background:#f8fbff;border:1px solid #e8eef7}
-
-    .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    .slot{min-width:36px;min-height:44px;padding:8px;border-radius:10px;border:1px solid rgba(20,30,60,0.10);display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),0 3px 10px rgba(16,24,40,0.06);transition:all .16s ease}
-    .slot.gap{width:18px;border:0;background:transparent}
-    .slot.revealed{background:#eef6ff}
-    .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.22);box-shadow:0 6px 16px rgba(16,185,129,0.10)}
-    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.20);box-shadow:0 6px 16px rgba(239,68,68,0.08)}
-
-    .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
-    input.letter{flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:#fff}
-
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid rgba(79,70,229,0.12);background:#fff;font-weight:700;box-shadow:0 4px 12px rgba(16,24,40,0.06)}
-    .chip-letter.correct{background:#ecfdf5;color:var(--success);border-color:rgba(16,185,129,0.24)}
-    .chip-letter.wrong{background:#fef2f2;color:var(--danger);border-color:rgba(239,68,68,0.22)}
-
-    aside.right{display:flex;flex-direction:column;gap:10px}
-    .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
-    .muted{color:var(--muted)}
-    .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700;white-space:nowrap}
-    .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:56px;text-align:center}
-
-    input, textarea { scroll-margin-top: 20vh; outline:none }
-
-    @media (max-width:760px){
-      html,body{padding:8px}
-      .badge{width:40px;height:40px}
-      .title{font-size:15px}
-      main.content{padding:8px}
-      input.letter{flex:0 0 60px;height:44px;font-size:16px}
-      .slot{min-width:28px;height:44px;font-size:16px;padding:6px}
-      .timer{font-size:16px}
+    /* ---------- polished panels ---------- */
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.95));
+      border-radius:12px;padding:14px;border:1px solid var(--border);box-shadow:0 8px 30px rgba(16,24,40,0.04)
     }
+    .panel h3{margin:0 0 8px 0;font-size:16px}
 
-    @keyframes shake {10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
-    .letter.shake{animation:shake .28s ease both;}
+    .hero{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .hero .left{min-width:0}
+    .hero .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 
-    /* glassy enhancements */
-    .glassy-ui body { background: var(--bg-glass); }
-    .glassy-ui .shell{ background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35)); backdrop-filter: blur(var(--glass-blur)) saturate(1.1); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.1); border:1px solid rgba(79,70,229,0.14); box-shadow:0 24px 60px rgba(16,24,40,0.12) }
-    .glassy-ui .panel{ background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82)); backdrop-filter: blur(10px) saturate(1.05); -webkit-backdrop-filter: blur(10px) saturate(1.05); box-shadow:0 18px 48px rgba(16,24,40,0.12) }
+    /* ---------- word slots (card-like) ---------- */
+    .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
+    .slot{
+      min-width:40px;height:52px;padding:10px;border-radius:12px;border:1px solid rgba(15,23,42,0.06);
+      display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7);
+      transition:transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease), background var(--fast) var(--ease);
+    }
+    .slot.gap{width:18px;height:auto;border:0;background:transparent}
+    .slot.revealed{background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));font-weight:800}
+    .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.16);box-shadow:0 8px 24px rgba(16,185,129,0.06)}
+    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12);box-shadow:0 8px 24px rgba(239,68,68,0.06)}
 
-    /* legacy tweaks */
-    .legacy-ui .shell{ background:var(--panel); box-shadow:var(--shadow-1); border:1px solid var(--border) }
-    .legacy-ui .panel{ background:var(--panel); box-shadow:0 6px 18px rgba(16,24,40,0.06) }
+    /* ---------- controls ---------- */
+    .controls-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
+    input.letter{flex:0 0 74px;min-width:56px;height:52px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid rgba(13,20,36,0.06);cursor:pointer;font-weight:800;font-size:14px;background:#fff;color:var(--accent);transition:transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease)}
+    .btn:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(16,24,40,0.06)}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;box-shadow:0 12px 36px rgba(79,70,229,0.12)}
+    .btn.ghost{background:transparent;border:1px solid rgba(15,23,42,0.04);color:var(--muted)}
 
-    /* Modal layout fixes (inputs previously overflowing) */
-    #roomsModal > div { box-sizing:border-box; max-width: 980px; width: calc(100% - 40px); margin: 0 20px; padding: 0; overflow: visible; }
-    #roomsModal .modal-inner { padding: 14px; }
-    #roomsModal .grid-rooms { display: grid; grid-template-columns: 1fr minmax(220px, 360px); gap: 12px; align-items: start; }
-    @media (max-width:980px){ #roomsModal .grid-rooms { grid-template-columns: 1fr; } #roomsModal > div { padding: 8px; } }
-    #roomsModal input[type="text"], #roomsModal input[type="number"], #roomsModal select, #roomsModal textarea { width:100%; box-sizing:border-box; display:block; padding:10px; border-radius:8px; border:1px solid var(--border); background:#fff }
-    #roomsModal .field { margin-top:10px; display:flex; flex-direction:column; gap:6px; min-width:0; }
-    #roomsModal .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
-    #publicRoomsList .room, #myRoomsList .room { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-radius:10px; min-width:0; }
-    #publicRoomsList .room .meta, #myRoomsList .room .meta { min-width:0; overflow:hidden; }
-    #publicRoomsList .room .meta .title, #myRoomsList .room .meta .title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    #publicRoomsList .room button, #myRoomsList .room button { flex:0 0 auto; min-width:64px; }
+    /* ---------- chips ---------- */
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .chip-letter{padding:8px 12px;border-radius:999px;border:1px solid rgba(79,70,229,0.06);background:#fff;font-weight:800;box-shadow:0 6px 18px rgba(16,24,40,0.04)}
+    .chip-letter.correct{background:rgba(16,185,129,0.08);color:var(--success);border-color:rgba(16,185,129,0.12)}
+    .chip-letter.wrong{background:rgba(239,68,68,0.06);color:var(--danger);border-color:rgba(239,68,68,0.08)}
 
-    /* small helper inside modal to show correct/wrong letters */
-    .modal-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-    .modal-chips .chip-letter { font-size:14px; padding:6px 8px; }
+    /* ---------- sidebar cards ---------- */
+    aside.right{display:flex;flex-direction:column;gap:12px}
+    .score-card{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+    .score-big{font-weight:900;color:var(--accent);font-size:26px}
+
+    /* ---------- footer ---------- */
+    footer{padding:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;background:linear-gradient(180deg,#fff,#fafcff)}
+
+    /* ---------- modal: redesigned professional ---------- */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(6,10,20,0.42);display:flex;align-items:center;justify-content:center;z-index:1400;padding:20px}
+    .modal-card{
+      width:100%;max-width:980px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,252,255,0.96));
+      box-shadow:0 30px 80px rgba(2,6,23,0.5);border:1px solid rgba(255,255,255,0.6);overflow:hidden;display:flex;flex-direction:column;
+    }
+    .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(15,23,42,0.04)}
+    .modal-body{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
+    @media (max-width:980px){ .modal-body{grid-template-columns:1fr; } .modal-card{max-height:92vh;overflow:auto} }
+
+    /* left column list */
+    .rooms-list{display:grid;gap:10px;max-height:52vh;overflow:auto;padding-right:6px}
+    .room-row{
+      background:linear-gradient(180deg,#ffffff,#fbfdff);border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid rgba(15,23,42,0.04);
+      transition:transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+    }
+    .room-row:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(2,6,23,0.06)}
+    .room-meta{min-width:0}
+    .room-title{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52ch}
+    .room-sub{font-size:12px;color:var(--muted);margin-top:4px}
+
+    /* right column create card */
+    .create-card{background:linear-gradient(180deg,#ffffff,#fcfeff);border-radius:12px;padding:14px;border:1px solid rgba(15,23,42,0.04);box-shadow:0 12px 30px rgba(2,6,23,0.04)}
+    .form-row{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    label.small{font-size:13px;color:var(--muted);font-weight:700}
+
+    .modal-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .modal-chips .chip-letter{font-size:13px;padding:6px 10px}
+
+    /* ---------- glassy override ---------- */
+    .glassy-ui body{background:var(--bg-glass)}
+    .glassy-ui .shell{background:linear-gradient(180deg, rgba(255,255,255,0.64), rgba(255,255,255,0.44));backdrop-filter:blur(var(--glass-blur)) saturate(1.05);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.05);border:1px solid rgba(255,255,255,0.35)}
+    .glassy-ui .panel{background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82));box-shadow:0 20px 60px rgba(16,24,40,0.08)}
+
+    /* ---------- accessibility helpers ---------- */
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   </style>
 </head>
 <body>
-  <div class="shell" role="application" aria-label="وردلی رقابتی">
-    <header class="appbar" role="banner">
-      <div class="brand">
-        <div class="badge" aria-hidden="true">و</div>
-        <div>
-          <div class="title">وردلی رقابتی</div>
-          <div class="subtitle muted">دو نفره · بلادرنگ</div>
+  <div class="app">
+    <div class="shell" role="application" aria-label="وردلی رقابتی">
+      <header class="appbar" role="banner">
+        <div class="brand">
+          <div class="badge" aria-hidden="true">و</div>
+          <div style="min-width:0">
+            <div class="title">وردلی رقابتی</div>
+            <div class="subtitle muted">دو نفره · بلادرنگ</div>
+          </div>
         </div>
-      </div>
 
-      <div class="controls" role="navigation">
-        <div class="user-chip">
-          <div id="userName">کاربر مهمان</div>
-          <div id="userId" class="muted">—</div>
+        <div class="controls" role="navigation">
+          <div class="user-chip">
+            <div id="userName">کاربر مهمان</div>
+            <div id="userId" class="muted">—</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog">مدیریت اتاق‌ها</button>
+          </div>
         </div>
-        <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog">مدیریت اتاق‌ها</button>
-      </div>
-    </header>
+      </header>
 
-    <nav class="mini-tabs" role="tablist">
-      <button class="tab active" data-tab="dashboard">داشبورد</button>
-      <button class="tab" data-tab="play">بازی</button>
-      <button class="tab" data-tab="about">درباره</button>
-    </nav>
+      <nav class="mini-tabs" role="tablist">
+        <button class="tab active" data-tab="dashboard">داشبورد</button>
+        <button class="tab" data-tab="play">بازی</button>
+        <button class="tab" data-tab="about">درباره</button>
+      </nav>
 
-    <main class="content" role="main">
-      <section>
-        <div class="panel hero">
-          <div>
-            <div class="subtitle muted">حالت سریع</div>
-            <div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <select id="levelSelect" style="padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff">
-                <option value="easy">آسان</option>
-                <option value="medium" selected>متوسط</option>
-                <option value="hard">سخت</option>
-              </select>
-              <button id="quickJoin" class="btn primary">پیوستن سریع</button>
-              <button id="resumeGame" class="btn">ادامه</button>
+      <main class="content" role="main">
+        <section>
+          <div class="panel hero">
+            <div class="left">
+              <div class="subtitle muted">حالت سریع</div>
+              <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                <select id="levelSelect" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:120px">
+                  <option value="easy">آسان</option>
+                  <option value="medium" selected>متوسط</option>
+                  <option value="hard">سخت</option>
+                </select>
+                <button id="quickJoin" class="btn primary">پیوستن سریع</button>
+                <button id="resumeGame" class="btn">ادامه</button>
+              </div>
+            </div>
+
+            <div class="meta">
+              <div class="muted" style="text-align:right">وضعیت اتاق</div>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+                <div class="pill" id="roomStatus" style="padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fbfdff">—</div>
+                <div class="pill" id="playersCount" style="padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fbfdff">—</div>
+              </div>
             </div>
           </div>
 
-          <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
-            <div class="muted">وضعیت اتاق</div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <div class="pill" id="roomStatus">—</div>
-              <div class="pill" id="playersCount">—</div>
+          <div id="dashboardPanel" class="panel" style="margin-top:16px">
+            <h3 id="roomsTitle">اتاق‌های موجود</h3>
+            <div id="roomsList" role="list" aria-live="polite"></div>
+          </div>
+
+          <div id="playPanel" class="panel" style="margin-top:16px;display:none" aria-live="polite">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+              <div>
+                <div style="font-weight:900">بازی رقابتی</div>
+                <div id="playSubtitle" class="muted">کلمهٔ فعلی و کنترل‌ها</div>
+              </div>
+
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <div class="pill">دسته: <span id="categoryName">—</span></div>
+                <div class="pill">سطح: <span id="levelName">—</span></div>
+                <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
+                <div class="timer" id="timer">۰۰:۰۰</div>
+              </div>
+            </div>
+
+            <div id="wordSlots" class="word-slots" aria-live="polite"></div>
+
+            <div class="controls-row">
+              <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" />
+              <button id="guessBtn" class="btn primary">حدس</button>
+              <button id="hintBtn" class="btn">راهنما</button>
+              <button id="leaveBtn" class="btn ghost">خروج</button>
+            </div>
+
+            <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap">
+              <div style="flex:1;min-width:140px">
+                <div style="font-weight:800">حروف صحیح</div>
+                <div id="correctLetters" class="chips" aria-live="polite"></div>
+              </div>
+              <div style="flex:1;min-width:140px">
+                <div style="font-weight:800">حروف غلط</div>
+                <div id="wrongLetters" class="chips" aria-live="polite"></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div id="dashboardPanel" class="panel" style="margin-top:12px">
-          <h3 id="roomsTitle">اتاق‌های موجود</h3>
-          <div id="roomsList" role="list" aria-live="polite"></div>
-        </div>
+          <div id="aboutPanel" class="panel" style="margin-top:16px;display:none">
+            <h3>درباره</h3>
+            <p class="muted">وردلی رقابتی — نسخهٔ حرفه‌ای، بهینه و واکنش‌گرا.</p>
+          </div>
+        </section>
 
-        <div id="playPanel" class="panel" style="margin-top:12px;display:none" aria-live="polite">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap">
-            <div>
-              <div style="font-weight:800">بازی رقابتی</div>
-              <div id="playSubtitle" class="muted">کلمهٔ فعلی و کنترل‌ها</div>
+        <aside class="right">
+          <div class="panel score-card">
+            <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+              <div style="font-weight:900">بازیکنان</div>
+              <div class="muted" style="font-size:13px">وضعیت</div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <div class="pill">دسته: <span id="categoryName">—</span></div>
-              <div class="pill">سطح: <span id="levelName">—</span></div>
-              <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
-              <div class="timer" id="timer">۰۰:۰۰</div>
-            </div>
+            <div id="playersList" style="width:100%;margin-top:8px"></div>
           </div>
 
-          <div id="wordSlots" class="word-slots" aria-live="polite"></div>
-
-          <div class="controls-row">
-            <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" />
-            <button id="guessBtn" class="btn primary">حدس</button>
-            <button id="hintBtn" class="btn">راهنما</button>
-            <button id="leaveBtn" class="btn ghost">خروج</button>
+          <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:900">امتیاز شما</div>
+              <div style="font-weight:700" id="scoreMe">۰</div>
+            </div>
+            <div style="margin-top:10px;font-weight:700">پیشرفت</div>
+            <div id="progressMe" class="muted">—</div>
+            <div id="progressOpp" class="muted" style="margin-top:6px">—</div>
           </div>
 
-          <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
-            <div style="flex:1">
-              <div style="font-weight:800">حروف صحیح</div>
-              <div id="correctLetters" class="chips" aria-live="polite"></div>
+          <div class="panel">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="font-weight:900">ابزارها</div>
+              <div class="muted" style="font-size:13px">سریع</div>
             </div>
-            <div style="flex:1">
-              <div style="font-weight:800">حروف غلط</div>
-              <div id="wrongLetters" class="chips" aria-live="polite"></div>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <button id="openRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
+              <button id="clearState" class="btn ghost">پاکسازی محلی</button>
             </div>
           </div>
-        </div>
+        </aside>
+      </main>
 
-        <div id="aboutPanel" class="panel" style="margin-top:12px;display:none">
-          <h3>درباره</h3>
-          <p class="muted">وردلی رقابتی — نسخه وب اپ با تاکید روی تجربه موبایل.</p>
-        </div>
-      </section>
-
-      <aside class="right" aria-label="ستون جانبی">
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:800">بازیکنان</div>
-            <div class="muted">وضعیت</div>
-          </div>
-          <div id="playersList" class="players-list" role="list"></div>
-        </div>
-
-        <div class="panel">
-          <div style="font-weight:800">امتیاز شما</div>
-          <div id="scoreMe" style="font-size:22px;color:var(--accent);font-weight:800;margin-top:8px">۰</div>
-          <div style="margin-top:10px;font-weight:700">پیشرفت</div>
-          <div id="progressMe" class="muted">—</div>
-          <div id="progressOpp" class="muted" style="margin-top:6px">—</div>
-        </div>
-
-        <div class="panel">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div style="font-weight:800">ابزارها</div>
-            <div class="muted">سریع</div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-            <button id="openRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
-            <button id="clearState" class="btn ghost">پاکسازی محلی</button>
-          </div>
-        </div>
-      </aside>
-    </main>
-
-    <footer style="padding:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;background:#f7f9fc">
-      <div class="muted">وردلی — نسخه وب اپ</div>
-      <div class="muted">موبایل اول</div>
-    </footer>
+      <footer>
+        <div class="muted">وردلی — نسخه وب اپ</div>
+        <div class="muted">موبایل اول</div>
+      </footer>
+    </div>
   </div>
 
-  <!-- Rooms Modal (fixed: inputs fit; added correct/wrong display) -->
-  <div id="roomsModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.28);z-index:1400;padding:20px" role="dialog" aria-hidden="true">
-    <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.08)">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(0,0,0,0.04)">
-        <h3 style="margin:0;font-size:16px">مدیریت اتاق‌ها</h3>
-        <div style="display:flex;gap:8px">
-          <button id="closeRooms" class="btn">بستن</button>
+  <!-- Modal (redesigned) -->
+  <div id="roomsModal" class="modal-backdrop" style="display:none" role="dialog" aria-hidden="true" aria-modal="true">
+    <div class="modal-card" role="document" aria-labelledby="roomsTitleModal">
+      <div class="modal-head">
+        <div>
+          <h3 id="roomsTitleModal" style="margin:0;font-weight:900">مدیریت اتاق‌ها</h3>
+          <div class="muted" style="font-size:13px;margin-top:6px">ساخت، پیوستن و مشاهده اتاق‌ها</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="closeRooms" class="btn ghost">بستن</button>
         </div>
       </div>
 
-      <div class="modal-inner">
-        <div class="grid-rooms">
-          <div>
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
-              <select id="filterLevel" style="padding:8px;border-radius:10px;border:1px solid var(--border);min-width:120px">
-                <option value="">همه سطوح</option>
-                <option value="easy">آسان</option>
-                <option value="medium">متوسط</option>
-                <option value="hard">سخت</option>
-              </select>
-              <button id="refreshRooms" class="btn">بارگذاری</button>
-            </div>
-
-            <div id="publicRoomsList" style="display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:6px"></div>
+      <div class="modal-body">
+        <!-- Left: public rooms list -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <select id="filterLevel" style="padding:10px;border-radius:10px;border:1px solid var(--border);min-width:120px">
+              <option value="">همه سطوح</option>
+              <option value="easy">آسان</option>
+              <option value="medium">متوسط</option>
+              <option value="hard">سخت</option>
+            </select>
+            <button id="refreshRooms" class="btn">بارگذاری</button>
+            <div style="margin-left:auto" class="muted">اتاق‌ها: <span id="publicRoomsCount">—</span></div>
           </div>
 
-          <div>
-            <div style="font-weight:800">ایجاد اتاق</div>
+          <div class="rooms-list" id="publicRoomsList" style="margin-top:12px"></div>
+        </div>
 
-            <div class="field">
-              <label style="font-size:13px;color:var(--muted)">نام اتاق</label>
-              <input id="newRoomName" placeholder="نام اتاق" type="text" />
+        <!-- Right: create card + my rooms + modal letters -->
+        <div>
+          <div class="create-card" aria-label="ایجاد اتاق">
+            <div style="font-weight:900">ایجاد اتاق جدید</div>
+
+            <div class="form-row" style="margin-top:10px">
+              <label class="small">نام اتاق</label>
+              <input id="newRoomName" placeholder="نام اتاق (اختیاری)" />
             </div>
 
-            <div class="field">
-              <label style="font-size:13px;color:var(--muted)">سطح</label>
+            <div class="form-row">
+              <label class="small">سطح</label>
               <select id="newRoomLevel">
                 <option value="easy">آسان</option>
                 <option value="medium" selected>متوسط</option>
@@ -330,24 +375,25 @@
               </select>
             </div>
 
-            <div class="field">
-              <label style="font-size:13px;color:var(--muted)">حداکثر بازیکن</label>
+            <div class="form-row">
+              <label class="small">حداکثر بازیکن</label>
               <input id="newRoomMax" type="number" min="2" max="8" value="2" />
             </div>
 
-            <div class="actions">
+            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
               <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
               <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
             </div>
 
-            <div style="margin-top:12px;font-weight:800">اتاق‌های من</div>
-            <div id="myRoomsList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
+            <div style="margin-top:14px">
+              <div style="font-weight:800">اتاق‌های من</div>
+              <div id="myRoomsList" style="max-height:160px;overflow:auto;margin-top:8px"></div>
+            </div>
 
-            <!-- Show correct/wrong letters from current game state inside modal -->
             <div style="margin-top:14px">
               <div style="font-weight:800">حروف صحیح (بازی جاری)</div>
               <div id="correctLettersModal" class="modal-chips"></div>
-              <div style="font-weight:800;margin-top:8px">حروف غلط (بازی جاری)</div>
+              <div style="font-weight:800;margin-top:10px">حروف غلط (بازی جاری)</div>
               <div id="wrongLettersModal" class="modal-chips"></div>
             </div>
           </div>
@@ -356,26 +402,21 @@
     </div>
   </div>
 
+  <!-- external libs (optional) -->
   <script async src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
-    /* ---------- Helpers ---------- */
+    /* ---------- Helpers (unchanged behavior) ---------- */
     const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
     function normalizeFaLetter(ch){ if (!ch) return ''; const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (map[ch] || ch).normalize('NFC'); }
     function normalizeFaWordKeepSpaces(word){ if (!word) return ''; const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; let w = String(word).replace(removeMarks,''); w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9'); return w.normalize('NFC'); }
     function normalizeDisplayPreserveSpaces(word){ const out = []; for (let ch of String(word)) { if (ch === '\u200c' || ch === ' ') out.push(' '); else out.push(ch); } return out; }
     function buildIndexMap(word){ const map = []; let disp = 0; for (let i=0;i<word.length;i++){ const ch = word[i]; if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; } map[i] = disp++; } return map; }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function generateRoomCode(len = 4){ const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let out = ''; for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]; return out; }
 
-    function generateRoomCode(len = 4){
-      const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-      let out = '';
-      for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-      return out;
-    }
-
-    /* ---------- State ---------- */
+    /* ---------- State and socket ---------- */
     const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [], revealMode: 'shared', composing:false };
     const socket = (typeof io !== 'undefined') ? io() : { emit(){}, on(){}, off(){} };
 
@@ -427,8 +468,9 @@
 
     const correctLettersModal = document.getElementById('correctLettersModal');
     const wrongLettersModal = document.getElementById('wrongLettersModal');
+    const publicRoomsCount = document.getElementById('publicRoomsCount');
 
-    /* ---------- Tabs and modal ---------- */
+    /* ---------- Tabs and modal handlers ---------- */
     tabs.forEach(t => t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
       const tab = t.dataset.tab;
@@ -486,15 +528,16 @@
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         roomsList.innerHTML = '';
-        if (!d.ok || !d.rooms || !d.rooms.length) { roomsList.innerHTML = '<div class="muted">اتاقی برای نمایش نیست</div>'; return; }
+        if (!d.ok || !d.rooms || !d.rooms.length) { roomsList.innerHTML = '<div class="muted">اتاقی برای نمایش نیست</div>'; publicRoomsCount.textContent = '۰'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className = 'room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
+          const el = document.createElement('div'); el.className = 'room-row';
+          el.innerHTML = `<div class="room-meta"><div class="room-title">${escapeHtml(r.name||'اتاق')}</div><div class="room-sub muted">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
         });
-      } catch (e) { roomsList.innerHTML = '<div class="muted">خطا در بارگذاری</div>'; }
+        publicRoomsCount.textContent = toFaDigits(d.rooms.length || 0);
+      } catch (e) { roomsList.innerHTML = '<div class="muted">خطا در بارگذاری</div>'; publicRoomsCount.textContent = '—'; }
     }
 
     async function loadPublicRooms(){
@@ -503,15 +546,18 @@
         const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
         const d = await res.json();
         publicRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; return; }
+        if (!d.ok || !d.rooms || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; publicRoomsCount.textContent = '۰'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div class="meta" style="min-width:0"><div class="title" style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          const el = document.createElement('div'); el.className='room-row';
+          const meta = document.createElement('div'); meta.className='room-meta';
+          meta.innerHTML = `<div class="room-title">${escapeHtml(r.name||'اتاق')}</div><div class="room-sub muted">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div>`;
+          el.appendChild(meta);
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
         });
-      } catch (e) { publicRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
+        publicRoomsCount.textContent = toFaDigits(d.rooms.length || 0);
+      } catch (e) { publicRoomsList.innerHTML = '<div class="muted">خطا</div>'; publicRoomsCount.textContent = '—'; }
     }
 
     async function loadMyRooms(){
@@ -521,8 +567,10 @@
         myRoomsList.innerHTML = '';
         if (!d.ok || !d.rooms || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div class="meta" style="min-width:0"><div class="title" style="font-weight:800">${escapeHtml(r.name||r.id)}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'')}</div></div>`;
+          const el = document.createElement('div'); el.className='room-row';
+          const meta = document.createElement('div'); meta.className='room-meta';
+          meta.innerHTML = `<div class="room-title">${escapeHtml(r.name||r.id)}</div><div class="room-sub muted">${escapeHtml(r.level||'')}</div>`;
+          el.appendChild(meta);
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
           const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
@@ -572,7 +620,7 @@
       });
     }
 
-    /* ---------- quickJoin: name = "اتاق <CODE>" ---------- */
+    /* ---------- quickJoin ---------- */
     quickJoin.addEventListener('click', async () => {
       try {
         const code = generateRoomCode(4);
@@ -631,7 +679,7 @@
       playPanel.style.display = 'block';
     }
 
-    /* ---------- Socket events (resilient) ---------- */
+    /* ---------- Socket handlers (merge updates) ---------- */
     socket.on && socket.on('room:presence', ({ room_id, count, players }) => {
       playersCount.textContent = toFaDigits(count || 0);
       roomStatus.textContent = 'فعال';
@@ -785,7 +833,7 @@
       (list || []).forEach(p => {
         const row = document.createElement('div'); row.className='player-row';
         const name = document.createElement('div'); name.style.fontWeight='800'; name.textContent = p.fullname || ('#' + toFaDigits(p.user_id));
-        const meta = document.createElement('div'); meta.className='muted'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
+        const meta = document.createElement('div'); meta.className='muted'; meta.style.fontSize='13px'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
         row.appendChild(name); row.appendChild(meta); playersList.appendChild(row);
       });
     }
@@ -796,22 +844,18 @@
       setTimeout(()=> el.remove(), 1400);
     }
 
-    /* ---------- Populate modal with current correct/wrong letters ---------- */
+    /* ---------- populate modal letters ---------- */
     function populateModalLetters(){
       try {
         const correct = state.gameState && Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : (state.gameState && state.gameState.correct_letters ? JSON.parse(state.gameState.correct_letters||'[]') : []);
         const wrong = state.gameState && Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : (state.gameState && state.gameState.wrong_letters ? JSON.parse(state.gameState.wrong_letters||'[]') : []);
         correctLettersModal.innerHTML = ''; wrongLettersModal.innerHTML = '';
-        (correct || []).forEach(l => {
-          const c = document.createElement('div'); c.className='chip-letter correct'; c.textContent = l; correctLettersModal.appendChild(c);
-        });
-        (wrong || []).forEach(l => {
-          const c = document.createElement('div'); c.className='chip-letter wrong'; c.textContent = l; wrongLettersModal.appendChild(c);
-        });
+        (correct || []).forEach(l => { const c = document.createElement('div'); c.className='chip-letter correct'; c.textContent = l; correctLettersModal.appendChild(c); });
+        (wrong || []).forEach(l => { const c = document.createElement('div'); c.className='chip-letter wrong'; c.textContent = l; wrongLettersModal.appendChild(c); });
       } catch(e){}
     }
 
-    /* ---------- Input IME handling & sanitize ---------- */
+    /* ---------- input handling ---------- */
     letterInput.addEventListener('compositionstart', () => { state.composing = true; });
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
@@ -819,7 +863,7 @@
 
     function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
-    /* ---------- Actions ---------- */
+    /* ---------- actions ---------- */
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
@@ -838,7 +882,7 @@
       document.querySelector('.tab[data-tab="dashboard"]').click();
     });
 
-    /* ---------- Timer ---------- */
+    /* ---------- timer ---------- */
     let timerHandle = null;
     function startTimer(){
       if (timerHandle) clearInterval(timerHandle);
@@ -854,7 +898,7 @@
       return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
 
-    /* ---------- Misc ---------- */
+    /* ---------- misc ---------- */
     document.getElementById('clearState').addEventListener('click', () => { try{ localStorage.clear(); }catch(e){} alert('وضعیت محلی پاک شد'); });
 
     // initial load
