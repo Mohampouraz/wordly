@@ -1,4 +1,5 @@
 
+
 require('dotenv').config();
 
 const express = require('express');
@@ -606,13 +607,23 @@ io.on('connection', (socket) => {
         const scoreDelta = 10 * positions.length;
         await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, score=score+$4, guessed_count=guessed_count+1, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, 
           [game_id, user_id, JSON.stringify(correctLetters), scoreDelta]);
+        
+        // دریافت state به‌روز شده و ارسال به همه
         const updatedPlayer = await pool.query(`SELECT user_id, score, guessed_count FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
+        const allPlayersState = await getGameStates(game_id);
+        
         const payload = { user_id, letter: normalized, positions, scoreDelta, player: updatedPlayer.rows[0] };
-        if (roomId && reveal_mode === 'shared') io.to(roomId).emit('game:letter:correct', { ...payload, shared: true });
-        else {
-           socket.emit('game:letter:correct', { ...payload, shared: false });
-           if(roomId) socket.to(roomId).emit('game:letter:correct', { user_id, letter: null, positions: [], scoreDelta, player: updatedPlayer.rows[0], shared: false });
+        if (roomId && reveal_mode === 'shared') {
+          io.to(roomId).emit('game:letter:correct', { ...payload, shared: true });
+          io.to(roomId).emit('game:states', { game_id, states: allPlayersState });
+        } else {
+          socket.emit('game:letter:correct', { ...payload, shared: false });
+          if(roomId) {
+            socket.to(roomId).emit('game:letter:correct', { user_id, letter: null, positions: [], scoreDelta, player: updatedPlayer.rows[0], shared: false });
+            io.to(roomId).emit('game:states', { game_id, states: allPlayersState });
+          }
         }
+        
         const currentWordStrict = normalizeFaWordStrict(currentWordOrig);
         const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
         const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
@@ -628,10 +639,24 @@ io.on('connection', (socket) => {
         const allowedWrong = Math.max(1, ceil(strictLen * 1.5)); // 1.5 برابر طول کلمه
         
         socket.emit('game:letter:wrong', { user_id, letter: normalized, wrongCount: wrongLetters.length, allowedWrong });
+        
+        // ارسال state به‌روز شده به همه
+        const allPlayersState = await getGameStates(game_id);
+        if (roomId) {
+          io.to(roomId).emit('game:states', { game_id, states: allPlayersState });
+        }
+        
         if (wrongLetters.length >= allowedWrong) {
           const penalty = 5 * correctLetters.length;
           await pool.query(`UPDATE game_states SET score = GREATEST(score - $3, 0) WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, penalty]);
           socket.emit('game:feedback', { type: 'word-failed', word: currentWordOrig });
+          
+          // ارسال state نهایی پس از جریمه
+          const finalPlayersState = await getGameStates(game_id);
+          if (roomId) {
+            io.to(roomId).emit('game:states', { game_id, states: finalPlayersState });
+          }
+          
           await advanceToNextWord(game_id, user_id, idx, deck, roomId);
         }
       }
@@ -653,38 +678,64 @@ io.on('connection', (socket) => {
       const hintsUsed = Number(gs.hints_used) || 0;
       const hintsAllowed = Number(gs.hints_allowed);
 
-      if (hintsUsed >= hintsAllowed) { socket.emit('game:feedback', { type: 'hint-limit' }); return; }
+      if (hintsUsed >= hintsAllowed) { 
+        socket.emit('game:feedback', { type: 'hint-limit' }); 
+        return; 
+      }
 
       let correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
       const candidates = currentWord.split('').filter(ch => ch.trim() !== '' && ch !== '\u200c' && !correctLetters.includes(ch));
       const uniqueCandidates = [...new Set(candidates)];
       
-      if (!uniqueCandidates.length) { socket.emit('game:feedback', { type: 'no-hint' }); return; }
+      if (!uniqueCandidates.length) { 
+        socket.emit('game:feedback', { type: 'no-hint' }); 
+        return; 
+      }
       
       const reveal = uniqueCandidates[Math.floor(Math.random() * uniqueCandidates.length)];
       const positions = [];
       for (let i = 0; i < currentWord.length; i++) if (currentWord[i] === reveal) positions.push(i);
       
       const penalty = 10 * positions.length;
+      const newScore = Math.max(0, (gs.score || 0) - penalty);
       correctLetters.push(reveal);
       
-      await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, hints_used=hints_used+1, score=GREATEST(score-$4,0), last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, 
-        [game_id, user_id, JSON.stringify(correctLetters), penalty]);
+      // به‌روزرسانی state با کسر امتیاز
+      await pool.query(`
+        UPDATE game_states 
+        SET correct_letters=$3::jsonb, hints_used=hints_used+1, score=$4, last_update=NOW() 
+        WHERE game_id=$1 AND user_id=$2;`, 
+        [game_id, user_id, JSON.stringify(correctLetters), newScore]);
       
       const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [game_id]);
       const roomId = gameRow.rows[0]?.room_id;
       
-      socket.emit('game:hint:reveal', { user_id, letter: reveal, positions, penalty });
+      // دریافت state به‌روز شده
+      const updatedPlayer = await pool.query(`SELECT user_id, score, hints_used FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
+      const allPlayersState = await getGameStates(game_id);
+      
+      // ارسال اطلاعات به کاربر درخواست‌دهنده
+      socket.emit('game:hint:reveal', { 
+        user_id, 
+        letter: reveal, 
+        positions, 
+        penalty,
+        new_score: newScore,
+        hints_used: updatedPlayer.rows[0].hints_used
+      });
+      
+      // ارسال state به‌روز شده به همه کاربران
       if(roomId) {
-         const updatedPlayer = await pool.query(`SELECT user_id, score, guessed_count FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
-         socket.to(roomId).emit('game:states', { game_id, states: [updatedPlayer.rows[0]] });
+        io.to(roomId).emit('game:states', { game_id, states: allPlayersState });
       }
+      
+      // بررسی برنده شدن
       const currentWordStrict = normalizeFaWordStrict(deck[idx]?.word || '');
       const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
       const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
       if(isWin) await advanceToNextWord(game_id, user_id, idx, deck, roomId);
 
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error('Hint error:', e); }
   });
 
   socket.on('game:timer', async ({ game_id, user_id, timer_ms }) => {
