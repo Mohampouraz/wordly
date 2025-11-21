@@ -8,7 +8,6 @@
   <style>
     /* ---------- پایه سبک و استاندارد ---------- */
     :root{
-      /* رنگ های استاندارد، خوانا و سبک */
       --bg: #f5f7fb;
       --panel: #ffffff;
       --muted: #6b7280;
@@ -27,7 +26,6 @@
     html,body{height:100%;margin:0}
     body{min-height:100vh;background:var(--bg);color:var(--text);-webkit-text-size-adjust:100%}
 
-    /* ---------- شِل: ساده با سایه استاندارد ---------- */
     .shell{
       max-width:1100px;margin:10px auto;padding:0;
       height:100vh; max-height:100vh; overflow:auto;
@@ -37,7 +35,6 @@
       border:1px solid var(--border);
     }
 
-    /* ---------- نوار اپ: سبک، بدون افکت سنگین ---------- */
     header.appbar{
       display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
       background:var(--panel);
@@ -54,7 +51,6 @@
     .subtitle{font-size:12px;color:var(--muted)}
     .controls{display:flex;gap:8px;align-items:center}
 
-    /* ---------- دکمه‌ها: استاندارد با هاور سبک ---------- */
     .btn{
       display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;
       border:1px solid rgba(13,20,36,0.10);cursor:pointer;font-weight:700;font-size:14px;background:#f9fafb;color:#223;
@@ -68,16 +64,13 @@
       box-shadow:0 6px 18px rgba(79,70,229,0.22);
     }
 
-    /* ---------- تب‌ها: ساده و خوانا ---------- */
     nav.mini-tabs{display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border);background:#f7f9fc}
     .tab{padding:8px 10px;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
     .tab.active{color:var(--accent);background:#eef2ff;border-color:#e0e7ff}
 
-    /* ---------- گرید محتوا ---------- */
     main.content{display:grid;grid-template-columns:1fr minmax(220px, 32%);gap:12px;padding:12px}
     @media (max-width:980px){ main.content{grid-template-columns:1fr} }
 
-    /* ---------- پنل‌ها ---------- */
     .panel{
       background:var(--panel);
       border:1px solid var(--border);
@@ -87,7 +80,6 @@
     }
     .hero{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;border-radius:10px;background:#f8fbff;border:1px solid #e8eef7}
 
-    /* ---------- اسلات‌ها ---------- */
     .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
     .slot{
       min-width:36px;min-height:44px;height:auto;padding:8px;border-radius:10px;border:1px solid rgba(20,30,60,0.10);
@@ -100,14 +92,12 @@
     .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.22);box-shadow:0 6px 16px rgba(16,185,129,0.12)}
     .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.20);box-shadow:0 6px 16px rgba(239,68,68,0.10)}
 
-    /* ---------- کنترل‌ها ---------- */
     .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
     input.letter{
       flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);
       padding:8px;text-align:center;font-size:18px;background:#fff;
     }
 
-    /* ---------- چیپ‌ها ---------- */
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
     .chip-letter{
       padding:6px 10px;border-radius:999px;border:1px solid rgba(79,70,229,0.12);
@@ -116,14 +106,12 @@
     .chip-letter.correct{background:#ecfdf5;color:var(--success);border-color:rgba(16,185,129,0.24)}
     .chip-letter.wrong{background:#fef2f2;color:var(--danger);border-color:rgba(239,68,68,0.22)}
 
-    /* ---------- ستون جانبی ---------- */
     aside.right{display:flex;flex-direction:column;gap:10px}
     .player-row{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:10px;border:1px solid var(--border);background:#fff;align-items:center}
     .muted{color:var(--muted)}
     .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700;white-space:nowrap}
     .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:56px;text-align:center}
 
-    /* ---------- کیبرد و دسترسی ---------- */
     input, textarea { scroll-margin-top: 20vh; outline:none; }
 
     @media (max-width:760px){
@@ -144,7 +132,6 @@
     }
     .letter.shake { animation: shake .28s ease both; }
 
-    /* ---------- ارتقای تدریجی (اختیاری) برای مرورگرهای مدرن ---------- */
     @supports(backdrop-filter: blur(8px)) {
       .shell{
         background:linear-gradient(180deg, rgba(255,255,255,0.60), rgba(255,255,255,0.40));
@@ -288,7 +275,6 @@
     </footer>
   </div>
 
-  <!-- Rooms Modal (simple) -->
   <div id="roomsModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.28);z-index:1400;padding:20px" role="dialog" aria-hidden="true">
     <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,0.08)">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -344,9 +330,17 @@
     function buildIndexMap(word){ const map = []; let disp = 0; for (let i=0;i<word.length;i++){ const ch = word[i]; if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; } map[i] = disp++; } return map; }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+    /* ---------- Random room code generator ---------- */
+    function generateRoomCode(len = 4){
+      const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      let out = '';
+      for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+      return out;
+    }
+
     /* ---------- State ---------- */
     const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [], revealMode: 'shared', composing:false };
-    const socket = io ? io() : { emit(){}, on(){}, off(){} }; // محافظت ساده برای دستگاه‌های خیلی قدیمی
+    const socket = io ? io() : { emit(){}, on(){}, off(){} };
 
     /* ---------- DOM refs ---------- */
     const tabs = document.querySelectorAll('.tab');
@@ -394,7 +388,6 @@
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
 
-    /* ---------- تب‌ها و مودال ---------- */
     tabs.forEach(t => t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
       const tab = t.dataset.tab;
@@ -410,7 +403,6 @@
     closeRooms.addEventListener('click', closeModal);
     window.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
 
-    /* ---------- Telegram WebApp init (best-effort, با محافظ ساده) ---------- */
     (async function initTelegram(){
       function waitForTelegram(timeout = 2000){
         return new Promise(resolve => {
@@ -446,7 +438,6 @@
 
     function fallbackGuest(){ if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999); userNameEl.textContent = 'کاربر مهمان'; userIdEl.textContent = toFaDigits(state.myId); }
 
-    /* ---------- بارگذاری اتاق‌ها ---------- */
     levelSelect.addEventListener('change', loadSuggestedRooms);
     if (refreshRooms) refreshRooms.addEventListener('click', loadPublicRooms);
     if (filterLevel) filterLevel.addEventListener('change', loadPublicRooms);
@@ -503,7 +494,6 @@
       } catch (e) { myRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
     }
 
-    /* ---------- ایجاد / پیوستن ---------- */
     if (createRoomBtn) {
       createRoomBtn.addEventListener('click', async () => {
         try {
@@ -543,13 +533,30 @@
       });
     }
 
+    // quickJoin: نام اتاق به "اتاق <کد>" تغییر می‌یابد
     quickJoin.addEventListener('click', async () => {
       try {
-        const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId, name: 'اتاق سریع', level: levelSelect.value || 'medium', max_players: 2 })});
+        const code = generateRoomCode(4);
+        const roomName = `اتاق ${code}`;
+
+        const res = await fetch('/rooms/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: state.myId,
+            name: roomName,
+            level: levelSelect.value || 'medium',
+            max_players: 2
+          })
+        });
+
         const d = await res.json();
-        if (!d.ok){ alert('خطا'); return; }
-        state.roomId = d.room_id; socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; loadMyRooms();
+        if (!d.ok){ alert('خطا در ایجاد اتاق'); return; }
+        state.roomId = d.room_id;
+        socket.emit && socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+        document.querySelector('.tab[data-tab="play"]').click();
+        playPanel.style.display = 'block';
+        loadMyRooms();
       } catch (e) { alert('خطا'); }
     });
 
@@ -585,7 +592,6 @@
       playPanel.style.display = 'block';
     }
 
-    /* ---------- سوکت‌ها ---------- */
     socket.on && socket.on('room:presence', ({ room_id, count, players }) => {
       playersCount.textContent = toFaDigits(count || 0);
       roomStatus.textContent = 'فعال';
@@ -612,7 +618,6 @@
       document.querySelector('.tab[data-tab="play"]').click();
       playPanel.style.display = 'block';
       updatePlayersList(players || []);
-      // بدون تمرکز اجباری؛ به دستگاه‌های قدیمی اجازه می‌دهیم رفتار پیش‌فرض را حفظ کنند
     });
 
     socket.on && socket.on('game:states', ({ game_id, states }) => {
@@ -675,7 +680,6 @@
 
     socket.on && socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); } });
 
-    /* ---------- رندر ---------- */
     function renderGame(){
       if (!state.gameState || !state.deck || !state.deck.length) return;
       const idx = Number(state.gameState.current_index) || 0;
@@ -746,7 +750,6 @@
       setTimeout(()=> el.remove(), 1400);
     }
 
-    /* ---------- ورودی و IME ---------- */
     letterInput.addEventListener('compositionstart', () => { state.composing = true; });
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
@@ -754,7 +757,6 @@
 
     function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
-    /* ---------- اقدامات ---------- */
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
@@ -773,7 +775,6 @@
       document.querySelector('.tab[data-tab="dashboard"]').click();
     });
 
-    /* ---------- تایمر ---------- */
     let timerHandle = null;
     function startTimer(){
       if (timerHandle) clearInterval(timerHandle);
@@ -789,10 +790,8 @@
       return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
 
-    /* ---------- پاکسازی محلی ---------- */
     document.getElementById('clearState').addEventListener('click', () => { try{ localStorage.clear(); }catch(e){} alert('وضعیت محلی پاک شد'); });
 
-    /* ---------- بارگذاری اولیه ---------- */
     loadSuggestedRooms();
   </script>
 </body>
