@@ -166,6 +166,28 @@
     .p-status { font-size: 11px; color: var(--text-muted); margin-top: 4px;
     }
 
+    /* NEW STYLES for History and Ranking */
+    .history-item {
+        background: white; padding: 12px; border-radius: 12px; margin-bottom: 10px;
+        border: 1px solid #e5e7eb; display: flex; justify-content: space-between; 
+        align-items: center; transition: background 0.2s;
+    }
+    .hi-rank { font-size: 20px; font-weight: 900; color: var(--primary); width: 40px; text-align: center; }
+    .hi-score { font-weight: 700; color: #10b981; }
+    .hi-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+    .ranking-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 15px; border-radius: 10px; margin-bottom: 8px;
+        background: #f9fafb; border-left: 5px solid var(--primary-light);
+    }
+    .ranking-item.me { background: #eef2ff; border-left-color: var(--primary); }
+    .r-rank { font-weight: 900; font-size: 18px; color: var(--primary); width: 30px; }
+    .r-name { font-weight: 700; font-size: 15px; }
+    .r-score { font-weight: 900; color: var(--success); }
+    .r-time { font-size: 12px; color: var(--text-muted); }
+    /* END NEW STYLES */
+
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
     display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -196,7 +218,7 @@
 
   <nav class="nav-tabs">
     <button class="tab-btn active" data-target="dashboard">لابی</button>
-    <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
+    <button class="tab-btn" data-target="history">تاریخچه و رتبه‌بندی</button> <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
   </nav>
 
   <div class="main-grid">
@@ -233,6 +255,12 @@
     <div id="roomsListContainer" class="room-list">
           <div style="text-align:center; color:#999;
     margin-top:20px;">در حال بارگذاری...</div>
+        </div>
+      </section>
+
+      <section id="view-history" class="panel hidden" style="height:100%"> <h3>تاریخچه بازی‌های من</h3>
+        <div id="historyListContainer" style="overflow-y:auto; flex:1;">
+            <div style="text-align:center; color:#999; margin-top:20px;">در حال بارگذاری...</div>
         </div>
       </section>
 
@@ -310,6 +338,16 @@
   </div>
 </div>
 
+<div id="modalResults" class="modal-backdrop"> <div class="modal-content">
+    <h3 style="color:var(--primary)">نتایج نهایی بازی</h3>
+    <div style="font-size:14px; color:#666; margin-bottom:15px;" id="resultsRoomName">اتاق: ...</div>
+    <div id="rankingListContainer" style="max-height: 400px; overflow-y: auto; margin-bottom: 20px;">
+      </div>
+    <button id="btnCloseResultsModal" class="btn btn-primary" style="width:100%">بازگشت به لابی</button>
+  </div>
+</div>
+
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
@@ -320,6 +358,14 @@ const state = {
   user: null, roomId: null, gameId: null, deck: [],
   gameState: {}, allStates: [], timerInterval: null, timerMs: 0
 };
+
+// --- HELPERS ---
+function formatTime(ms) {
+    const s = Math.floor(ms / 1000);
+    return toFaDigits(String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'));
+}
+function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
+function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
 
 // --- 1. INIT WITH TELEGRAM ---
 (async function init(){
@@ -383,11 +429,17 @@ async function checkActiveGame(){
 const showTab = (tab) => {
   document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  
   if(tab === 'game') {
     $('view-game').classList.remove('hidden');
     $('gameTabBtn').style.display = 'inline-block';
     $('gameTabBtn').classList.add('active');
     $('gameControls').classList.remove('hidden');
+  } else if (tab === 'history') { // NEW LOGIC for History Tab
+    $('view-history').classList.remove('hidden');
+    document.querySelector('[data-target="history"]').classList.add('active');
+    $('gameControls').classList.add('hidden');
+    loadHistory(); // Load history when the tab is shown
   } else {
     $('view-dashboard').classList.remove('hidden');
     document.querySelector('[data-target="dashboard"]').classList.add('active');
@@ -444,25 +496,76 @@ socket.on('game:state', (data) => {
   showTab('game');
 });
 
-// OLD/REDUNDANT LISTENERS REMOVED. Keeping the following for simple feedback:
-
-socket.on('game:finished', (data) => {
-  // Simple alert, better to show a modal with data.results
-  alert('بازی پایان یافت! نتایج در لابی قابل مشاهده است.');
-  showTab('dashboard');
-});
-
 // NEW LISTENER: Server-side error handler
 socket.on('error', (data) => {
   console.error("Socket Error:", data.message);
   alert(data.message || 'خطای ناشناخته در بازی.');
 });
 
-// --- 4. LOGIC ---
+// NEW LISTENER: Game finished handler (Displays ranking modal)
+socket.on('game:finished', (data) => {
+    // Find the room name from state or just use the resume banner text
+    const roomName = $('resumeRoomName').textContent || 'بازی پایان یافته';
+    $('resultsRoomName').textContent = 'اتاق: ' + roomName;
+    
+    const userId = state.user.id;
+    const container = $('rankingListContainer');
+    container.innerHTML = '';
+
+    // Populate ranking list
+    data.results.forEach(r => {
+      const isMe = String(r.user.id) === String(userId);
+      const div = document.createElement('div');
+      div.className = 'ranking-item' + (isMe ? ' me' : '');
+      
+      const name = (r.user.first_name + ' ' + (r.user.last_name || '')).trim() || r.user.username || 'کاربر ناشناس';
+      
+      let rankText = toFaDigits(r.rank);
+      if (r.rank === 1) rankText = '🥇';
+      else if (r.rank === 2) rankText = '🥈';
+      else if (r.rank === 3) rankText = '🥉';
+
+      div.innerHTML = `
+        <div class="r-rank">${rankText}</div>
+        <div class="r-name" style="flex-grow:1; margin-right:10px">${esc(name)} ${isMe ? '(شما)' : ''}</div>
+        <div style="text-align:right;">
+           <div class="r-score">${toFaDigits(r.score)} امتیاز</div>
+           <div class="r-time">${formatTime(r.timer_ms)}</div>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
+    $('modalResults').style.display = 'flex';
+    
+    // Clean up game state after seeing results
+    if(state.timerInterval) clearInterval(state.timerInterval);
+    state.roomId = null;
+    state.gameId = null;
+});
+
+// Socket Handler for when a player leaves the room
+socket.on('room:left', () => {
+   state.roomId = null;
+   state.gameId = null; 
+   if(state.timerInterval) clearInterval(state.timerInterval);
+   showTab('dashboard');
+});
+
+// NEW SOCKET LISTENER: History List
+socket.on('history:list', (data) => {
+    renderHistoryList(data.history);
+});
+// Attach close results modal button event
+$('btnCloseResultsModal').onclick = () => {
+    $('modalResults').style.display = 'none';
+    showTab('dashboard'); // Return to dashboard
+};
+
+// --- 4. LOGIC (Room/Game Actions) ---
 async function enterRoomMode(roomId, skipApi = false) {
   if(!skipApi) {
     // If not skipping, we use the API only to ensure the user is registered in room_players table.
-    // The server handles the final join logic and state delivery via socket.
     try {
         const res = await fetch('/rooms/join', {
           method: 'POST', headers: {'Content-Type':'application/json'},
@@ -470,7 +573,6 @@ async function enterRoomMode(roomId, skipApi = false) {
         });
         const d = await res.json();
         if(!d.ok) {
-            // Server error message is sent here, if available
             return alert(d.message || 'خطا در پیوستن به اتاق.');
         }
     } catch(e) {
@@ -498,12 +600,6 @@ $('btnLeave').onclick = async () => {
   if(state.timerInterval) clearInterval(state.timerInterval);
   showTab('dashboard');
 };
-socket.on('room:left', () => {
-   state.roomId = null;
-   state.gameId = null; 
-   if(state.timerInterval) clearInterval(state.timerInterval);
-   showTab('dashboard');
-});
 
 
 async function loadPublicRooms(){
@@ -521,7 +617,7 @@ async function loadPublicRooms(){
 }
 $('btnRefresh').onclick = loadPublicRooms; $('filterLevel').onchange = loadPublicRooms;
 
-// --- 5. RENDER ---
+// --- 5. RENDER (Game, Chips, Players) ---
 function renderGame() {
   if(!state.deck.length) return;
   const idx = Number(state.gameState.current_index) || 0;
@@ -556,6 +652,9 @@ function renderGame() {
       if(correctLetters.includes(normalizedChar)) { 
           slot.textContent = char; 
           slot.classList.add('correct'); 
+      } else if (wrongLetters.length >= allowedWrong) { // Reveal logic if all wrong guesses are used up
+          slot.textContent = char;
+          slot.classList.add('revealed'); 
       }
       container.appendChild(slot);
     }
@@ -580,7 +679,7 @@ function updatePlayersUI(list) {
     const userDisplayName = p.user ? (p.user.first_name + ' ' + (p.user.last_name || '')).trim() || p.user.username || 'کاربر' : 'کاربر';
     
     let progressTxt = 'لابی';
-    if(typeof p.guessed_count !== 'undefined') { // Check for game status using guessed_count
+    if(typeof p.guessed_count !== 'undefined' && state.deck.length > 0) { // Check for game status using guessed_count
         progressTxt = `کلمه ${toFaDigits((p.guessed_count||0) + 1)} از ${toFaDigits(state.deck.length || 10)}`;
     }
     
@@ -589,7 +688,55 @@ function updatePlayersUI(list) {
   });
 }
 
-// --- 6. INPUT ---
+// --- 5.1 RENDER HISTORY ---
+function loadHistory() {
+    const cont = $('historyListContainer');
+    cont.innerHTML = '<div style="text-align:center; color:#999; margin-top:20px;">در حال بارگذاری تاریخچه...</div>';
+    socket.emit('history:request', { user_id: state.user.id });
+}
+
+function renderHistoryList(history) {
+    const cont = $('historyListContainer');
+    cont.innerHTML = '';
+    if (!history || history.length === 0) {
+        cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px">تاریخچه بازی یافت نشد.</div>';
+        return;
+    }
+    
+    history.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'history-item';
+      
+      let rankText;
+      if (item.rank === 0) {
+          rankText = 'N/A';
+      } else if (item.rank === 1) {
+          rankText = '🥇';
+      } else if (item.rank === 2) {
+          rankText = '🥈';
+      } else if (item.rank === 3) {
+          rankText = '🥉';
+      } else {
+          rankText = toFaDigits(item.rank);
+      }
+
+      div.innerHTML = `
+        <div class="hi-rank">${rankText}</div>
+        <div style="flex-grow:1; margin-right:15px;">
+          <div style="font-weight:700;">${esc(item.room_name)} (${trLevel(item.level)})</div>
+          <div class="hi-meta">تاریخ: ${new Date(item.end_time).toLocaleDateString('fa-IR')} | کلمات: ${toFaDigits(item.words_guessed)} از ۱۰</div>
+        </div>
+        <div style="text-align:left;">
+           <div class="hi-score">${toFaDigits(item.score)} امتیاز</div>
+           <div class="hi-meta">رتبه ${toFaDigits(item.rank)} از ${toFaDigits(item.total_players)}</div>
+        </div>
+      `;
+      cont.appendChild(div);
+    });
+}
+
+
+// --- 6. INPUT AND TIMER ---
 $('btnGuess').onclick = () => {
   const val = $('txtLetter').value;
   if(!val) return $('txtLetter').focus();
@@ -606,8 +753,7 @@ function startTimer(){
   if(state.timerInterval) clearInterval(state.timerInterval);
   state.timerInterval = setInterval(() => {
     state.timerMs += 1000;
-    const s = Math.floor(state.timerMs/1000);
-    $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'));
+    $('lblTimer').textContent = formatTime(state.timerMs);
     
     // CRITICAL FIX: Send timer update to server every second
     if(state.gameId && state.user.id) {
@@ -615,9 +761,9 @@ function startTimer(){
     }
   }, 1000);
 }
-function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
-function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
 
+
+// --- 7. MODAL Handlers ---
 $('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
 $('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
 $('btnSubmitCreate').onclick = async () => {
