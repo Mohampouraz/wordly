@@ -8,6 +8,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <script>
+    // تشخیص قابلیت‌های گرافیکی برای تم شیشه‌ای
     (function detectUi(){
       const supportsBackdrop = CSS.supports && (CSS.supports('backdrop-filter','blur(10px)') || CSS.supports('-webkit-backdrop-filter','blur(10px)'));
       if(supportsBackdrop) document.documentElement.classList.add('glassy');
@@ -33,12 +34,13 @@
     }
     .glassy {
       --bg-body: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
-      --bg-panel: rgba(255, 255, 255, 0.8);
+      --bg-panel: rgba(255, 255, 255, 0.85);
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { margin: 0; font-family: var(--font); background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; }
     .app-container { display: flex; flex-direction: column; height: 100%; max-width: 1200px; margin: 0 auto; }
 
+    /* HEADER */
     header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 12px 20px; background: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -48,6 +50,7 @@
     .user-info { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
     .user-info b { font-size: 14px; }
 
+    /* LAYOUT */
     .main-grid {
       display: grid; grid-template-columns: 1fr 320px; gap: 20px; padding: 20px; flex: 1; overflow: hidden;
     }
@@ -59,6 +62,7 @@
     }
     .glassy .panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
+    /* TABS */
     .nav-tabs { display: flex; gap: 10px; margin-bottom: 15px; padding: 0 20px; overflow-x: auto; }
     .tab-btn {
       border: none; background: transparent; padding: 10px 8px; font-family: var(--font); font-weight: 700; 
@@ -70,6 +74,7 @@
       background: var(--primary); border-radius: 10px;
     }
 
+    /* BUTTONS */
     .btn {
       border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer;
       font-family: var(--font); font-weight: 700; font-size: 14px;
@@ -81,6 +86,7 @@
     .btn-danger { background: #fee2e2; color: var(--danger); }
     .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
 
+    /* LISTS */
     .room-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 300px; }
     .room-item {
       display: flex; justify-content: space-between; align-items: center;
@@ -97,7 +103,8 @@
       padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;
       margin-bottom: 8px;
     }
-    
+
+    /* GAME UI */
     .game-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
     .timer-box { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 8px; }
     
@@ -137,7 +144,7 @@
     .p-score { font-weight: 900; color: var(--primary); font-size: 16px; }
     .p-status { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-    /* --- Profile & Leaderboard Styles --- */
+    /* PROFILE & STATS */
     .profile-card {
       text-align: center; padding: 20px; background: linear-gradient(180deg, #eef2ff 0%, #fff 100%);
       border-radius: 20px; border: 1px solid #e0e7ff; margin-bottom: 20px;
@@ -147,13 +154,8 @@
       font-size: 32px; display: grid; place-items: center; margin: 0 auto 10px auto;
       border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); object-fit: cover;
     }
-    .profile-stats {
-      display: flex; justify-content: center; gap: 20px; margin-top: 20px;
-    }
-    .stat-box {
-      background: white; padding: 10px 20px; border-radius: 12px; border: 1px solid #e5e7eb;
-      min-width: 100px;
-    }
+    .profile-stats { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
+    .stat-box { background: white; padding: 10px 20px; border-radius: 12px; border: 1px solid #e5e7eb; min-width: 100px; }
     .stat-val { font-weight: 900; font-size: 20px; color: var(--primary); }
     .stat-lbl { font-size: 12px; color: #6b7280; }
 
@@ -163,7 +165,7 @@
     .rank-row.me { background: #eff6ff; }
     .rank-num { font-weight: 900; color: var(--primary); width: 40px; text-align: center; display: inline-block; }
 
-    /* Modal Styles */
+    /* MODALS */
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -358,6 +360,7 @@ function updateHeaderUI() {
   $('headerUserId').textContent = toFaDigits(state.user.id);
 }
 
+// --- 2. API CALLS ---
 async function refreshLobby() {
   await checkMyGames();
   await loadPublicRooms();
@@ -387,7 +390,6 @@ async function checkMyGames(){
   } catch(e) {}
 }
 
-// --- NEW: PROFILE & LEADERBOARD LOADERS ---
 async function loadProfile() {
   const cont = $('profileContainer');
   cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>';
@@ -397,37 +399,21 @@ async function loadProfile() {
     if(d.ok) {
       const u = d.user || {};
       const s = d.stats || {};
-      // Fallback avatar if no photo
-      let avatarHtml = '';
-      if(u.photo_url) {
-        avatarHtml = `<img src="${esc(u.photo_url)}" class="profile-avatar" onerror="this.style.display='none'">`;
-      } else {
-        const initial = (state.user.name || 'U').charAt(0).toUpperCase();
-        avatarHtml = `<div class="profile-avatar">${initial}</div>`;
-      }
+      let avatarHtml = u.photo_url ? `<img src="${esc(u.photo_url)}" class="profile-avatar">` : `<div class="profile-avatar">${(state.user.name||'U').charAt(0).toUpperCase()}</div>`;
       
       cont.innerHTML = `
         <div class="profile-card">
           ${avatarHtml}
           <h2 style="margin:0 0 5px 0;">${esc(u.fullname || state.user.name)}</h2>
           <div style="color:#6b7280; font-size:13px;">ID: ${toFaDigits(state.user.id)}</div>
-          
           <div class="profile-stats">
-             <div class="stat-box">
-               <div class="stat-val">${toFaDigits(s.games_played || 0)}</div>
-               <div class="stat-lbl">بازی‌ها</div>
-             </div>
-             <div class="stat-box">
-               <div class="stat-val">${toFaDigits(s.total_score || 0)}</div>
-               <div class="stat-lbl">مجموع امتیاز</div>
-             </div>
+             <div class="stat-box"><div class="stat-val">${toFaDigits(s.games_played || 0)}</div><div class="stat-lbl">بازی‌ها</div></div>
+             <div class="stat-box"><div class="stat-val">${toFaDigits(s.total_score || 0)}</div><div class="stat-lbl">مجموع امتیاز</div></div>
           </div>
         </div>
       `;
-    } else {
-      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت اطلاعات</div>';
-    }
-  } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; }
+    } else { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در دریافت اطلاعات</div>'; }
+  } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در اتصال</div>'; }
 }
 
 async function loadLeaderboard() {
@@ -437,37 +423,20 @@ async function loadLeaderboard() {
     const res = await fetch('/stats/leaderboard', { method:'POST', headers:{'Content-Type':'application/json'} });
     const d = await res.json();
     if(d.ok && d.list) {
-      if(d.list.length === 0) {
-         cont.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">لیست خالی است</div>';
-         return;
-      }
+      if(!d.list.length) { cont.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">لیست خالی است</div>'; return; }
       let html = '<table class="rank-table"><thead><tr><th style="text-align:center">#</th><th>بازیکن</th><th style="text-align:center">بازی‌ها</th><th style="text-align:center">امتیاز</th></tr></thead><tbody>';
       d.list.forEach((u, idx) => {
          const isMe = String(u.user_id) === String(state.user.id);
          const rank = idx + 1;
-         let rankColor = '#6b7280';
-         if(rank===1) rankColor='#fbbf24'; // Gold
-         else if(rank===2) rankColor='#9ca3af'; // Silver
-         else if(rank===3) rankColor='#b45309'; // Bronze
-
-         html += `
-           <tr class="rank-row ${isMe?'me':''}">
-             <td style="text-align:center"><span class="rank-num" style="color:${rankColor}">${toFaDigits(rank)}</span></td>
-             <td style="font-weight:700; font-size:13px;">${esc(u.fullname)} ${isMe?'(شما)':''}</td>
-             <td style="text-align:center">${toFaDigits(u.games_played||0)}</td>
-             <td style="text-align:center; font-weight:900; color:var(--primary)">${toFaDigits(u.total_score||0)}</td>
-           </tr>
-         `;
+         let rankColor = rank===1?'#fbbf24':(rank===2?'#9ca3af':(rank===3?'#b45309':'#6b7280'));
+         html += `<tr class="rank-row ${isMe?'me':''}"><td style="text-align:center"><span class="rank-num" style="color:${rankColor}">${toFaDigits(rank)}</span></td><td style="font-weight:700; font-size:13px;">${esc(u.fullname)} ${isMe?'(شما)':''}</td><td style="text-align:center">${toFaDigits(u.games_played||0)}</td><td style="text-align:center; font-weight:900; color:var(--primary)">${toFaDigits(u.total_score||0)}</td></tr>`;
       });
-      html += '</tbody></table>';
-      cont.innerHTML = html;
-    } else {
-      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت اطلاعات</div>';
-    }
-  } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; }
+      cont.innerHTML = html + '</tbody></table>';
+    } else { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در دریافت اطلاعات</div>'; }
+  } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در اتصال</div>'; }
 }
 
-// --- NAVIGATION ---
+// --- 3. NAVIGATION ---
 const showTab = (tab) => {
   document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -479,26 +448,23 @@ const showTab = (tab) => {
     $('gameControls').classList.remove('hidden');
   } else {
     $('gameControls').classList.add('hidden');
-    if (tab === 'dashboard') {
-        $('view-dashboard').classList.remove('hidden');
-        refreshLobby();
-    } else if (tab === 'profile') {
-        $('view-profile').classList.remove('hidden');
-        loadProfile();
-    } else if (tab === 'leaderboard') {
-        $('view-leaderboard').classList.remove('hidden');
-        loadLeaderboard();
-    }
+    if (tab === 'dashboard') { $('view-dashboard').classList.remove('hidden'); refreshLobby(); }
+    else if (tab === 'profile') { $('view-profile').classList.remove('hidden'); loadProfile(); }
+    else if (tab === 'leaderboard') { $('view-leaderboard').classList.remove('hidden'); loadLeaderboard(); }
     document.querySelector(`[data-target="${tab}"]`).classList.add('active');
   }
 };
 $('btnBackMenu').onclick = () => showTab('dashboard');
 document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.target));
 
-// --- SOCKET & GAME LOGIC ---
+// --- 4. SOCKET & GAME LOGIC ---
 const socket = io();
 socket.on('connect', () => { if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id }); });
-socket.on('game:started', (data) => { $('modalResults').style.display = 'none'; updateState(data.game_id, data.deck, { score:0, correct_letters:[], wrong_letters:[], current_index:0 }, data.players); showTab('game'); });
+socket.on('game:started', (data) => { 
+  $('modalResults').style.display = 'none'; 
+  updateState(data.game_id, data.deck, { score:0, correct_letters:[], wrong_letters:[], current_index:0 }, data.players); 
+  showTab('game'); 
+});
 socket.on('game:state', (data) => {
   let gs = data.state;
   if(typeof gs.correct_letters === 'string') gs.correct_letters = JSON.parse(gs.correct_letters);
@@ -567,7 +533,7 @@ async function enterRoomMode(roomId, skipApi = false) {
        if(d.game.status === 'finished') showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
        else socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
     } else {
-       showTab('game'); $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; $('lblDescription').textContent = '...'; updatePlayersUI(d.players || []);
+       showTab('game'); $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; $('lblDescription').textContent = 'در انتظار...'; updatePlayersUI(d.players || []);
     }
     if(d.ok && String(d.room.created_by) === String(state.user.id)) $('btnRestartGame').classList.remove('hidden');
     else $('btnRestartGame').classList.add('hidden');
@@ -598,22 +564,60 @@ async function loadPublicRooms(){
 $('btnRefresh').onclick = refreshLobby; $('filterLevel').onchange = refreshLobby;
 
 function renderGame() {
-  if(!state.deck.length) return;
+  // --- BUG FIX: Check deck existence ---
+  if(!state.deck || !state.deck.length) {
+     $('lblDescription').textContent = 'در حال دریافت اطلاعات بازی...';
+     return;
+  }
+  
   const idx = Number(state.gameState.current_index) || 0;
-  if(idx >= state.deck.length) { $('lblDescription').textContent = 'پایان بازی! در حال دریافت نتایج...'; $('slotsContainer').innerHTML = ''; return; }
+  
+  // Check completion
+  if(idx >= state.deck.length) { 
+      $('lblDescription').textContent = 'پایان بازی! در حال دریافت نتایج...'; 
+      $('slotsContainer').innerHTML = ''; 
+      return; 
+  }
+  
   const wordObj = state.deck[idx];
-  $('lblWordIndex').textContent = toFaDigits(idx + 1); $('lblCategory').textContent = wordObj.category; $('lblLevel').textContent = trLevel(wordObj.level); $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
+  
+  // --- UI Updates ---
+  $('lblWordIndex').textContent = toFaDigits(idx + 1); 
+  $('lblCategory').textContent = wordObj.category; 
+  $('lblLevel').textContent = trLevel(wordObj.level); 
+  $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
+  
+  // --- Render Slots ---
   const word = normalize(wordObj.word);
-  const container = $('slotsContainer'); container.innerHTML = '';
+  const container = $('slotsContainer'); 
+  container.innerHTML = '';
+  
   const correctLetters = state.gameState.correct_letters || [];
   const wrongLetters = state.gameState.wrong_letters || [];
-  $('lblWrongCount').textContent = toFaDigits(wrongLetters.length); $('lblAllowedWrong').textContent = toFaDigits(Number(state.gameState.allowed_wrong) || 0);
+  
+  $('lblWrongCount').textContent = toFaDigits(wrongLetters.length); 
+  $('lblAllowedWrong').textContent = toFaDigits(Number(state.gameState.allowed_wrong) || 0);
+  
   [...word].forEach(char => {
-    if(char === ' ' || char === '\u200c') { const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap); } 
-    else { const slot = document.createElement('div'); slot.className='slot'; if(correctLetters.includes(char)) { slot.textContent = char; slot.classList.add('correct'); } container.appendChild(slot); }
+    if(char === ' ' || char === '\u200c') { 
+        const gap = document.createElement('div'); 
+        gap.className='slot gap'; 
+        container.appendChild(gap); 
+    } else { 
+        const slot = document.createElement('div'); 
+        slot.className='slot'; 
+        if(correctLetters.includes(char)) { 
+            slot.textContent = char; 
+            slot.classList.add('correct'); 
+        } 
+        container.appendChild(slot); 
+    }
   });
-  renderChips('chipsCorrect', correctLetters, 'correct'); renderChips('chipsWrong', wrongLetters, 'wrong');
+  
+  renderChips('chipsCorrect', correctLetters, 'correct'); 
+  renderChips('chipsWrong', wrongLetters, 'wrong');
 }
+
 function renderChips(id, arr, cls) { const el = $(id); el.innerHTML = ''; arr.forEach(l => { const c = document.createElement('div'); c.className=`chip ${cls}`; c.textContent=l; el.appendChild(c); }); }
 function updatePlayersUI(rawList) {
   const list = rawList || state.allStates || [];
