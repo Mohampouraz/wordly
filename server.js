@@ -1,5 +1,4 @@
 
-
 require('dotenv').config();
 
 const express = require('express');
@@ -126,6 +125,24 @@ const ensureSchema = async () => {
   for(const q of queries) await pool.query(q);
 };
 
+// تابع کمکی برای دریافت اطلاعات کامل بازیکنان یک اتاق
+async function getRoomPlayersWithDetails(roomId) {
+  const query = `
+    SELECT 
+      rp.user_id,
+      rp.role,
+      u.fullname,
+      u.photo_url,
+      u.username
+    FROM room_players rp
+    LEFT JOIN users u ON rp.user_id = u.id
+    WHERE rp.room_id = $1
+    ORDER BY rp.joined_at ASC
+  `;
+  const result = await pool.query(query, [roomId]);
+  return result.rows;
+}
+
 /* ----------------------------------------------------------------
    API ROUTES
 ---------------------------------------------------------------- */
@@ -194,21 +211,23 @@ app.post('/rooms/join', async (req, res) => {
     }
 
     await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`, [room_id, user_id, 'player']);
-    const players = await pool.query(`SELECT user_id FROM room_players WHERE room_id=$1 ORDER BY joined_at ASC;`, [room_id]);
+    
+    // دریافت اطلاعات کامل بازیکنان با جزئیات
+    const players = await getRoomPlayersWithDetails(room_id);
 
-    if (players.rows.length >= rn.max_players && rn.status === 'waiting') {
+    if (players.length >= rn.max_players && rn.status === 'waiting') {
       const gameId = crypto.randomUUID();
       const deck = newGameDeckForRoom(room_id, rn.level || 'medium');
       
       await pool.query(`INSERT INTO games (id, room_id, deck, level, status, started_at) VALUES ($1,$2,$3::jsonb,$4,'active',NOW());`, 
         [gameId, room_id, JSON.stringify(deck), rn.level || 'medium']);
       
-      for (const p of players.rows) {
+      for (const p of players) {
         await createGameState(gameId, p.user_id, deck);
       }
 
       await pool.query(`UPDATE rooms SET status='playing' WHERE id=$1;`, [room_id]);
-      io.to(room_id).emit('game:started', { game_id: gameId, deck, reveal_mode: rn.reveal_mode || 'private', players: players.rows });
+      io.to(room_id).emit('game:started', { game_id: gameId, deck, reveal_mode: rn.reveal_mode || 'private', players });
       return res.json({ ok:true, room_id, status:'ready', game_id: gameId });
     }
     
@@ -217,14 +236,14 @@ app.post('/rooms/join', async (req, res) => {
       if (game.rows.length > 0) {
          const g = game.rows[0];
          await createGameState(g.id, user_id, g.deck);
-         const cntAfter = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
-         io.to(room_id).emit('room:presence', { room_id, count: Number(cntAfter.rows[0].cnt), players: players.rows });
+         const playersAfter = await getRoomPlayersWithDetails(room_id);
+         io.to(room_id).emit('room:presence', { room_id, count: playersAfter.length, players: playersAfter });
          return res.json({ ok:true, room_id, status:'playing', game_id: g.id });
       }
     }
 
-    const cntAfter = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
-    io.to(room_id).emit('room:presence', { room_id, count: Number(cntAfter.rows[0].cnt), players: players.rows });
+    const playersAfter = await getRoomPlayersWithDetails(room_id);
+    io.to(room_id).emit('room:presence', { room_id, count: playersAfter.length, players: playersAfter });
     res.json({ ok:true, room_id, status:'waiting' });
 
   } catch (e) { 
@@ -250,10 +269,10 @@ app.post('/rooms/leave', async (req, res) => {
   const { room_id, user_id } = req.body;
   try {
     await pool.query(`DELETE FROM room_players WHERE room_id=$1 AND user_id=$2;`, [room_id, user_id]);
-    const c = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
-    const cnt = Number(c.rows[0].cnt);
+    const playersAfter = await getRoomPlayersWithDetails(room_id);
+    const cnt = playersAfter.length;
     if (cnt === 0) await pool.query(`UPDATE rooms SET status='waiting' WHERE id=$1;`, [room_id]);
-    io.to(room_id).emit('room:presence', { room_id, count: cnt });
+    io.to(room_id).emit('room:presence', { room_id, count: cnt, players: playersAfter });
     res.json({ ok:true });
   } catch (e) { res.status(500).json({ ok:false }); }
 });
@@ -277,9 +296,9 @@ app.post('/rooms/state', async (req, res) => {
     const { room_id } = req.body;
     const room = await pool.query(`SELECT * FROM rooms WHERE id = $1;`, [room_id]);
     if (!room.rows.length) return res.status(404).json({ ok:false });
-    const players = await pool.query(`SELECT user_id, role FROM room_players WHERE room_id = $1 ORDER BY joined_at ASC;`, [room_id]);
+    const players = await getRoomPlayersWithDetails(room_id);
     const game = await pool.query(`SELECT id, deck, level, status, results FROM games WHERE room_id = $1 ORDER BY started_at DESC LIMIT 1;`, [room_id]);
-    res.json({ ok:true, room: room.rows[0], players: players.rows, game: game.rows[0] || null });
+    res.json({ ok:true, room: room.rows[0], players: players, game: game.rows[0] || null });
   } catch (e) { res.status(500).json({ ok:false }); }
 });
 
@@ -511,7 +530,7 @@ async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
 io.on('connection', (socket) => {
   socketMeta.set(socket.id, { room_ids: new Set(), user_id: null });
 
-  socket.on('join-room', ({ room_id, user_id }) => {
+  socket.on('join-room', async ({ room_id, user_id }) => {
     if (!room_id) return;
     const m = socketMeta.get(socket.id);
     if (user_id) m.user_id = user_id;
@@ -519,7 +538,14 @@ io.on('connection', (socket) => {
     m.room_ids.add(room_id);
     if (!roomSockets.has(room_id)) roomSockets.set(room_id, new Set());
     roomSockets.get(room_id).add(socket.id);
-    io.to(room_id).emit('room:presence', { room_id, count: roomSockets.get(room_id).size });
+    
+    // ارسال اطلاعات کامل بازیکنان به همه کاربران اتاق
+    try {
+      const players = await getRoomPlayersWithDetails(room_id);
+      io.to(room_id).emit('room:presence', { room_id, count: players.length, players });
+    } catch (error) {
+      console.error('Error getting room players:', error);
+    }
   });
 
   socket.on('game:resume', async ({ game_id, user_id }) => {
@@ -676,7 +702,12 @@ io.on('connection', (socket) => {
       const set = roomSockets.get(rid);
       if (set) {
         set.delete(socket.id);
-        io.to(rid).emit('room:presence', { room_id: rid, count: set.size });
+        // ارسال اطلاعات به روز شده بازیکنان به اتاق
+        getRoomPlayersWithDetails(rid).then(players => {
+          io.to(rid).emit('room:presence', { room_id: rid, count: players.length, players });
+        }).catch(err => {
+          console.error('Error getting room players on disconnect:', err);
+        });
       }
     }
     socketMeta.delete(socket.id);
