@@ -5,19 +5,16 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>وردلی رقابتی — نسخه سازگار</title>
 
-  <!-- زودهنگام: تشخیص وضعیت UI قبل از بارگذاری استایل‌ها -->
+  <!-- سریع: تشخیص حالت UI (glassy / legacy) پیش از بارگذاری CSS -->
   <script>
     (function detectAndApplyUiMode(){
       function supportsCssVariables(){ return window.CSS && window.CSS.supports && window.CSS.supports('--a','0'); }
-      function supportsBackdropFilter(){
-        try { return window.CSS && window.CSS.supports && (window.CSS.supports('backdrop-filter','blur(4px)') || window.CSS.supports('-webkit-backdrop-filter','blur(4px)')); } catch(e){ return false; }
-      }
+      function supportsBackdropFilter(){ try { return window.CSS && window.CSS.supports && (window.CSS.supports('backdrop-filter','blur(4px)') || window.CSS.supports('-webkit-backdrop-filter','blur(4px)')); } catch(e){ return false; } }
       function isVeryOldBrowser(){
         var ua = (navigator.userAgent||'').toLowerCase();
         if (!ua) return false;
         if (/\b(msie|trident)\b/.test(ua)) return true;
         if (/\bwv\b/.test(ua) || /\bucbrowser\b/.test(ua) || /\bqqbrowser\b/.test(ua)) return true;
-        // heuristic for old Android stock browser
         if (/\bandroid\b/.test(ua) && !/\bchrome\/(6[0-9]|[7-9][0-9])\b/.test(ua) && /\bversion\/([1-5]\.)/.test(ua)) return true;
         return false;
       }
@@ -61,7 +58,7 @@
     html,body{height:100%;margin:0}
     body{min-height:100vh;color:var(--text);-webkit-text-size-adjust:100%}
 
-    /* Branching: default legacy-friendly base */
+    /* base shell (legacy-friendly) */
     body { background: var(--bg-plain); }
     .shell{
       max-width:1100px;margin:10px auto;padding:0;
@@ -130,34 +127,35 @@
     @keyframes shake {10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
     .letter.shake{animation:shake .28s ease both;}
 
-    /* ========== Glassy enhancements (only when detected) ========== */
+    /* glassy enhancements */
     .glassy-ui body { background: var(--bg-glass); }
-    .glassy-ui .shell{
-      background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
-      backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
-      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
-      border:1px solid rgba(79,70,229,0.14); box-shadow:0 24px 60px rgba(16,24,40,0.12)
-    }
+    .glassy-ui .shell{ background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35)); backdrop-filter: blur(var(--glass-blur)) saturate(1.1); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.1); border:1px solid rgba(79,70,229,0.14); box-shadow:0 24px 60px rgba(16,24,40,0.12) }
     .glassy-ui .panel{ background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82)); backdrop-filter: blur(10px) saturate(1.05); -webkit-backdrop-filter: blur(10px) saturate(1.05); box-shadow:0 18px 48px rgba(16,24,40,0.12) }
 
-    /* ========== Legacy tweaks ========== */
+    /* legacy tweaks */
     .legacy-ui .shell{ background:var(--panel); box-shadow:var(--shadow-1); border:1px solid var(--border) }
     .legacy-ui .panel{ background:var(--panel); box-shadow:0 6px 18px rgba(16,24,40,0.06) }
 
-    /* ========== Modal fixes: ensure inputs fit and wrap inside modal ========= */
-    #roomsModal > div { box-sizing:border-box; max-width:980px; width:calc(100% - 40px); }
-    #roomsModal .grid-rooms { display:grid; grid-template-columns:1fr 320px; gap:12px; align-items:start; }
-    @media (max-width:980px){ #roomsModal .grid-rooms{ grid-template-columns:1fr; } }
-    #roomsModal input, #roomsModal select { width:100%; box-sizing:border-box; display:block; }
-    #publicRoomsList, #myRoomsList { max-height:420px; overflow:auto; padding-right:6px; box-sizing:border-box; }
-    /* ensure buttons inside each room entry wrap */
-    .room { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-radius:10px; background:transparent; }
-    .room button { white-space:nowrap; flex:0 0 auto; min-width:64px }
+    /* Modal layout fixes (inputs previously overflowing) */
+    #roomsModal > div { box-sizing:border-box; max-width: 980px; width: calc(100% - 40px); margin: 0 20px; padding: 0; overflow: visible; }
+    #roomsModal .modal-inner { padding: 14px; }
+    #roomsModal .grid-rooms { display: grid; grid-template-columns: 1fr minmax(220px, 360px); gap: 12px; align-items: start; }
+    @media (max-width:980px){ #roomsModal .grid-rooms { grid-template-columns: 1fr; } #roomsModal > div { padding: 8px; } }
+    #roomsModal input[type="text"], #roomsModal input[type="number"], #roomsModal select, #roomsModal textarea { width:100%; box-sizing:border-box; display:block; padding:10px; border-radius:8px; border:1px solid var(--border); background:#fff }
+    #roomsModal .field { margin-top:10px; display:flex; flex-direction:column; gap:6px; min-width:0; }
+    #roomsModal .actions { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    #publicRoomsList .room, #myRoomsList .room { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-radius:10px; min-width:0; }
+    #publicRoomsList .room .meta, #myRoomsList .room .meta { min-width:0; overflow:hidden; }
+    #publicRoomsList .room .meta .title, #myRoomsList .room .meta .title { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    #publicRoomsList .room button, #myRoomsList .room button { flex:0 0 auto; min-width:64px; }
 
+    /* small helper inside modal to show correct/wrong letters */
+    .modal-chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+    .modal-chips .chip-letter { font-size:14px; padding:6px 8px; }
   </style>
 </head>
 <body>
-  <div class="shell" role="application" aria-label="بازی حدس کلمه">
+  <div class="shell" role="application" aria-label="وردلی رقابتی">
     <header class="appbar" role="banner">
       <div class="brand">
         <div class="badge" aria-hidden="true">و</div>
@@ -249,7 +247,7 @@
 
         <div id="aboutPanel" class="panel" style="margin-top:12px;display:none">
           <h3>درباره</h3>
-          <p class="muted">وردلی!</p>
+          <p class="muted">وردلی رقابتی — نسخه وب اپ با تاکید روی تجربه موبایل.</p>
         </div>
       </section>
 
@@ -285,49 +283,74 @@
 
     <footer style="padding:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;background:#f7f9fc">
       <div class="muted">وردلی — نسخه وب اپ</div>
-      <div class="muted">توسعه توسط ابوالفضل محمدپور</div>
+      <div class="muted">موبایل اول</div>
     </footer>
   </div>
 
-  <!-- Rooms Modal -->
+  <!-- Rooms Modal (fixed: inputs fit; added correct/wrong display) -->
   <div id="roomsModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.28);z-index:1400;padding:20px" role="dialog" aria-hidden="true">
-    <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,0.08)">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 style="margin:0">مدیریت اتاق‌ها</h3>
+    <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.08)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid rgba(0,0,0,0.04)">
+        <h3 style="margin:0;font-size:16px">مدیریت اتاق‌ها</h3>
         <div style="display:flex;gap:8px">
           <button id="closeRooms" class="btn">بستن</button>
         </div>
       </div>
 
-      <div class="grid-rooms" style="margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px">
-        <div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-            <select id="filterLevel" style="padding:8px;border-radius:10px;border:1px solid var(--border)">
-              <option value="">همه سطوح</option>
-              <option value="easy">آسان</option>
-              <option value="medium">متوسط</option>
-              <option value="hard">سخت</option>
-            </select>
-            <button id="refreshRooms" class="btn">بارگذاری</button>
-          </div>
-          <div id="publicRoomsList" style="display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:6px"></div>
-        </div>
+      <div class="modal-inner">
+        <div class="grid-rooms">
+          <div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+              <select id="filterLevel" style="padding:8px;border-radius:10px;border:1px solid var(--border);min-width:120px">
+                <option value="">همه سطوح</option>
+                <option value="easy">آسان</option>
+                <option value="medium">متوسط</option>
+                <option value="hard">سخت</option>
+              </select>
+              <button id="refreshRooms" class="btn">بارگذاری</button>
+            </div>
 
-        <div>
-          <div style="font-weight:800">ایجاد اتاق</div>
-          <input id="newRoomName" placeholder="نام اتاق" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
-          <select id="newRoomLevel" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px">
-            <option value="easy">آسان</option>
-            <option value="medium" selected>متوسط</option>
-            <option value="hard">سخت</option>
-          </select>
-          <input id="newRoomMax" type="number" min="2" max="8" value="2" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
-          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-            <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
-            <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
+            <div id="publicRoomsList" style="display:grid;gap:10px;max-height:420px;overflow:auto;padding-right:6px"></div>
           </div>
-          <div style="margin-top:12px;font-weight:800">اتاق‌های من</div>
-          <div id="myRoomsList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
+
+          <div>
+            <div style="font-weight:800">ایجاد اتاق</div>
+
+            <div class="field">
+              <label style="font-size:13px;color:var(--muted)">نام اتاق</label>
+              <input id="newRoomName" placeholder="نام اتاق" type="text" />
+            </div>
+
+            <div class="field">
+              <label style="font-size:13px;color:var(--muted)">سطح</label>
+              <select id="newRoomLevel">
+                <option value="easy">آسان</option>
+                <option value="medium" selected>متوسط</option>
+                <option value="hard">سخت</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label style="font-size:13px;color:var(--muted)">حداکثر بازیکن</label>
+              <input id="newRoomMax" type="number" min="2" max="8" value="2" />
+            </div>
+
+            <div class="actions">
+              <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
+              <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
+            </div>
+
+            <div style="margin-top:12px;font-weight:800">اتاق‌های من</div>
+            <div id="myRoomsList" style="max-height:220px;overflow:auto;margin-top:8px"></div>
+
+            <!-- Show correct/wrong letters from current game state inside modal -->
+            <div style="margin-top:14px">
+              <div style="font-weight:800">حروف صحیح (بازی جاری)</div>
+              <div id="correctLettersModal" class="modal-chips"></div>
+              <div style="font-weight:800;margin-top:8px">حروف غلط (بازی جاری)</div>
+              <div id="wrongLettersModal" class="modal-chips"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -345,7 +368,6 @@
     function buildIndexMap(word){ const map = []; let disp = 0; for (let i=0;i<word.length;i++){ const ch = word[i]; if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; } map[i] = disp++; } return map; }
     function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-    /* ---------- Random room code generator ---------- */
     function generateRoomCode(len = 4){
       const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
       let out = '';
@@ -403,7 +425,10 @@
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
 
-    /* ---------- Tabs and modal handlers ---------- */
+    const correctLettersModal = document.getElementById('correctLettersModal');
+    const wrongLettersModal = document.getElementById('wrongLettersModal');
+
+    /* ---------- Tabs and modal ---------- */
     tabs.forEach(t => t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
       const tab = t.dataset.tab;
@@ -412,7 +437,7 @@
       dashboardPanel.style.display = (tab === 'dashboard') ? 'block' : 'none';
     }));
 
-    function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); }
+    function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); populateModalLetters(); }
     function closeModal(){ roomsModal.style.display = 'none'; roomsModal.setAttribute('aria-hidden','true'); document.body.style.overflow='auto'; }
     manageRoomsBtn.addEventListener('click', openModal);
     if (openRoomsBtn) openRoomsBtn.addEventListener('click', openModal);
@@ -464,7 +489,7 @@
         if (!d.ok || !d.rooms || !d.rooms.length) { roomsList.innerHTML = '<div class="muted">اتاقی برای نمایش نیست</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className = 'room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
+          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', ()=> joinRoom(r.id));
           el.appendChild(btn); roomsList.appendChild(el);
@@ -481,7 +506,7 @@
         if (!d.ok || !d.rooms || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          el.innerHTML = `<div class="meta" style="min-width:0"><div class="title" style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
@@ -497,7 +522,7 @@
         if (!d.ok || !d.rooms || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||r.id)}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'')}</div></div>`;
+          el.innerHTML = `<div class="meta" style="min-width:0"><div class="title" style="font-weight:800">${escapeHtml(r.name||r.id)}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'')}</div></div>`;
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
           const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
@@ -547,7 +572,7 @@
       });
     }
 
-    /* ---------- quickJoin: نام اتاق = "اتاق <کد>" ---------- */
+    /* ---------- quickJoin: name = "اتاق <CODE>" ---------- */
     quickJoin.addEventListener('click', async () => {
       try {
         const code = generateRoomCode(4);
@@ -633,6 +658,7 @@
       document.querySelector('.tab[data-tab="play"]').click();
       playPanel.style.display = 'block';
       updatePlayersList(players || []);
+      populateModalLetters();
       try { letterInput.focus({preventScroll:true}); } catch(e){}
     });
 
@@ -660,11 +686,13 @@
       } catch(e){ state.gameState.correct_letters = [letter]; }
 
       if (isMe && player && typeof player.score !== 'undefined') scoreMe.textContent = toFaDigits(player.score || 0);
+      populateModalLetters();
     });
 
     socket.on && socket.on('game:letter:wrong', ({ user_id, letter }) => {
       if (Number(user_id) === Number(state.myId)) addChip(wrongLetters, letter, 'wrong');
       else flashMessage('حریف حرف اشتباهی زد');
+      populateModalLetters();
     });
 
     socket.on && socket.on('game:opponentEvent', (evt) => { if (evt.type === 'opponent_correct') flashMessage('حریف حرفی را حدس زد'); });
@@ -690,6 +718,7 @@
         state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
         scoreMe.textContent = toFaDigits(state.gameState.score);
       }
+      populateModalLetters();
     });
 
     socket.on && socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) { /* server will emit game:state */ } });
@@ -767,6 +796,21 @@
       setTimeout(()=> el.remove(), 1400);
     }
 
+    /* ---------- Populate modal with current correct/wrong letters ---------- */
+    function populateModalLetters(){
+      try {
+        const correct = state.gameState && Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : (state.gameState && state.gameState.correct_letters ? JSON.parse(state.gameState.correct_letters||'[]') : []);
+        const wrong = state.gameState && Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : (state.gameState && state.gameState.wrong_letters ? JSON.parse(state.gameState.wrong_letters||'[]') : []);
+        correctLettersModal.innerHTML = ''; wrongLettersModal.innerHTML = '';
+        (correct || []).forEach(l => {
+          const c = document.createElement('div'); c.className='chip-letter correct'; c.textContent = l; correctLettersModal.appendChild(c);
+        });
+        (wrong || []).forEach(l => {
+          const c = document.createElement('div'); c.className='chip-letter wrong'; c.textContent = l; wrongLettersModal.appendChild(c);
+        });
+      } catch(e){}
+    }
+
     /* ---------- Input IME handling & sanitize ---------- */
     letterInput.addEventListener('compositionstart', () => { state.composing = true; });
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
@@ -775,7 +819,7 @@
 
     function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
-    /* ---------- Actions (guesses/hints/leave) ---------- */
+    /* ---------- Actions ---------- */
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
