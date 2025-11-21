@@ -35,20 +35,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// words.js structure: { categories: [{ name, words:[{text, level}] }, ...] }
+// words.js must export { categories: [{ name, words:[{text, level}] }, ...] }
 const wordsData = require('./words');
 
 /* ----------------------------------------------------------------
-   HELPERS (Normalization & Logic)
+   HELPERS (Logic & Normalization)
 ---------------------------------------------------------------- */
-// 1. Basic Display Normalization
+// 1. Normalize Single Letter (User Input)
 const normalizeFaLetter = ch => {
   if (!ch) return '';
   const map = { '\u064A':'\u06CC', '\u0643':'\u06A9' };
   return (map[ch] || ch).normalize('NFC');
 };
 
-// 2. Word Normalization (Keep spaces/zwnj for display map)
+// 2. Normalize Word for Display (Keep Spaces/ZWNJ)
 const normalizeFaWordKeepSpaces = word => {
   if (!word) return '';
   const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
@@ -57,15 +57,15 @@ const normalizeFaWordKeepSpaces = word => {
   return w.normalize('NFC');
 };
 
-// 3. Strict Normalization (For checking win condition)
-// Removes spaces and ZWNJ so logic only checks letters
+// 3. Strict Normalization for Logic (REMOVE ALL SPACES)
+// This fixes the issue with "خوش نویسی" not completing.
 const normalizeFaWordStrict = word => {
   let w = normalizeFaWordKeepSpaces(word);
-  // Remove spaces and Zero-Width Non-Joiner (\u200c)
-  return w.replace(/[\s\u200c]/g, '');
+  // Removes: Regular Space, ZWNJ (\u200c), ZWJ (\u200d), No-Break Space (\u00a0), etc.
+  return w.replace(/[\s\u200c\u200d\u200b\u00a0]/g, '');
 };
 
-const lenNoSpaces = s => String(s || '').replace(/\s/g,'').length;
+const lenNoSpaces = s => normalizeFaWordStrict(s).length;
 const floor = Math.floor;
 const ceil = Math.ceil;
 
@@ -79,7 +79,6 @@ const newGameDeckForRoom = (roomId, level = 'medium') => {
   }
   if (!all.length) return [];
   
-  // Seeded Shuffle
   let seed = 0;
   for (let i = 0; i < roomId.length; i++) seed = (seed * 31 + roomId.charCodeAt(i)) >>> 0;
   const a = all.slice();
@@ -102,7 +101,7 @@ const ensureSchema = async () => {
     );`,
     `CREATE TABLE IF NOT EXISTS rooms (
       id TEXT PRIMARY KEY, name TEXT, status TEXT DEFAULT 'waiting', level TEXT, 
-      max_players INT DEFAULT 2, created_by BIGINT, reveal_mode TEXT DEFAULT 'shared', created_at TIMESTAMP DEFAULT NOW()
+      max_players INT DEFAULT 2, created_by BIGINT, reveal_mode TEXT DEFAULT 'private', created_at TIMESTAMP DEFAULT NOW()
     );`,
     `CREATE TABLE IF NOT EXISTS room_players (
       room_id TEXT, user_id BIGINT, role TEXT, joined_at TIMESTAMP DEFAULT NOW(), PRIMARY KEY (room_id, user_id)
@@ -123,28 +122,21 @@ const ensureSchema = async () => {
 /* ----------------------------------------------------------------
    API ROUTES
 ---------------------------------------------------------------- */
-// Auth
 app.post('/auth/telegram', async (req, res) => {
   const { user } = req.body;
   try {
     const uid = Number(user?.id);
-    if (!uid) return res.status(400).json({ ok:false, error:'no_user' });
+    if (!uid) return res.status(400).json({ ok:false });
     const fullname = `${user.first_name || ''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || null;
     await pool.query(`
       INSERT INTO users (id, username, first_name, last_name, fullname, language_code, photo_url)
       VALUES ($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT (id) DO UPDATE SET
-        username = EXCLUDED.username, first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name,
-        fullname = EXCLUDED.fullname, photo_url = EXCLUDED.photo_url, updated_at = NOW();
+      ON CONFLICT (id) DO UPDATE SET fullname = EXCLUDED.fullname, photo_url = EXCLUDED.photo_url, updated_at = NOW();
     `, [uid, user.username, user.first_name, user.last_name, fullname, user.language_code, user.photo_url]);
     res.json({ ok:true });
-  } catch (e) {
-    console.error('auth error', e);
-    res.status(500).json({ ok:false });
-  }
+  } catch (e) { res.status(500).json({ ok:false }); }
 });
 
-// List Rooms
 app.get('/rooms/list', async (req, res) => {
   try {
     const level = req.query.level;
@@ -159,20 +151,19 @@ app.get('/rooms/list', async (req, res) => {
   } catch (e) { res.status(500).json({ ok:false }); }
 });
 
-// Create Room
 app.post('/rooms/create', async (req, res) => {
   const { user_id, name, level, max_players, reveal_mode } = req.body;
   if (!user_id) return res.status(400).json({ ok:false });
   try {
     const roomId = crypto.randomUUID();
+    const mode = reveal_mode || 'private'; // Default to Private
     await pool.query(`INSERT INTO rooms (id, name, status, level, max_players, created_by, reveal_mode) VALUES ($1,$2,'waiting',$3,$4,$5,$6);`, 
-      [roomId, name || 'اتاق خصوصی', level || 'medium', Number(max_players) || 2, user_id, reveal_mode || 'shared']);
+      [roomId, name || 'اتاق خصوصی', level || 'medium', Number(max_players) || 2, user_id, mode]);
     await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3);`, [roomId, user_id, 'host']);
     res.json({ ok:true, room_id: roomId });
   } catch (e) { res.status(500).json({ ok:false }); }
 });
 
-// Join Room
 app.post('/rooms/join', async (req, res) => {
   const { room_id, user_id } = req.body;
   if (!room_id || !user_id) return res.status(400).json({ ok:false });
@@ -183,16 +174,13 @@ app.post('/rooms/join', async (req, res) => {
     
     const count = await pool.query(`SELECT COUNT(*) AS cnt FROM room_players WHERE room_id=$1;`, [room_id]);
     if (Number(count.rows[0].cnt) >= (rn.max_players || 2)) {
-       // Check if user is already in (re-joining)
        const isMember = await pool.query(`SELECT 1 FROM room_players WHERE room_id=$1 AND user_id=$2`, [room_id, user_id]);
        if(!isMember.rows.length) return res.status(400).json({ ok:false, error:'full' });
     }
 
     await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING;`, [room_id, user_id, 'player']);
-
     const players = await pool.query(`SELECT user_id FROM room_players WHERE room_id=$1 ORDER BY joined_at ASC;`, [room_id]);
     
-    // START GAME LOGIC
     if (players.rows.length >= rn.max_players && rn.status === 'waiting') {
       const gameId = crypto.randomUUID();
       const deck = newGameDeckForRoom(room_id, rn.level || 'medium');
@@ -200,7 +188,6 @@ app.post('/rooms/join', async (req, res) => {
         [gameId, room_id, JSON.stringify(deck), rn.level || 'medium']);
 
       for (const p of players.rows) {
-        const firstWord = normalizeFaWordKeepSpaces(deck[0]?.word || '');
         const strictLen = normalizeFaWordStrict(deck[0]?.word || '').length;
         const hintsAllowed = Math.max(0, floor(strictLen / 2));
         const allowedWrong = Math.max(1, ceil(strictLen * 1.5));
@@ -211,7 +198,7 @@ app.post('/rooms/join', async (req, res) => {
       }
 
       await pool.query(`UPDATE rooms SET status='playing' WHERE id=$1;`, [room_id]);
-      io.to(room_id).emit('game:started', { game_id: gameId, deck, reveal_mode: rn.reveal_mode || 'shared', players: players.rows });
+      io.to(room_id).emit('game:started', { game_id: gameId, deck, reveal_mode: rn.reveal_mode || 'private', players: players.rows });
       return res.json({ ok:true, room_id, status:'ready', game_id: gameId });
     }
 
@@ -221,7 +208,6 @@ app.post('/rooms/join', async (req, res) => {
   } catch (e) { res.status(500).json({ ok:false }); }
 });
 
-// Leave Room
 app.post('/rooms/leave', async (req, res) => {
   const { room_id, user_id } = req.body;
   try {
@@ -234,7 +220,6 @@ app.post('/rooms/leave', async (req, res) => {
   } catch (e) { res.status(500).json({ ok:false }); }
 });
 
-// Helper: My Rooms
 app.post('/rooms/myrooms', async (req, res) => {
   try {
     const r = await pool.query(`SELECT r.id, r.name, r.level, r.status, r.max_players FROM rooms r JOIN room_players rp ON r.id = rp.room_id WHERE rp.user_id = $1 ORDER BY rp.joined_at DESC;`, [req.body.user_id]);
@@ -242,7 +227,6 @@ app.post('/rooms/myrooms', async (req, res) => {
   } catch(e){ res.status(500).json({ok:false}); }
 });
 
-// Helper: Room State
 app.post('/rooms/state', async (req, res) => {
   try {
     const { room_id } = req.body;
@@ -255,12 +239,11 @@ app.post('/rooms/state', async (req, res) => {
 });
 
 /* ----------------------------------------------------------------
-   SOCKET LOGIC
+   SOCKETS
 ---------------------------------------------------------------- */
 const roomSockets = new Map();
 const socketMeta = new Map();
 
-// Helper to fetch full player states for broadcast
 async function getGameStates(gameId) {
   const q = await pool.query(`
     SELECT gs.user_id, gs.current_index, gs.score, gs.guessed_count, gs.hints_used, gs.hints_allowed, u.fullname 
@@ -270,20 +253,18 @@ async function getGameStates(gameId) {
   return q.rows;
 }
 
-// Helper to Advance to Next Word
 async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
   const nextIndex = currentIdx + 1;
   const deckLen = Array.isArray(deck) ? deck.length : 0;
   
   if (nextIndex >= deckLen) {
-    // Game Finished
     await pool.query(`UPDATE games SET status='finished', finished_at=NOW() WHERE id=$1;`, [gameId]);
     if (roomId) io.to(roomId).emit('game:finished', { game_id: gameId });
     return;
   }
 
-  // Prepare Next Word
-  const nextWord = normalizeFaWordKeepSpaces(String(deck[nextIndex]?.word || ''));
+  // Use Strict length for limits (ignoring spaces)
+  const nextWord = String(deck[nextIndex]?.word || '');
   const strictLen = normalizeFaWordStrict(nextWord).length;
   const hintsAllowedNext = Math.max(0, floor(strictLen / 2));
   const allowedWrongNext = Math.max(1, ceil(strictLen * 1.5));
@@ -294,16 +275,12 @@ async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
     WHERE game_id=$1 AND user_id=$2;
   `, [gameId, userId, nextIndex, hintsAllowedNext, allowedWrongNext]);
 
-  // Fetch fresh state to send back
   const playersState = await getGameStates(gameId);
   const newState = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2`, [gameId, userId]);
   
-  // Notify Room
   if (roomId) {
     io.to(roomId).emit('game:next', { game_id: gameId, by_user: userId, nextIndex, states: playersState });
-    // Also send full state update to the specific user to ensure client logic is in sync
-    const roomRow = await pool.query(`SELECT reveal_mode FROM rooms WHERE id=$1`,[roomId]);
-    io.to(roomId).emit('game:states', { game_id: gameId, states: playersState }); // Broadcast progress
+    io.to(roomId).emit('game:states', { game_id: gameId, states: playersState }); 
   }
   
   return newState.rows[0];
@@ -330,28 +307,23 @@ io.on('connection', (socket) => {
       if (!gs.rows.length || !g.rows.length) return;
       
       const roomRow = await pool.query(`SELECT r.reveal_mode FROM rooms r JOIN games g ON g.room_id = r.id WHERE g.id = $1 LIMIT 1;`, [game_id]);
-      const reveal_mode = roomRow.rows[0]?.reveal_mode || 'shared';
+      const reveal_mode = roomRow.rows[0]?.reveal_mode || 'private';
       const players = await getGameStates(game_id);
       
       socket.emit('game:state', { state: gs.rows[0], deck: g.rows[0].deck, reveal_mode, players });
     } catch (e) { console.error(e); }
   });
 
-  // New Event: Client explicit request for next word (Sync backup)
   socket.on('game:next', async({ game_id, user_id }) => {
     try {
       const gs = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
       const g = await pool.query(`SELECT * FROM games WHERE id=$1`, [game_id]);
       if(!gs.rows.length || !g.rows.length) return;
       
-      // Re-verify if word is actually done to prevent cheating, or just trust client timing for UX
-      // For now, we re-run the "advance" logic which is idempotent-ish on index
       const deck = g.rows[0].deck;
       const idx = Number(gs.rows[0].current_index);
       const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1`, [game_id]);
       
-      // Only advance if the client thinks it's done. 
-      // Note: game:guess usually handles this, this is a fallback.
       await advanceToNextWord(game_id, user_id, idx, deck, gameRow.rows[0]?.room_id);
     } catch(e) {}
   });
@@ -367,10 +339,9 @@ io.on('connection', (socket) => {
       const deck = gq.rows[0].deck;
       const idx = Number(gs.current_index) || 0;
       
-      // Current Word Logic
       const currentWordOrig = String(deck[idx]?.word || '');
-      const currentWord = normalizeFaWordKeepSpaces(currentWordOrig); // For indexing
-      const currentWordStrict = normalizeFaWordStrict(currentWordOrig); // For win check
+      // Use KEEP SPACES for position mapping
+      const currentWord = normalizeFaWordKeepSpaces(currentWordOrig);
       
       const normalized = normalizeFaLetter(String(letter).trim());
       if (!normalized || normalized.length !== 1) return;
@@ -378,44 +349,41 @@ io.on('connection', (socket) => {
       let correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
       let wrongLetters = Array.isArray(gs.wrong_letters) ? gs.wrong_letters : JSON.parse(gs.wrong_letters || '[]');
 
-      // Duplicate check
       if (correctLetters.includes(normalized) || wrongLetters.includes(normalized)) {
         socket.emit('game:feedback', { type: 'duplicate', letter: normalized });
         return;
       }
 
-      // Find Room info
       const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1 LIMIT 1;`, [game_id]);
       const roomId = gameRow.rows[0]?.room_id;
       const roomRow = roomId ? await pool.query(`SELECT reveal_mode FROM rooms WHERE id=$1 LIMIT 1;`, [roomId]) : null;
-      const reveal_mode = roomRow?.rows?.[0]?.reveal_mode || 'shared';
+      const reveal_mode = roomRow?.rows?.[0]?.reveal_mode || 'private';
 
-      // Check correctness
       const positions = [];
       for (let i = 0; i < currentWord.length; i++) if (currentWord[i] === normalized) positions.push(i);
 
       if (positions.length > 0) {
-        // CORRECT GUESS
+        // CORRECT
         correctLetters.push(normalized);
         const scoreDelta = 10 * positions.length;
         
         await pool.query(`UPDATE game_states SET correct_letters=$3::jsonb, score=score+$4, guessed_count=guessed_count+1, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, 
           [game_id, user_id, JSON.stringify(correctLetters), scoreDelta]);
 
-        // Fetch updated player stats
         const updatedPlayer = await pool.query(`SELECT user_id, score, guessed_count FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
-        
-        // Broadcast
         const payload = { user_id, letter: normalized, positions, scoreDelta, player: updatedPlayer.rows[0] };
+
         if (roomId && reveal_mode === 'shared') {
            io.to(roomId).emit('game:letter:correct', { ...payload, shared: true });
         } else {
            socket.emit('game:letter:correct', { ...payload, shared: false });
-           if(roomId) socket.to(roomId).emit('game:opponentEvent', { type: 'opponent_correct', by: user_id });
+           if(roomId) socket.to(roomId).emit('game:letter:correct', { user_id, letter: null, positions: [], scoreDelta, player: updatedPlayer.rows[0], shared: false });
         }
 
-        // WIN CHECK (Strict)
-        const uniqueRequired = new Set(currentWordStrict.split(''));
+        // WIN CHECK (STRICT - ignoring spaces)
+        const currentWordStrict = normalizeFaWordStrict(currentWordOrig);
+        // Only unique ACTUAL characters
+        const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
         const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
 
         if (isWin) {
@@ -423,19 +391,17 @@ io.on('connection', (socket) => {
         }
 
       } else {
-        // WRONG GUESS
+        // WRONG
         wrongLetters.push(normalized);
         await pool.query(`UPDATE game_states SET wrong_letters=$3::jsonb, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, 
           [game_id, user_id, JSON.stringify(wrongLetters)]);
         
         const strictLen = normalizeFaWordStrict(currentWordOrig).length;
         const allowedWrong = Number(gs.allowed_wrong) || Math.max(1, ceil(strictLen * 1.5));
-
         const payload = { user_id, letter: normalized, wrongCount: wrongLetters.length, allowedWrong };
-        if (roomId) io.to(roomId).emit('game:letter:wrong', payload);
-        else socket.emit('game:letter:wrong', payload);
+        
+        socket.emit('game:letter:wrong', payload);
 
-        // FAIL CHECK (Too many wrongs)
         if (wrongLetters.length >= allowedWrong) {
           const penalty = 10 * correctLetters.length;
           await pool.query(`UPDATE game_states SET score = GREATEST(score - $3, 0) WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, penalty]);
@@ -455,6 +421,7 @@ io.on('connection', (socket) => {
       const gs = gsq.rows[0];
       const deck = gq.rows[0].deck;
       const idx = Number(gs.current_index) || 0;
+      // Use Keep Spaces for positions
       const currentWord = normalizeFaWordKeepSpaces(String(deck[idx]?.word || ''));
       
       const hintsUsed = Number(gs.hints_used) || 0;
@@ -464,7 +431,7 @@ io.on('connection', (socket) => {
 
       let correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
       
-      // Find candidates (ignore spaces/zwnj for hint targets)
+      // Candidates must ignore spaces
       const candidates = currentWord.split('').filter(ch => ch.trim() !== '' && ch !== '\u200c' && !correctLetters.includes(ch));
       const uniqueCandidates = [...new Set(candidates)];
       
@@ -484,12 +451,16 @@ io.on('connection', (socket) => {
       const roomId = gameRow.rows[0]?.room_id;
       
       const payload = { user_id, letter: reveal, positions, penalty };
-      if (roomId) io.to(roomId).emit('game:hint:reveal', payload);
-      else socket.emit('game:hint:reveal', payload);
+      socket.emit('game:hint:reveal', payload);
 
-      // CHECK WIN AFTER HINT
+      if(roomId) {
+         const updatedPlayer = await pool.query(`SELECT user_id, score, guessed_count FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
+         socket.to(roomId).emit('game:states', { game_id, states: [updatedPlayer.rows[0]] });
+      }
+
+      // CHECK WIN AFTER HINT (STRICT)
       const currentWordStrict = normalizeFaWordStrict(deck[idx]?.word || '');
-      const uniqueRequired = new Set(currentWordStrict.split(''));
+      const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
       const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
       
       if(isWin) {
@@ -521,9 +492,6 @@ io.on('connection', (socket) => {
   });
 });
 
-/* ----------------------------------------------------------------
-   BOOTSTRAP
----------------------------------------------------------------- */
 (async () => {
   try {
     const c = await pool.connect();
