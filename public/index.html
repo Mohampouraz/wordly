@@ -6,7 +6,6 @@
   <title>وردلی رقابتی</title>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
 
   <script>
     (function detectUi(){
@@ -21,731 +20,2221 @@
   <style>
     :root {
       --font: 'Vazirmatn', sans-serif;
-      --primary: #4f46e5;
+      --primary: #6366f1;
       --primary-light: #818cf8;
-      --bg-body: #f3f4f6;
+      --primary-dark: #4338ca;
+      --bg-body: #f8fafc;
       --bg-panel: #ffffff;
-      --text-main: #1f2937;
-      --text-secondary: #6b7280;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
       --success: #10b981;
+      --success-light: #d1fae5;
       --danger: #ef4444;
+      --danger-light: #fee2e2;
       --warning: #f59e0b;
-      --border: #e5e7eb;
-      --correct: #10b981; 
-      --wrong: #ef4444;
-      --guessed: #d1d5db; 
+      --warning-light: #fef3c7;
+      --radius: 20px;
+      --radius-sm: 12px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      --shadow-lg: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 10px 15px -5px rgba(0, 0, 0, 0.08);
+      --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+      --gradient-danger: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
     }
     
-    * { box-sizing: border-box; }
-    body, html { margin: 0; padding: 0; font-family: var(--font); background-color: var(--bg-body); color: var(--text-main); }
-    h1,h2,h3 { margin-top: 0; }
+    .glassy {
+      --bg-body: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
+      --bg-panel: rgba(255, 255, 255, 0.92);
+    }
     
-    .container { max-width: 600px; margin: 0 auto; padding: 15px; }
-    .panel { background-color: var(--bg-panel); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); padding: 15px; margin-bottom: 15px; border: 1px solid var(--border); }
+    * { 
+      box-sizing: border-box; 
+      -webkit-tap-highlight-color: transparent; 
+      margin: 0; 
+      padding: 0; 
+    }
+    
+    body { 
+      margin: 0; 
+      font-family: var(--font); 
+      background: var(--bg-body); 
+      color: var(--text-main); 
+      height: 100vh; 
+      overflow: hidden; 
+      line-height: 1.6; 
+      font-weight: 400; 
+    }
+    
+    .app-container { 
+      display: flex; 
+      flex-direction: column; 
+      height: 100%; 
+      max-width: 1400px; 
+      margin: 0 auto; 
+      background: var(--bg-body); 
+    }
+
+    header {
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      padding: 16px 24px; 
+      background: rgba(255,255,255,0.8); 
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: relative;
+      z-index: 100;
+    }
+    
+    .logo { 
+      font-weight: 900; 
+      font-size: 22px; 
+      color: var(--primary); 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      background: var(--gradient-primary);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .logo span { 
+      background: var(--gradient-primary); 
+      color: white; 
+      width: 40px; 
+      height: 40px; 
+      border-radius: 12px; 
+      display: grid; 
+      place-items: center; 
+      font-size: 20px;
+      -webkit-text-fill-color: white;
+    }
+    
+    .user-info { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: flex-end; 
+      font-size: 14px; 
+      gap: 4px;
+    }
+    
+    .user-info b { 
+      font-size: 15px; 
+      font-weight: 700;
+    }
+
+    .main-grid {
+      display: grid; 
+      grid-template-columns: 1fr 380px; 
+      gap: 24px; 
+      padding: 24px; 
+      flex: 1; 
+      overflow: hidden;
+      height: calc(100vh - 80px);
+    }
+    
+    @media (max-width: 900px) { 
+      .main-grid { 
+        grid-template-columns: 1fr; 
+        overflow-y: auto; 
+        gap: 16px;
+        padding: 16px;
+      } 
+    }
+
+    .panel {
+      background: var(--bg-panel); 
+      border-radius: var(--radius); 
+      box-shadow: var(--shadow);
+      padding: 24px; 
+      display: flex; 
+      flex-direction: column; 
+      border: 1px solid rgba(255,255,255,0.8);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .panel:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
     
     .glassy .panel { 
-        background-color: rgba(255, 255, 255, 0.8); 
-        backdrop-filter: blur(10px); 
-        -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(16px); 
+      -webkit-backdrop-filter: blur(16px); 
     }
 
-    /* Tabs */
-    .tabs { display: flex; justify-content: space-around; background-color: var(--bg-panel); border-radius: 12px; margin-bottom: 15px; padding: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    .tab-btn { flex: 1; text-align: center; padding: 10px 5px; border-radius: 8px; cursor: pointer; font-weight: 500; color: var(--text-secondary); transition: background-color 0.2s, color 0.2s; }
-    .tab-btn.active { background-color: var(--primary); color: var(--bg-panel); }
+    /* TABS */
+    .nav-tabs { 
+      display: flex; 
+      gap: 8px; 
+      margin-bottom: 20px; 
+      padding: 0 24px; 
+      overflow-x: auto;
+      background: rgba(255,255,255,0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      position: sticky;
+      top: 0;
+      z-index: 90;
+    }
     
-    /* Input/Button Styling */
-    .input-group { display: flex; gap: 10px; margin-top: 15px; }
-    .input-group input[type="text"] { flex-grow: 1; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); text-align: center; font-size: 1.2rem; }
-    .btn { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: background-color 0.2s; }
-    .btn-primary { background-color: var(--primary); color: white; }
-    .btn-primary:hover { background-color: #3b30ad; }
-    .btn-secondary { background-color: var(--guessed); color: var(--text-main); }
-    .btn-secondary:hover { background-color: #bdbdbd; }
+    .tab-btn {
+      border: none; 
+      background: transparent; 
+      padding: 14px 16px; 
+      font-family: var(--font); 
+      font-weight: 700; 
+      color: var(--text-muted); 
+      cursor: pointer; 
+      position: relative; 
+      transition: all 0.3s ease; 
+      white-space: nowrap;
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      font-size: 14px;
+    }
     
-    /* Game Board */
-    #wordDisplay { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-    .letter-box { width: 35px; height: 35px; border: 2px solid var(--border); border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: 700; color: var(--text-main); transition: all 0.2s; }
-    .letter-box.revealed { border-color: var(--correct); background-color: var(--success); color: white; }
-    .letter-box.space { background-color: transparent; border-color: transparent; }
+    .tab-btn:hover {
+      color: var(--primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
     
-    /* Wrong Guesses Display */
-    #wrongGuesses { color: var(--wrong); font-size: 1.1rem; margin-bottom: 15px; text-align: center; }
-    #wrongGuesses span { display: inline-block; margin-left: 5px; font-weight: 700; }
+    .tab-btn.active { 
+      color: var(--primary); 
+      background: rgba(99, 102, 241, 0.1);
+    }
     
-    /* Player List */
-    #playerList { margin-top: 15px; padding-top: 10px; border-top: 1px solid var(--border); }
-    .player-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
-    .player-item:last-child { border-bottom: none; }
-    .player-item .score { font-weight: 700; color: var(--primary); }
-    .player-item .username { font-weight: 500; }
-    
-    /* Lobby List */
-    .room-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background-color 0.1s; }
-    .room-item:last-child { border-bottom: none; }
-    .room-item:hover { background-color: var(--bg-body); }
-    .room-info { flex-grow: 1; }
-    .room-name { font-weight: 700; font-size: 1.1rem; }
-    .room-meta { font-size: 0.85rem; color: var(--text-secondary); }
-    .room-players { background-color: var(--primary); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.8rem; }
-    
-    /* Modal */
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); justify-content: center; align-items: center; }
-    .modal-content { background-color: var(--bg-panel); margin: auto; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .close-btn { color: var(--text-secondary); font-size: 28px; font-weight: bold; cursor: pointer; }
-    .modal-input-group { margin-bottom: 15px; }
-    .modal-input-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-    .modal-input-group input, .modal-input-group select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: var(--font); }
+    .tab-btn.active::after {
+      content: ''; 
+      position: absolute; 
+      bottom: 0; 
+      left: 0; 
+      width: 100%; 
+      height: 3px;
+      background: var(--gradient-primary); 
+      border-radius: 10px 10px 0 0;
+    }
 
-    /* Leaderboard/History */
-    .leaderboard-table, .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.95rem; }
-    .leaderboard-table th, .history-table th { background-color: var(--bg-body); padding: 10px; text-align: right; border-bottom: 2px solid var(--border); }
-    .leaderboard-table td, .history-table td { padding: 10px; border-bottom: 1px solid var(--border); }
-    .leaderboard-table tr:hover { background-color: var(--bg-body); }
-    .lb-rank { font-weight: 700; width: 30px; }
-    .lb-score { color: var(--success); font-weight: 700; }
+    .btn {
+      border: none; 
+      padding: 12px 20px; 
+      border-radius: var(--radius-sm); 
+      cursor: pointer;
+      font-family: var(--font); 
+      font-weight: 700; 
+      font-size: 14px;
+      transition: all 0.3s ease; 
+      display: inline-flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
     
-    /* Info text */
-    .info-text { text-align: center; color: var(--text-secondary); padding: 20px; }
-    .score-indicator { font-weight: 700; color: var(--success); margin-left: 5px; }
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    
+    .btn:hover::before {
+      left: 100%;
+    }
+    
+    .btn:active { 
+      transform: scale(0.98); 
+    }
+    
+    .btn-primary { 
+      background: var(--gradient-primary); 
+      color: white; 
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); 
+    }
+    
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+    }
+    
+    .btn-ghost { 
+      background: rgba(0,0,0,0.05); 
+      color: var(--text-main); 
+      border: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .btn-ghost:hover {
+      background: rgba(0,0,0,0.08);
+      border-color: rgba(0,0,0,0.15);
+    }
+    
+    .btn-danger { 
+      background: var(--danger-light); 
+      color: var(--danger); 
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    
+    .btn-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .btn-sm { 
+      padding: 8px 14px; 
+      font-size: 13px; 
+      border-radius: 10px; 
+    }
+
+    .room-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+      overflow-y: auto; 
+      max-height: 400px; 
+    }
+    
+    .room-item {
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      padding: 16px; 
+      background: white; 
+      border-radius: var(--radius-sm); 
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+    
+    .room-item:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      transform: translateY(-2px);
+    }
+    
+    .room-info h4 { 
+      margin: 0 0 6px 0; 
+      font-size: 16px; 
+      font-weight: 700;
+    }
+    
+    .room-meta { 
+      font-size: 13px; 
+      color: var(--text-muted); 
+      display: flex;
+      gap: 12px;
+    }
+
+    #myActiveGamesContainer {
+      margin-bottom: 24px; 
+      border-bottom: 2px dashed #e2e8f0; 
+      padding-bottom: 24px;
+    }
+    
+    .my-game-card {
+      background: linear-gradient(to right, #eff6ff, #fff); 
+      border: 1px solid #bfdbfe;
+      padding: 16px; 
+      border-radius: var(--radius-sm); 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+    }
+    
+    .my-game-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+
+    .game-header { 
+      display: flex; 
+      justify-content: space-between; 
+      margin-bottom: 16px; 
+      align-items: flex-start; 
+      gap: 16px;
+    }
+    
+    .timer-box { 
+      font-family: monospace; 
+      font-size: 20px; 
+      font-weight: 800; 
+      color: var(--primary); 
+      background: #e0e7ff; 
+      padding: 8px 16px; 
+      border-radius: var(--radius-sm); 
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      min-width: 100px;
+      text-align: center;
+    }
+
+    .description-box {
+      background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%); 
+      color: #1e40af; 
+      padding: 16px; 
+      border-radius: var(--radius-sm);
+      text-align: center; 
+      font-size: 15px; 
+      line-height: 1.7; 
+      margin-bottom: 20px; 
+      border: 1px solid #bfdbfe; 
+      font-weight: 500;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .description-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--gradient-primary);
+    }
+
+    .slots-area { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 10px; 
+      justify-content: center; 
+      margin: 16px 0 24px 0; 
+      min-height: 80px;
+    }
+    
+    .slot {
+      width: 52px; 
+      height: 60px; 
+      border: 2px solid #d1d5db; 
+      border-radius: 12px;
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      font-size: 24px; 
+      font-weight: 800; 
+      background: white; 
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .slot.gap { 
+      border: none; 
+      background: transparent; 
+      width: 12px; 
+    }
+    
+    .slot.correct { 
+      background: var(--gradient-success); 
+      border-color: var(--success); 
+      color: white; 
+      transform: translateY(-4px); 
+      box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3); 
+    }
+    
+    .slot.revealed { 
+      background: #f3f4f6; 
+      border-color: #9ca3af; 
+    }
+
+    .input-area { 
+      display: flex; 
+      justify-content: center; 
+      gap: 12px; 
+      margin-bottom: 24px; 
+    }
+    
+    .letter-input {
+      width: 64px; 
+      height: 64px; 
+      text-align: center; 
+      font-size: 24px; 
+      font-weight: 700;
+      border: 2px solid var(--primary); 
+      border-radius: 12px; 
+      outline: none;
+      background: white;
+      transition: all 0.3s ease;
+    }
+    
+    .letter-input:focus {
+      border-color: var(--primary-dark);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      transform: scale(1.05);
+    }
+    
+    .chips-container { 
+      display: flex; 
+      gap: 8px; 
+      justify-content: center; 
+      flex-wrap: wrap; 
+      min-height: 36px; 
+      padding: 8px;
+      background: rgba(0,0,0,0.02);
+      border-radius: var(--radius-sm);
+    }
+    
+    .chip { 
+      padding: 6px 12px; 
+      border-radius: 20px; 
+      font-size: 14px; 
+      font-weight: 700; 
+      transition: all 0.3s ease;
+    }
+    
+    .chip.correct { 
+      background: var(--success-light); 
+      color: #065f46; 
+      border: 1px solid #a7f3d0;
+    }
+    
+    .chip.wrong { 
+      background: var(--danger-light); 
+      color: #991b1b; 
+      border: 1px solid #fca5a5;
+    }
+
+    .player-card {
+      background: white; 
+      padding: 16px; 
+      border-radius: var(--radius-sm); 
+      margin-bottom: 12px;
+      border: 1px solid #f1f5f9; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .player-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    .player-card.me { 
+      border: 2px solid var(--primary-light); 
+      background: #eef2ff; 
+    }
+    
+    .player-card::before {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 4px;
+      background: var(--primary);
+      border-radius: 4px 0 0 4px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    
+    .player-card.me::before {
+      opacity: 1;
+      background: var(--gradient-primary);
+    }
+    
+    .p-name { 
+      font-weight: 700; 
+      font-size: 15px; 
+    }
+    
+    .p-score { 
+      font-weight: 900; 
+      color: var(--primary); 
+      font-size: 18px; 
+    }
+    
+    .p-status { 
+      font-size: 12px; 
+      color: var(--text-muted); 
+      margin-top: 4px; 
+    }
+
+    /* PROFILE & LEADERBOARD CSS */
+    .profile-card {
+      text-align: center; 
+      padding: 32px 24px; 
+      background: linear-gradient(180deg, #eef2ff 0%, #fff 100%);
+      border-radius: var(--radius); 
+      border: 1px solid #e0e7ff; 
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--gradient-primary);
+    }
+    
+    .profile-avatar {
+      width: 100px; 
+      height: 100px; 
+      border-radius: 50%; 
+      background: var(--gradient-primary); 
+      color: white;
+      font-size: 36px; 
+      display: grid; 
+      place-items: center; 
+      margin: 0 auto 16px auto;
+      border: 4px solid white; 
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15); 
+      object-fit: cover;
+    }
+    
+    .profile-stats { 
+      display: flex; 
+      justify-content: center; 
+      gap: 20px; 
+      margin-top: 24px; 
+    }
+    
+    .stat-box { 
+      background: white; 
+      padding: 16px 20px; 
+      border-radius: var(--radius-sm); 
+      border: 1px solid #e2e8f0; 
+      min-width: 120px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      transition: all 0.3s ease;
+    }
+    
+    .stat-box:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+    
+    .stat-val { 
+      font-weight: 900; 
+      font-size: 24px; 
+      color: var(--primary); 
+      display: block;
+    }
+    
+    .stat-lbl { 
+      font-size: 13px; 
+      color: #64748b; 
+      margin-top: 4px;
+    }
+
+    .rank-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      font-size: 14px; 
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    
+    .rank-table th { 
+      text-align: right; 
+      padding: 16px 12px; 
+      color: #64748b; 
+      font-size: 13px; 
+      background: #f8fafc;
+      font-weight: 700;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .rank-table td { 
+      padding: 16px 12px; 
+      border-bottom: 1px solid #f1f5f9; 
+      transition: background 0.3s ease;
+    }
+    
+    .rank-table tr:hover td {
+      background: #f8fafc;
+    }
+    
+    .rank-row.me { 
+      background: #eff6ff; 
+      font-weight: 700;
+    }
+    
+    .rank-row.me td {
+      border-left: 4px solid var(--primary);
+    }
+    
+    .rank-num { 
+      font-weight: 900; 
+      color: var(--primary); 
+      width: 40px; 
+      text-align: center; 
+      display: inline-block; 
+    }
+
+    .history-game-card {
+      background: white; 
+      border-radius: var(--radius); 
+      padding: 24px; 
+      margin-bottom: 20px;
+      border: 1px solid #e2e8f0; 
+      box-shadow: var(--shadow);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .history-game-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--gradient-primary);
+    }
+    
+    .history-game-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .history-game-header {
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-start; 
+      margin-bottom: 20px;
+      padding-bottom: 16px; 
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .history-game-title { 
+      font-weight: 800; 
+      font-size: 18px; 
+      color: var(--text-main); 
+      margin: 0; 
+    }
+    
+    .history-game-meta { 
+      font-size: 13px; 
+      color: var(--text-muted); 
+      display: flex; 
+      flex-direction: column; 
+      align-items: flex-end; 
+      gap: 6px; 
+    }
+    
+    .history-game-stats {
+      display: flex; 
+      gap: 16px; 
+      margin: 16px 0; 
+      flex-wrap: wrap;
+    }
+    
+    .history-stat {
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      padding: 12px 16px;
+      background: #f8fafc; 
+      border-radius: var(--radius-sm); 
+      min-width: 90px;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+    
+    .history-stat:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    }
+    
+    .history-stat-value { 
+      font-weight: 900; 
+      font-size: 20px; 
+      color: var(--primary); 
+    }
+    
+    .history-stat-label { 
+      font-size: 12px; 
+      color: #64748b; 
+      margin-top: 4px; 
+    }
+
+    .history-players {
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+      margin-top: 16px;
+    }
+    
+    .history-player {
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      padding: 14px 16px;
+      background: #f9fafb; 
+      border-radius: var(--radius-sm); 
+      border-right: 4px solid #e2e8f0;
+      transition: all 0.3s ease;
+    }
+    
+    .history-player:hover {
+      transform: translateX(-4px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    
+    .history-player.me { 
+      background: #eff6ff; 
+      border-right-color: var(--primary);
+    }
+    
+    .history-player.winner { 
+      background: #f0fdf4; 
+      border-right-color: var(--success);
+    }
+    
+    .history-player-name { 
+      font-weight: 700; 
+      font-size: 15px; 
+      display: flex; 
+      align-items: center; 
+      gap: 8px;
+    }
+    
+    .winner-badge {
+      background: var(--gradient-success); 
+      color: white; 
+      padding: 4px 8px; 
+      border-radius: 6px; 
+      font-size: 11px; 
+      font-weight: 800;
+    }
+    
+    .history-player-score { 
+      font-weight: 900; 
+      color: var(--primary); 
+      font-size: 18px;
+    }
+    
+    .history-player-details {
+      display: flex; 
+      gap: 12px; 
+      font-size: 12px; 
+      color: #64748b;
+      margin-top: 6px;
+    }
+    
+    .history-player-detail {
+      display: flex; 
+      align-items: center; 
+      gap: 4px;
+    }
+
+    .history-words-progress {
+      margin-top: 20px; 
+      padding-top: 16px; 
+      border-top: 2px dashed #e2e8f0;
+    }
+    
+    .history-words-title {
+      font-size: 14px; 
+      font-weight: 800; 
+      color: var(--text-muted); 
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .history-words-title::before {
+      content: '📝';
+      font-size: 16px;
+    }
+    
+    .history-words-list {
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 8px;
+    }
+    
+    .history-word {
+      padding: 8px 12px; 
+      background: white; 
+      border-radius: var(--radius-sm);
+      border: 1px solid #e2e8f0; 
+      font-size: 12px; 
+      font-weight: 700;
+      display: flex; 
+      align-items: center; 
+      gap: 6px;
+      transition: all 0.3s ease;
+      cursor: default;
+      min-width: 80px;
+      justify-content: center;
+    }
+    
+    .history-word:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .history-word.guessed {
+      background: var(--success-light); 
+      border-color: #bbf7d0; 
+      color: #166534;
+    }
+    
+    .history-word.failed {
+      background: var(--danger-light); 
+      border-color: #fecaca; 
+      color: #991b1b;
+    }
+    
+    .history-word-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      padding: 8px;
+      background: #f8fafc;
+      border-radius: var(--radius-sm);
+      border: 1px solid #e2e8f0;
+    }
+    
+    .history-word-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+    
+    .history-word-text {
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--text-main);
+    }
+    
+    .history-word-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .history-word-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .modal-backdrop {
+      position: fixed; 
+      inset: 0; 
+      background: rgba(0,0,0,0.5); 
+      backdrop-filter: blur(8px);
+      display: none; 
+      align-items: center; 
+      justify-content: center; 
+      z-index: 1000;
+      padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    
+    .modal-content {
+      background: white; 
+      padding: 32px; 
+      border-radius: var(--radius); 
+      width: 90%; 
+      max-width: 700px;
+      box-shadow: var(--shadow-lg); 
+      max-height: 80vh; 
+      overflow-y: auto;
+      animation: slideUp 0.4s ease;
+      position: relative;
+    }
+    
+    @keyframes slideUp {
+      from { 
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to { 
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .modal-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 4px;
+      background: var(--gradient-primary);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    
+    .results-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 16px; 
+      font-size: 14px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    
+    .results-table th, .results-table td { 
+      padding: 12px; 
+      border-bottom: 1px solid #f1f5f9; 
+      text-align: center; 
+    }
+    
+    .results-table th { 
+      background: #f8fafc; 
+      color: #64748b; 
+      font-weight: 700; 
+      font-size: 13px;
+    }
+    
+    .results-table tr:hover td {
+      background: #f8fafc;
+    }
+    
+    .winner-badge { 
+      background: var(--gradient-success); 
+      color: white; 
+      padding: 4px 8px; 
+      border-radius: 6px; 
+      font-size: 11px; 
+      display:inline-block; 
+      margin:2px;
+      font-weight: 700;
+    }
+    
+    .auto-close-timer { 
+      text-align: center; 
+      margin-top: 20px; 
+      padding: 12px; 
+      background: #f1f5f9; 
+      border-radius: var(--radius-sm); 
+      font-size: 13px; 
+      color: #64748b; 
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+    }
+
+    .hidden { display: none !important; }
+    
+    .shake { 
+      animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
+    }
+    
+    @keyframes shake { 
+      10%, 90% { transform: translate3d(-1px, 0, 0); } 
+      20%, 80% { transform: translate3d(2px, 0, 0); } 
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 
+      40%, 60% { transform: translate3d(4px, 0, 0); } 
+    }
+    
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(99, 102, 241, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 20px;
+      background: var(--gradient-primary);
+      border-radius: 2px;
+    }
+    
+    /* Global Rankings Tab Styles */
+    .rank-filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    
+    .rank-filter-btn {
+      padding: 8px 16px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .rank-filter-btn.active {
+      background: var(--gradient-primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .rank-filter-btn:hover:not(.active) {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+    
+    .rank-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 20px;
+      gap: 16px;
+    }
+    
+    .rank-period {
+      font-size: 14px;
+      color: var(--text-muted);
+      background: #f1f5f9;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+    
+    /* Enhanced player ranking items */
+    .rank-item {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: white;
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      border: 1px solid #f1f5f9;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    
+    .rank-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+    
+    .rank-item.me {
+      background: #eff6ff;
+      border-color: #e0e7ff;
+    }
+    
+    .rank-position {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--primary);
+      min-width: 40px;
+      text-align: center;
+    }
+    
+    .rank-position.top-1 {
+      color: #f59e0b;
+    }
+    
+    .rank-position.top-2 {
+      color: #64748b;
+    }
+    
+    .rank-position.top-3 {
+      color: #b45309;
+    }
+    
+    .rank-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--gradient-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 16px;
+    }
+    
+    .rank-player-info {
+      flex: 1;
+    }
+    
+    .rank-player-name {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text-main);
+    }
+    
+    .rank-player-stats {
+      display: flex;
+      gap: 12px;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    
+    .rank-score {
+      font-weight: 900;
+      font-size: 18px;
+      color: var(--primary);
+      min-width: 80px;
+      text-align: left;
+    }
+    
+    .rank-badge {
+      position: absolute;
+      top: -8px;
+      left: -8px;
+      background: var(--gradient-primary);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 800;
+    }
   </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="authPanel" class="panel" style="display:none;">
-        <h3>درحال اتصال...</h3>
-        <p class="info-text">لطفا منتظر بمانید تا اطلاعات کاربری شما از تلگرام بارگذاری شود.</p>
+<div class="app-container">
+  <header>
+    <div class="logo"><span>و</span>وردلی رقابتی</div>
+    <div class="user-info">
+      <b id="headerUsername">...</b>
+      <span id="headerUserId" style="opacity:0.6">ID: ...</span>
     </div>
+  </header>
 
-    <div id="profilePanel" class="panel" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div id="userInfo">
-                <h2 id="userName"></h2>
-                <p style="margin: 5px 0 0 0; font-size: 0.9rem;">امتیاز کل: <span id="userTotalScore" class="score-indicator">0</span></p>
-            </div>
-            <button id="btnExitGame" class="btn btn-secondary" style="display:none;">خروج از بازی</button>
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-target="dashboard">لابی</button>
+    <button class="tab-btn" data-target="history">تاریخچه بازی‌ها</button>
+    <button class="tab-btn" data-target="leaderboard">رتبه‌بندی جهانی</button>
+    <button class="tab-btn" data-target="profile">پروفایل</button>
+    <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
+  </nav>
+
+  <div class="main-grid">
+    <div class="content-area">
+      
+      <section id="view-dashboard" class="panel" style="height:100%">
+        <div id="myActiveGamesContainer" class="hidden">
+           <h4 style="margin:0 0 12px 0; color:var(--primary); display:flex; align-items:center; gap:8px;">
+             <span>🎮</span> بازی‌های فعال من
+           </h4>
+           <div id="myActiveGamesList"></div>
         </div>
-    </div>
-    
-    <div id="tabs" class="tabs" style="display:none;">
-        <button class="tab-btn active" data-tab="lobby">اتاق‌ها</button>
-        <button class="tab-btn" data-tab="game" id="tabGame" style="display:none;">بازی فعال</button>
-        <button class="tab-btn" data-tab="leaderboard">رتبه‌بندی</button>
-        <button class="tab-btn" data-tab="history">سوابق</button>
-    </div>
-
-    <div id="lobbyView" class="view">
-        <div class="panel">
-            <h3 style="display: flex; justify-content: space-between; align-items: center;">
-                اتاق‌های موجود
-                <button id="btnNewRoom" class="btn btn-primary" style="font-size: 0.9rem;">ساخت اتاق جدید</button>
-            </h3>
-            <div id="roomList">
-                <p class="info-text">درحال بارگذاری لیست اتاق‌ها...</p>
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+          <h3 class="section-title">اتاق‌های بازی</h3>
+          <button id="btnNewRoom" class="btn btn-primary">
+            <span>+</span>
+            ساخت اتاق جدید
+          </button>
         </div>
-    </div>
-
-    <div id="gameView" class="view" style="display:none;">
-        <div id="gamePanel" class="panel">
-            <h3 id="roomNameHeader"></h3>
-            <div style="text-align: center; margin-bottom: 15px;">
-                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">زمان سپری شده: <span id="lblTimer" style="font-weight: 700; color: var(--primary);">00:00</span></p>
-                <p id="wordInfo" style="margin: 5px 0; font-size: 0.9rem; font-weight: 500;"></p>
-                <p id="gameStatusMessage" style="font-weight: 700; color: var(--warning);"></p>
-            </div>
-
-            <div id="wordDisplay"></div>
-
-            <div id="hintDisplay" style="text-align: center; background-color: var(--bg-body); padding: 10px; border-radius: 8px; margin-top: 15px; display: none;">
-                <p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary);">توضیح کلمه (راهنما):</p>
-                <p id="hintText" style="margin: 5px 0 0 0; font-weight: 500;"></p>
-            </div>
-
-            <p id="wrongGuesses" style="margin-top: 15px;">حدس‌های غلط: </p>
-            
-            <div id="gameActions" class="input-group">
-                <input type="text" id="txtLetter" maxlength="1" placeholder="حرف">
-                <button id="btnGuess" class="btn btn-primary">حدس</button>
-                <button id="btnHint" class="btn btn-secondary">راهنما (-۵۰)</button>
-            </div>
-            
-            <div id="playerList">
-                <h4 style="margin: 10px 0 5px 0; font-size: 1rem;">بازیکنان:</h4>
-                <div id="playersContainer"></div>
-            </div>
+        <div style="display:flex; gap:12px; margin-bottom:16px; align-items:center; flex-wrap:wrap;">
+           <select id="filterLevel" style="padding:10px 12px; border-radius:var(--radius-sm); border:1px solid #cbd5e1; background:white; font-family:var(--font); min-width:140px;">
+             <option value="">همه سطوح</option>
+             <option value="easy">آسان</option>
+             <option value="medium">متوسط</option>
+             <option value="hard">سخت</option>
+           </select>
+           <button id="btnRefresh" class="btn btn-ghost" style="display:flex; align-items:center; gap:6px;">
+             <span>🔄</span>
+             بروزرسانی
+           </button>
         </div>
-    </div>
-    
-    <div id="leaderboardView" class="view" style="display:none;">
-        <div class="panel">
-            <h3>رتبه‌بندی جهانی</h3>
-            <div id="leaderboardContainer">
-                <p class="info-text">درحال بارگذاری رتبه‌بندی...</p>
-            </div>
+        <div id="roomsListContainer" class="room-list">
+          <div style="text-align:center; color:#94a3b8; margin-top:40px; padding:20px;">
+            <div style="font-size:48px; margin-bottom:16px;">🎯</div>
+            <div>در حال بارگذاری لیست اتاق‌ها...</div>
+          </div>
         </div>
-    </div>
-    
-    <div id="historyView" class="view" style="display:none;">
-        <div class="panel">
-            <h3>سوابق بازی‌های شما</h3>
-            <div id="historyContainer">
-                <p class="info-text">درحال بارگذاری سوابق...</p>
-            </div>
+      </section>
+
+      <section id="view-history" class="panel hidden" style="height:100%; overflow-y:auto;">
+        <h3 class="section-title">تاریخچه بازی‌های من</h3>
+        <div id="historyContainer">
+           <div style="text-align:center; color:#94a3b8; padding:40px 20px;">
+             <div style="font-size:48px; margin-bottom:16px;">📊</div>
+             <div>در حال بارگذاری تاریخچه بازی‌ها...</div>
+           </div>
         </div>
+      </section>
+
+      <section id="view-leaderboard" class="panel hidden" style="height:100%; overflow-y:auto;">
+        <div class="rank-header">
+          <h3 class="section-title">رتبه‌بندی جهانی</h3>
+          <div class="rank-period" id="rankPeriod">همه زمان‌ها</div>
+        </div>
+        
+        <div class="rank-filters">
+          <button class="rank-filter-btn active" data-period="all">همه زمان‌ها</button>
+          <button class="rank-filter-btn" data-period="weekly">هفته جاری</button>
+          <button class="rank-filter-btn" data-period="monthly">ماه جاری</button>
+        </div>
+        
+        <div id="leaderboardContainer">
+           <div style="text-align:center; color:#94a3b8; padding:40px 20px;">
+             <div style="font-size:48px; margin-bottom:16px;">🏆</div>
+             <div>در حال دریافت اطلاعات رتبه‌بندی...</div>
+           </div>
+        </div>
+      </section>
+
+      <section id="view-profile" class="panel hidden" style="height:100%; overflow-y:auto;">
+        <h3 class="section-title">پروفایل من</h3>
+        <div id="profileContainer">
+           <div style="text-align:center; color:#94a3b8; padding:40px 20px;">
+             <div style="font-size:48px; margin-bottom:16px;">👤</div>
+             <div>در حال دریافت اطلاعات پروفایل...</div>
+           </div>
+        </div>
+      </section>
+
+      <section id="view-game" class="panel hidden" style="height:100%">
+        <div class="game-header">
+          <div>
+            <h3 style="margin:0; font-size:20px;">کلمه <span id="lblWordIndex">۱</span> از <span id="lblTotalWords">۱۰</span></h3>
+            <div style="font-size:13px; color:#64748b; margin-top:4px;">
+              <span id="lblCategory" style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">...</span> 
+              | 
+              <span id="lblLevel" style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">...</span>
+            </div>
+          </div>
+          <div class="timer-box" id="lblTimer">۰۰:۰۰</div>
+        </div>
+        
+        <div id="lblDescription" class="description-box">در حال بارگذاری...</div>
+
+        <div id="slotsContainer" class="slots-area"></div>
+        
+        <div style="margin-top:auto; margin-bottom:20px;">
+          <div class="input-area">
+            <input id="txtLetter" class="letter-input" maxlength="1" placeholder="؟" autocomplete="off">
+            <button id="btnGuess" class="btn btn-primary" style="min-width:100px; height:64px;">ثبت</button>
+            <button id="btnHint" class="btn btn-ghost" style="min-width:100px; height:64px;">راهنما</button>
+          </div>
+          
+          <div style="text-align:center; font-size:13px; margin-bottom:16px; display:flex; justify-content:center; gap:16px;">
+             <span style="background:#f1f5f9; padding:6px 12px; border-radius:8px;">
+               خطاها: <span id="lblWrongCount">0</span> / <span id="lblAllowedWrong">-</span>
+             </span>
+             <span style="background:#f1f5f9; padding:6px 12px; border-radius:8px;">
+               امتیاز: <span id="lblCurrentScore">0</span>
+             </span>
+          </div>
+
+          <div style="text-align:center; margin-bottom:12px; font-size:13px; font-weight:700; color:var(--success); display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span>✅</span> حروف صحیح
+          </div>
+          <div id="chipsCorrect" class="chips-container" style="margin-bottom:20px;"></div>
+          
+          <div style="text-align:center; margin-bottom:12px; font-size:13px; font-weight:700; color:var(--danger); display:flex; align-items:center; justify-content:center; gap:8px;">
+            <span>❌</span> حروف غلط
+          </div>
+          <div id="chipsWrong" class="chips-container"></div>
+        </div>
+      </section>
     </div>
 
+    <aside class="panel">
+      <h4 style="margin-top:0; margin-bottom:16px; display:flex; align-items:center; gap:8px;">
+        <span>👥</span> بازیکنان آنلاین
+      </h4>
+      <div id="playersListContainer" style="display:flex; flex-direction:column; gap:10px; overflow-y:auto; flex:1; max-height:500px;">
+        <div style="text-align:center; color:#94a3b8; font-size:13px; padding:20px;">
+          <div style="font-size:32px; margin-bottom:8px;">🎮</div>
+          در انتظار بازیکنان...
+        </div>
+      </div>
+      <hr style="border:0; border-top:1px solid #e2e8f0; margin:20px 0;">
+      <div id="gameControls" class="hidden">
+         <button id="btnLeave" class="btn btn-danger" style="width:100%; margin-bottom:12px; display:flex; align-items:center; justify-content:center; gap:6px;">
+           <span>🚪</span>
+           ترک بازی
+         </button>
+         <button id="btnBackMenu" class="btn btn-ghost" style="width:100%; display:flex; align-items:center; justify-content:center; gap:6px;">
+           <span>↩️</span>
+           بازگشت به منو
+         </button>
+      </div>
+    </aside>
+  </div>
 </div>
 
-<div id="modalCreate" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>ساخت اتاق جدید</h3>
-            <span class="close-btn" id="btnCloseModal">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="modal-input-group">
-                <label for="txtRoomName">نام اتاق:</label>
-                <input type="text" id="txtRoomName" placeholder="مثلا: رقابت دوستانه">
-            </div>
-            <div class="modal-input-group">
-                <label for="selLevel">سطح دشواری:</label>
-                <select id="selLevel">
-                    <option value="easy">آسان</option>
-                    <option value="medium">متوسط</option>
-                    <option value="hard">سخت</option>
-                </select>
-            </div>
-            <button id="btnSubmitCreate" class="btn btn-primary" style="width: 100%;">ساخت و ورود</button>
-        </div>
+<div id="modalCreate" class="modal-backdrop">
+  <div class="modal-content">
+    <h3 style="margin-bottom:20px; display:flex; align-items:center; gap:8px;">
+      <span>➕</span> ساخت اتاق جدید
+    </h3>
+    <div style="display:flex; flex-direction:column; gap:16px; margin-top:20px;">
+      <div>
+        <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--text-main);">نام اتاق</label>
+        <input id="inpRoomName" placeholder="مثلاً: اتاق دوستانه" style="padding:12px; border:1px solid #cbd5e1; border-radius:var(--radius-sm); width:100%; font-family:var(--font); transition:all 0.3s ease;" />
+      </div>
+      <div>
+        <label style="display:block; margin-bottom:6px; font-weight:600; color:var(--text-main);">سطح بازی</label>
+        <select id="inpRoomLevel" style="padding:12px; border:1px solid #cbd5e1; border-radius:var(--radius-sm); width:100%; font-family:var(--font);">
+          <option value="medium">متوسط</option>
+          <option value="easy">آسان</option>
+          <option value="hard">سخت</option>
+        </select>
+      </div>
+      <div style="display:flex; gap:12px; margin-top:8px;">
+        <button id="btnSubmitCreate" class="btn btn-primary" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <span>✅</span>
+          ایجاد اتاق
+        </button>
+        <button id="btnCloseModal" class="btn btn-ghost" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <span>❌</span>
+          لغو
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
+<div id="modalResults" class="modal-backdrop" style="z-index: 1100;">
+  <div class="modal-content">
+    <h2 style="text-align:center; color:var(--primary); margin-bottom:24px; display:flex; align-items:center; justify-content:center; gap:10px;">
+      <span>🎉</span> پایان بازی
+    </h2>
+    <div style="max-height:400px; overflow-y:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>کلمه</th>
+            <th>معنی</th>
+            <th>برندگان</th>
+          </tr>
+        </thead>
+        <tbody id="resultsTableBody"></tbody>
+      </table>
+    </div>
+    <div class="auto-close-timer" id="autoCloseTimer">
+      این پنجره به طور خودکار در <span id="countdown">5</span> ثانیه بسته خواهد شد
+    </div>
+    <div style="margin-top:24px; display:flex; gap:12px; justify-content:center;">
+      <button id="btnRestartGame" class="btn btn-primary hidden" style="display:flex; align-items:center; gap:6px;">
+        <span>🔄</span>
+        شروع بازی جدید
+      </button>
+      <button id="btnCloseResults" class="btn btn-ghost" style="display:flex; align-items:center; gap:6px;">
+        <span>🏠</span>
+        بازگشت به لابی
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
 <script>
+const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+const normalize = c => { if(!c) return ''; const m = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (m[c]||c).normalize('NFC'); };
+const $ = id => document.getElementById(id);
+
+const state = {
+  user: null, roomId: null, gameId: null, deck: [],
+  gameState: {}, allStates: [], timerInterval: null, timerMs: 0,
+  autoCloseInterval: null
+};
+
+// --- 1. INIT & AUTH ---
+(async function init(){
+  let localUid = localStorage.getItem('w_uid');
+  if(!localUid) { localUid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', localUid); }
+  state.user = { id: localUid, name: 'کاربر ' + String(localUid).slice(-4), photo: null };
+
+  if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    const $ = (id) => document.getElementById(id);
-
-    const state = {
-        socket: null,
-        user: null,
-        userScore: 0,
-        currentView: 'lobby',
-        gameId: null,
-        roomName: null,
-        currentGame: null, // Full game data including deck and player_states
-        timerInterval: null,
-        timerMs: 0
-    };
-
-    /* ----------------------------------------------------------------
-       UTILITIES
-    ---------------------------------------------------------------- */
-
-    // نرمال‌سازی حروف فارسی
-    const normalize = (w) => (w || '').replace(/[\u0643\u0649\u064A]/g, (m) => ({
-        '\u0643': '\u06a9', // ك -> ک
-        '\u0649': '\u06cc', // ى -> ی
-        '\u064A': '\u06cc', // ي -> ی
-    })[m]).replace(/[\s\u200c]/g, '').toLowerCase();
-
-    const toFaDigits = (s) => s.replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    const esc = (s) => s ? s.replace(/</g,'&lt;') : '';
-    const trLevel = (l) => l === 'easy' ? 'آسان' : (l === 'hard' ? 'سخت' : 'متوسط');
-    
-    /* ----------------------------------------------------------------
-       RENDERING FUNCTIONS
-    ---------------------------------------------------------------- */
-
-    function switchView(viewName) {
-        state.currentView = viewName;
-        ['lobbyView', 'gameView', 'leaderboardView', 'historyView'].forEach(id => $(id).style.display = 'none');
-        $(`${viewName}View`).style.display = 'block';
-
-        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        const activeTab = document.querySelector(`.tab-btn[data-tab="${viewName}"]`);
-        if (activeTab) activeTab.classList.add('active');
-
-        // Fetch data based on the view
-        if (viewName === 'lobby') state.socket.emit('room:fetch_list');
-        if (viewName === 'leaderboard') state.socket.emit('leaderboard:fetch');
-        if (viewName === 'history' && state.user) state.socket.emit('user:fetch_history', { user_id: state.user.id });
-        if (viewName === 'game' && state.gameId) {
-            // Update the display but no need to refetch full state unless needed
-            renderGameUI();
-        }
+    tg.ready(); tg.expand();
+    if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+       const u = tg.initDataUnsafe.user;
+       const fullName = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || 'کاربر تلگرام';
+       state.user.id = u.id; 
+       state.user.name = fullName; 
+       state.user.photo = u.photo_url;
+       state.user.username = u.username;
+       
+       try { 
+         await fetch('/auth/telegram', { 
+           method:'POST', 
+           headers:{'Content-Type':'application/json'}, 
+           body: JSON.stringify({ user: u }) 
+         }); 
+       } catch(e){}
     }
+  }
+  updateHeaderUI();
+  refreshLobby();
+})();
 
-    function renderRoomList(rooms) {
-        const listEl = $('roomList');
-        listEl.innerHTML = '';
-        if (rooms.length === 0) {
-            listEl.innerHTML = '<p class="info-text">اتاقی برای نمایش وجود ندارد. یکی بسازید!</p>';
-            return;
+function updateHeaderUI() {
+  $('headerUsername').textContent = state.user.name;
+  $('headerUserId').textContent = toFaDigits(state.user.id);
+}
+
+// --- 2. DATA LOADERS ---
+async function refreshLobby() {
+  await checkMyGames();
+  await loadPublicRooms();
+}
+
+async function checkMyGames(){
+  try {
+    const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
+    const d = await res.json();
+    const cont = $('myActiveGamesList');
+    cont.innerHTML = '';
+    if(d.ok && d.rooms && d.rooms.length > 0) {
+      $('myActiveGamesContainer').classList.remove('hidden');
+      d.rooms.forEach(r => {
+        if (r.status !== 'finished') {
+          const div = document.createElement('div'); div.className = 'my-game-card';
+          const statusText = r.status === 'playing' ? 'در جریان' : 'در انتظار';
+          const statusColor = r.status === 'playing' ? '#ef4444' : '#10b981';
+          div.innerHTML = `
+            <div>
+              <div style="font-weight:bold; font-size:15px;">${esc(r.name)}</div>
+              <div style="font-size:13px; color:${statusColor}; display:flex; align-items:center; gap:4px; margin-top:4px;">
+                <span>${r.status === 'playing' ? '🎮' : '⏳'}</span>
+                ${statusText}
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" style="display:flex; align-items:center; gap:4px;">
+              <span>↩️</span>
+              بازگشت
+            </button>`;
+          div.querySelector('button').onclick = () => enterRoomMode(r.id, true);
+          cont.appendChild(div);
         }
+      });
+    } else {
+      $('myActiveGamesContainer').classList.add('hidden');
+    }
+  } catch(e) {}
+}
 
-        rooms.forEach(room => {
-            const item = document.createElement('div');
-            item.className = 'room-item';
-            item.onclick = () => state.socket.emit('room:join', { room_id: room.id, user_id: state.user.id });
-            
-            const statusText = room.status === 'active' ? 'در حال بازی' : 'در انتظار';
-            const statusColor = room.status === 'active' ? 'var(--warning)' : 'var(--success)';
+async function loadPublicRooms(){
+  const lvl = $('filterLevel').value;
+  const res = await fetch('/rooms/list' + (lvl ? '?level='+lvl : ''));
+  const d = await res.json();
+  const cont = $('roomsListContainer'); cont.innerHTML = '';
+  if(!d.rooms || !d.rooms.length) {
+    cont.innerHTML = `
+      <div style="text-align:center; color:#94a3b8; padding:40px 20px;">
+        <div style="font-size:48px; margin-bottom:16px;">🏠</div>
+        <div>اتاق بازی‌ای یافت نشد</div>
+        <div style="margin-top:16px;">
+          <button id="btnNewRoomEmpty" class="btn btn-primary" style="display:inline-flex; align-items:center; gap:6px;">
+            <span>+</span>
+            ساخت اولین اتاق
+          </button>
+        </div>
+      </div>`;
+    $('btnNewRoomEmpty').onclick = () => $('modalCreate').style.display = 'flex';
+    return;
+  }
+  
+  d.rooms.forEach(r => {
+    const div = document.createElement('div'); div.className = 'room-item';
+    const isFinished = r.status === 'finished';
+    const statusTxt = isFinished ? 
+      '<span style="color:#64748b; display:flex; align-items:center; gap:4px;"><span>✅</span> تمام شده</span>' : 
+      (r.status === 'playing' ? 
+        '<span style="color:#ef4444; display:flex; align-items:center; gap:4px;"><span>🎮</span> در حال بازی</span>' : 
+        '<span style="color:#10b981; display:flex; align-items:center; gap:4px;"><span>⏳</span> در انتظار</span>');
+    
+    const btnAttr = isFinished ? 
+      'disabled style="opacity:0.5; cursor:not-allowed; display:flex; align-items:center; gap:4px;"' : 
+      `onclick="enterRoomMode('${r.id}')" style="display:flex; align-items:center; gap:4px;"`;
+    
+    div.innerHTML = `
+      <div class="room-info">
+        <h4>${esc(r.name)}</h4>
+        <div class="room-meta">
+          <span>${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر</span>
+          <span>${trLevel(r.level)}</span>
+          ${statusTxt}
+        </div>
+      </div>
+      <button class="btn btn-primary" ${btnAttr}>
+        <span>🎯</span>
+        پیوستن
+      </button>`;
+    cont.appendChild(div);
+  });
+}
 
-            item.innerHTML = `
-                <div class="room-info">
-                    <div class="room-name">${esc(room.name)}</div>
-                    <div class="room-meta">
-                        سطح: ${trLevel(room.level)} | وضعیت: <span style="color:${statusColor};">${statusText}</span>
-                    </div>
+async function loadHistory() {
+  const cont = $('historyContainer');
+  cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:40px 20px;">در حال بارگذاری...</div>';
+  try {
+    const res = await fetch('/stats/history', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
+    const d = await res.json();
+    if(d.ok && d.games) {
+      if(!d.games.length) { 
+        cont.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; color:#94a3b8;">
+            <div style="font-size:48px; margin-bottom:16px;">📝</div>
+            <div>هنوز بازی‌ای انجام نداده‌اید</div>
+          </div>`; 
+        return; 
+      }
+      
+      let html = '';
+      d.games.forEach(game => {
+        const date = new Date(game.finished_at).toLocaleDateString('fa-IR');
+        const time = new Date(game.finished_at).toLocaleTimeString('fa-IR');
+        
+        // محاسبه آمار
+        const totalWords = game.deck?.length || 0;
+        const guessedWords = game.results?.filter(r => r.winners && r.winners.length > 0).length || 0;
+        const failedWords = totalWords - guessedWords;
+        
+        // پیدا کردن برنده (بازیکن با بیشترین امتیاز)
+        const players = game.players || [];
+        const maxScore = Math.max(...players.map(p => p.score || 0));
+        const winners = players.filter(p => p.score === maxScore);
+        
+        html += `
+          <div class="history-game-card">
+            <div class="history-game-header">
+              <div>
+                <div class="history-game-title">${esc(game.room_name || 'اتاق خصوصی')}</div>
+                <div style="font-size:13px; color:#64748b; margin-top:6px; display:flex; align-items:center; gap:8px;">
+                  <span style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">سطح: ${trLevel(game.level)}</span>
+                  <span style="background:#f1f5f9; padding:4px 8px; border-radius:6px;">${toFaDigits(players.length)} بازیکن</span>
                 </div>
-                <div class="room-players">${toFaDigits(room.players_count)} بازیکن</div>
-            `;
-            listEl.appendChild(item);
-        });
-    }
-
-    function renderGameUI() {
-        if (!state.currentGame) return;
-
-        const game = state.currentGame;
-        const playerState = game.player_states.find(p => p.user_id === state.user.id);
-        if (!playerState) return;
-
-        const currentWordData = game.deck[playerState.current_word_index];
-        if (!currentWordData) return;
-        
-        // Timer
-        if (game.status === 'active') startTimer(playerState.timer_ms); else stopTimer();
-
-        // Headers
-        $('roomNameHeader').textContent = esc(game.room_name);
-        $('wordInfo').textContent = `کلمه ${toFaDigits(playerState.current_word_index + 1)} از ${toFaDigits(game.deck.length)} (${trLevel(game.level)})`;
-        $('gameStatusMessage').textContent = '';
-        
-        // Game End Message
-        if (game.status === 'completed') {
-            const playerScore = game.player_states.find(p => p.user_id === state.user.id)?.score || 0;
-            $('gameStatusMessage').textContent = `بازی به پایان رسید! امتیاز نهایی شما: ${toFaDigits(playerScore)}`;
-            $('gameActions').style.display = 'none';
-        } else {
-            $('gameActions').style.display = 'flex';
-        }
-
-
-        // Word Display
-        const wordEl = $('wordDisplay');
-        wordEl.innerHTML = '';
-        const wordStrict = normalize(currentWordData.word);
-        
-        let normalizedLetters = [];
-        // استفاده از روش فیلترینگ برای حفظ ترتیب و فضاهای کلمه اصلی
-        for (const char of currentWordData.word) {
-            const normalized = normalize(char);
-            if (normalized) {
-                normalizedLetters.push({ original: char, normalized: normalized });
-            } else if (char.trim() === '') {
-                normalizedLetters.push({ original: char, normalized: '' });
-            }
-        }
-
-
-        normalizedLetters.forEach(item => {
-            const box = document.createElement('div');
-            box.className = 'letter-box';
+              </div>
+              <div class="history-game-meta">
+                <div>${toFaDigits(date)}</div>
+                <div>${time}</div>
+              </div>
+            </div>
             
-            if (item.normalized === '') {
-                box.classList.add('space');
-                box.textContent = '';
-                // برای نیم‌فاصله یا فاصله غیرقابل حدس یک باکس ایجاد نمی‌کنیم
-                return; 
-            }
+            <div class="history-game-stats">
+              <div class="history-stat">
+                <div class="history-stat-value">${toFaDigits(totalWords)}</div>
+                <div class="history-stat-label">کل کلمات</div>
+              </div>
+              <div class="history-stat">
+                <div class="history-stat-value" style="color:#10b981">${toFaDigits(guessedWords)}</div>
+                <div class="history-stat-label">حدس زده</div>
+              </div>
+              <div class="history-stat">
+                <div class="history-stat-value" style="color:#ef4444">${toFaDigits(failedWords)}</div>
+                <div class="history-stat-label">نزده</div>
+              </div>
+              <div class="history-stat">
+                <div class="history-stat-value">${toFaDigits(game.user_score || 0)}</div>
+                <div class="history-stat-label">امتیاز شما</div>
+              </div>
+            </div>
             
-            if (playerState.correct_letters.includes(item.normalized)) {
-                box.classList.add('revealed');
-                box.textContent = item.original; // نمایش حرف اصلی
-            } else {
-                box.textContent = 'ـ'; // Placeholder
-            }
-            wordEl.appendChild(box);
+            <div class="history-players">
+        `;
+        
+        // مرتب‌سازی بازیکنان بر اساس امتیاز
+        players.sort((a, b) => (b.score || 0) - (a.score || 0));
+        
+        players.forEach(player => {
+          const isMe = String(player.user_id) === String(state.user.id);
+          const isWinner = winners.some(w => w.user_id === player.user_id);
+          
+          // محاسبه آمار بازیکن
+          const playerStats = game.player_stats?.find(p => p.user_id === player.user_id) || {};
+          const wrongAttempts = playerStats.wrong_attempts || 0;
+          const allowedWrong = playerStats.allowed_wrong || 0;
+          
+          html += `
+            <div class="history-player ${isMe ? 'me' : ''} ${isWinner ? 'winner' : ''}">
+              <div>
+                <div class="history-player-name">
+                  ${esc(player.fullname || 'کاربر')} 
+                  ${isMe ? '<span style="color:var(--primary);">(شما)</span>' : ''}
+                  ${isWinner ? '<span class="winner-badge">🏆 برنده</span>' : ''}
+                </div>
+                <div class="history-player-details">
+                  <div class="history-player-detail">خطاها: ${toFaDigits(wrongAttempts)}/${toFaDigits(allowedWrong)}</div>
+                  <div class="history-player-detail">راهنما: ${toFaDigits(playerStats.hints_used || 0)}</div>
+                </div>
+              </div>
+              <div class="history-player-score">${toFaDigits(player.score || 0)}</div>
+            </div>
+          `;
         });
         
-        // Wrong Guesses
-        const wrongEl = $('wrongGuesses');
-        const wrongCount = playerState.wrong_letters.length;
-        const allowed = playerState.allowed_wrong;
-        
-        wrongEl.innerHTML = `حدس‌های غلط: <span style="color: ${wrongCount >= allowed ? 'var(--wrong)' : 'var(--text-main)'};">(${toFaDigits(wrongCount)} / ${toFaDigits(allowed)})</span>`;
-        if (wrongCount > 0) {
-            wrongEl.innerHTML += ` ( ${playerState.wrong_letters.map(esc).join('، ')} )`;
-        }
-        
-        if (wrongCount >= allowed) {
-            $('gameStatusMessage').textContent = 'متأسفانه سوختید! کلمه بعدی...';
-            // Disable actions
-            $('txtLetter').disabled = true;
-            $('btnGuess').disabled = true;
-            $('btnHint').disabled = true;
-        } else {
-            $('txtLetter').disabled = false;
-            $('btnGuess').disabled = false;
-        }
-
-
-        // Hint Display
-        const hintEl = $('hintDisplay');
-        if (playerState.hint_used) {
-            hintEl.style.display = 'block';
-            $('hintText').textContent = esc(currentWordData.description);
-            $('btnHint').disabled = true;
-        } else {
-            hintEl.style.display = 'none';
-            $('btnHint').disabled = wrongCount >= allowed; // اجازه استفاده از راهنما تا قبل از سوختن
-        }
-        
-        // Player List
-        const playersContainer = $('playersContainer');
-        playersContainer.innerHTML = '';
-        game.player_states.sort((a, b) => b.score - a.score).forEach(p => {
-            const item = document.createElement('div');
-            item.className = 'player-item';
-            item.innerHTML = `
-                <span class="username">${esc(p.username)} ${p.user_id === state.user.id ? '(شما)' : ''}</span>
-                <span class="score">${toFaDigits(p.score)} امتیاز</span>
-            `;
-            playersContainer.appendChild(item);
-        });
-
-        // Show game tab
-        $('tabGame').style.display = 'block';
-        $('btnExitGame').style.display = 'block';
-    }
-
-    function renderLeaderboard(data) {
-        const container = $('leaderboardContainer');
-        container.innerHTML = '';
-        if (data.length === 0) {
-            container.innerHTML = '<p class="info-text">هنوز هیچ امتیازی ثبت نشده است.</p>';
-            return;
-        }
-        
-        let html = '<table class="leaderboard-table"><tr><th>#</th><th>نام کاربری</th><th>امتیاز کل</th><th>برد</th><th>تعداد بازی</th></tr>';
-        data.forEach((row, index) => {
+        // نمایش کلمات به صورت ردیفی با جزئیات کامل
+        if (game.results && game.results.length > 0) {
+          html += `
+            <div class="history-words-progress">
+              <div class="history-words-title">جزئیات کلمات بازی</div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+          `;
+          
+          game.results.forEach((result, index) => {
+            const isGuessed = result.winners && result.winners.length > 0;
+            const userGuessed = isGuessed && result.winners.some(w => String(w) === String(state.user.id));
+            const wordObj = game.deck?.[index];
+            const word = wordObj?.word || 'نامشخص';
+            const description = wordObj?.description || 'بدون توضیح';
+            
+            // محاسبه تعداد مجاز خطا برای این کلمه (1.5 برابر طول کلمه)
+            const wordLength = word.replace(/[\s\u200c]/g, '').length;
+            const allowedWrongForWord = Math.max(1, Math.ceil(wordLength * 1.5));
+            
             html += `
-                <tr>
-                    <td class="lb-rank">${toFaDigits(index + 1)}</td>
-                    <td>${esc(row.username)}</td>
-                    <td class="lb-score">${toFaDigits(row.total_score)}</td>
-                    <td>${toFaDigits(row.wins)}</td>
-                    <td>${toFaDigits(row.games_played)}</td>
-                </tr>
+              <div class="history-word-row">
+                <div class="history-word ${isGuessed ? 'guessed' : 'failed'}" style="min-width:60px; justify-content:center;">
+                  ${toFaDigits(index + 1)}
+                  ${userGuessed ? '✓' : (isGuessed ? '●' : '✗')}
+                </div>
+                <div class="history-word-info">
+                  <div class="history-word-text">${esc(word)}</div>
+                  <div class="history-word-desc">${esc(description)}</div>
+                </div>
+                <div class="history-word-stats">
+                  <div>خطاهای مجاز: ${toFaDigits(allowedWrongForWord)}</div>
+                  <div>${isGuessed ? '✅ حدس زده شد' : '❌ حدس زده نشد'}</div>
+                </div>
+              </div>
             `;
-        });
-        html += '</table>';
-        container.innerHTML = html;
-    }
-
-    function renderHistory(history) {
-        const container = $('historyContainer');
-        container.innerHTML = '';
-        if (history.length === 0) {
-            container.innerHTML = '<p class="info-text">هنوز هیچ سابقه بازی برای شما ثبت نشده است.</p>';
-            return;
+          });
+          
+          html += `
+              </div>
+            </div>
+          `;
         }
-
-        history.forEach((game, index) => {
-            const item = document.createElement('div');
-            item.className = 'panel';
-            
-            const finalScore = game.player_state.score;
-            const statusText = game.status === 'completed' ? 'کامل شده' : 'ناتمام';
-            const statusColor = game.status === 'completed' ? 'var(--success)' : 'var(--text-secondary)';
-            
-            const wordsPlayed = game.results?.length || 0;
-            const totalWords = game.deck?.length || 0;
-            const totalWins = game.results?.filter(r => r.winners.includes(state.user.id)).length || 0;
-
-            item.innerHTML = `
-                <h4 style="margin: 0 0 10px 0;">بازی #${toFaDigits(history.length - index)}</h4>
-                <p style="margin: 5px 0; font-size: 0.9rem;">
-                    امتیاز شما: <span class="score-indicator">${toFaDigits(finalScore)}</span> | 
-                    وضعیت: <span style="color: ${statusColor}; font-weight: 700;">${statusText}</span>
-                </p>
-                <p style="margin: 5px 0; font-size: 0.9rem; color: var(--text-secondary);">
-                    سطح: ${trLevel(game.level)} | کلمات حل شده: ${toFaDigits(totalWins)} از ${toFaDigits(totalWords)}
-                </p>
-                <details style="margin-top: 10px;">
-                    <summary style="cursor: pointer; font-weight: 500;">جزئیات کلمات</summary>
-                    <ul style="list-style: none; padding: 0; margin-top: 10px;">
-                        ${game.deck.map((wordData, i) => {
-                            const result = game.results?.find(r => r.word_index === i);
-                            const winnerText = result?.winners.includes(state.user.id) ? 
-                                `<span style="color: var(--success);"> (حل شد)</span>` : 
-                                (result?.winners.length > 0 ? `<span style="color: var(--warning);"> (دیگران حل کردند)</span>` : `<span style="color: var(--wrong);"> (حل نشد)</span>`);
-
-                            return `<li style="padding: 5px 0; border-bottom: 1px dotted var(--border); font-size: 0.9rem;">
-                                <strong>${toFaDigits(i + 1)}.</strong> ${esc(wordData.word)} ${winnerText}
-                                <br><span style="font-size: 0.8rem; color: var(--text-secondary);">توضیح: ${esc(wordData.description)}</span>
-                            </li>`;
-                        }).join('')}
-                    </ul>
-                </details>
-            `;
-            container.appendChild(item);
-        });
+        
+        html += `
+            </div>
+          </div>
+        `;
+      });
+      
+      cont.innerHTML = html;
+    } else { 
+      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت تاریخچه</div>'; 
     }
-    
-    /* ----------------------------------------------------------------
-       SOCKET HANDLERS
-    ---------------------------------------------------------------- */
+  } catch(e) { 
+    console.error('History load error:', e);
+    cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; 
+  }
+}
 
-    function setupSocket() {
-        // Replace with your server URL if not running on the same host/port
-        state.socket = io(); 
-
-        state.socket.on('connect', () => {
-            console.log('Connected to server.');
-            const user = tg.initDataUnsafe.user || { id: 10000000, username: 'TestUser' }; // Fallback for testing outside Telegram
-            $('authPanel').style.display = 'block';
-            
-            // 1. Authenticate user
-            state.socket.emit('auth:user', { 
-                id: user.id, 
-                username: user.username || `User${user.id}` 
-            });
-        });
-
-        state.socket.on('auth:success', (data) => {
-            state.user = data;
-            state.userScore = data.score;
-            $('authPanel').style.display = 'none';
-            $('profilePanel').style.display = 'block';
-            $('tabs').style.display = 'flex';
-            $('userName').textContent = esc(data.username);
-            $('userTotalScore').textContent = toFaDigits(data.score);
-            
-            // 2. Fetch lobby list immediately
-            switchView('lobby'); 
-        });
-        
-        state.socket.on('auth:error', (error) => {
-            alert('خطای احراز هویت: ' + error.message);
-        });
-
-        // ROOMS
-        state.socket.on('room:list', renderRoomList);
-        
-        state.socket.on('room:presence', ({ room_id, count }) => {
-            // Re-fetch list to update player count, simpler than managing live DOM updates
-            if (state.currentView === 'lobby') state.socket.emit('room:fetch_list');
-        });
-
-        state.socket.on('room:error', (error) => {
-            alert('خطای اتاق: ' + error.message);
-        });
-
-        state.socket.on('room:join_success', ({ game_id, room_name, game_data }) => {
-            state.gameId = game_id;
-            state.roomName = room_name;
-            state.currentGame = game_data;
-            if (game_id && game_data) {
-                renderGameUI();
-                switchView('game');
-            } else {
-                // Joined but waiting for game to start
-                $('roomNameHeader').textContent = esc(room_name);
-                $('wordInfo').textContent = 'منتظر شروع بازی...';
-                $('gameStatusMessage').textContent = 'مالک باید بازی را شروع کند.';
-                $('wordDisplay').innerHTML = '';
-                $('wrongGuesses').textContent = '';
-                $('gameActions').style.display = 'none';
-                $('tabGame').style.display = 'block';
-                $('btnExitGame').style.display = 'block';
-                switchView('game');
-            }
-        });
-        
-        state.socket.on('game:new', ({ game_id, room_name, game_data }) => {
-            state.gameId = game_id;
-            state.roomName = room_name;
-            state.currentGame = game_data;
-            renderGameUI();
-            if (state.currentView !== 'game') switchView('game');
-        });
-
-        // GAMES
-        state.socket.on('game:update', (data) => {
-            if (data.game_id !== state.gameId) return;
-
-            // Update player's own score/state (if present)
-            if (data.user_id && data.user_id === state.user.id) {
-                let playerState = state.currentGame.player_states.find(p => p.user_id === state.user.id);
-                if (playerState) {
-                    Object.assign(playerState, data);
-                }
-            } else if (data.user_id) {
-                // Update other players' scores
-                let playerState = state.currentGame.player_states.find(p => p.user_id === data.user_id);
-                if (playerState) {
-                    playerState.score = data.score;
-                }
-            }
-            
-            // Check for full game state update (next word or completion)
-            if (data.status === 'completed' || data.current_word_index !== undefined) {
-                // Re-fetch full state for robustness when moving to next word or completion
-                state.socket.emit('game:fetch_state', { game_id: state.gameId, user_id: state.user.id });
-            }
-
-            // Re-render UI
-            if (state.currentView === 'game') {
-                renderGameUI();
-            }
-        });
-        
-        // This handler ensures the client gets the full, final state after complex server operations (like advanceToNextWord)
-        state.socket.on('game:full_state', (game_data) => {
-            if (!game_data) {
-                state.currentGame = null;
-                state.gameId = null;
-                stopTimer();
-                alert('بازی به پایان رسید یا پیدا نشد.');
-                $('tabGame').style.display = 'none';
-                switchView('lobby');
-                return;
-            }
-            state.currentGame = game_data;
-            state.userTotalScore = game_data.user_total_score;
-            $('userTotalScore').textContent = toFaDigits(state.userTotalScore);
-            if (state.currentView === 'game') {
-                renderGameUI();
-            }
-        });
-
-        // LEADERBOARD
-        state.socket.on('leaderboard:data', renderLeaderboard);
-        state.socket.on('leaderboard:error', (error) => {
-             $('leaderboardContainer').innerHTML = `<p class="info-text" style="color:var(--wrong);">${error.message}</p>`;
-        });
-        
-        // HISTORY
-        state.socket.on('user:history', renderHistory);
-        state.socket.on('user:history_error', (error) => {
-             $('historyContainer').innerHTML = `<p class="info-text" style="color:var(--wrong);">${error.message}</p>`;
-        });
+async function loadProfile() {
+  const cont = $('profileContainer');
+  cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:40px 20px;">در حال بارگذاری...</div>';
+  try {
+    const res = await fetch('/stats/profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
+    const d = await res.json();
+    if(d.ok) {
+      const u = d.user || {};
+      const s = d.stats || {};
+      let avatarHtml = u.photo_url ? 
+        `<img src="${esc(u.photo_url)}" class="profile-avatar" alt="Profile">` : 
+        `<div class="profile-avatar">${(state.user.name||'U').charAt(0).toUpperCase()}</div>`;
+      
+      // دریافت رتبه کاربر در رتبه‌بندی جهانی
+      const rankRes = await fetch('/stats/leaderboard', { method:'POST', headers:{'Content-Type':'application/json'} });
+      const rankData = await rankRes.json();
+      let userRank = '--';
+      if(rankData.ok && rankData.list) {
+        const userIndex = rankData.list.findIndex(item => String(item.user_id) === String(state.user.id));
+        if(userIndex !== -1) {
+          userRank = toFaDigits(userIndex + 1);
+        }
+      }
+      
+      cont.innerHTML = `
+        <div class="profile-card">
+          ${avatarHtml}
+          <h2 style="margin:0 0 8px 0; font-size:24px;">${esc(u.fullname || state.user.name)}</h2>
+          <div style="color:#64748b; font-size:14px; margin-bottom:16px;">ID: ${toFaDigits(state.user.id)}</div>
+          
+          <div style="background:#f8fafc; padding:16px; border-radius:var(--radius-sm); margin-bottom:20px; border:1px solid #e2e8f0;">
+            <div style="font-weight:700; color:var(--text-main); margin-bottom:8px;">رتبه جهانی</div>
+            <div style="font-size:32px; font-weight:900; color:var(--primary); text-align:center;">${userRank}</div>
+          </div>
+          
+          <div class="profile-stats">
+             <div class="stat-box">
+               <div class="stat-val">${toFaDigits(s.games_played || 0)}</div>
+               <div class="stat-lbl">بازی‌ها</div>
+             </div>
+             <div class="stat-box">
+               <div class="stat-val">${toFaDigits(s.total_score || 0)}</div>
+               <div class="stat-lbl">مجموع امتیاز</div>
+             </div>
+          </div>
+        </div>`;
+    } else { 
+      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت اطلاعات</div>'; 
     }
+  } catch(e) { 
+    cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; 
+  }
+}
 
-    /* ----------------------------------------------------------------
-       EVENT LISTENERS & SETUP
-    ---------------------------------------------------------------- */
-
-    // Tab switching
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.onclick = () => switchView(btn.getAttribute('data-tab'));
-    });
-    
-    // Game Actions
-    $('btnGuess').onclick = () => {
-        const val = normalize($('txtLetter').value);
-        if (!val) return;
-        state.socket.emit('game:guess', { 
-            game_id: state.gameId, 
-            user_id: state.user.id, 
-            letter: val 
-        });
-        $('txtLetter').value = ''; 
-        $('txtLetter').focus(); 
-    };
-    
-    $('txtLetter').onkeydown = (e) => { 
-        if(e.key === 'Enter') $('btnGuess').click(); 
-    };
-    
-    // **اصلاح منطق ورودی برای سازگاری بهتر با حروف فارسی**
-    $('txtLetter').oninput = (e) => { 
-        const v = normalize(e.target.value); 
-        // چک کردن برای حروف فارسی معتبر (بازه کلی یونیکد فارسی)
-        const validChar = (v && /^[آابپتثجچحخدذرزژسشصضطظعغفقکگلمنوهی]$/.test(v)) ? v : '';
-        e.target.value = validChar; 
-    };
-    
-    $('btnHint').onclick = () => {
-        if (!state.currentGame || state.currentGame.status !== 'active') return;
-        if (!confirm('آیا مطمئنید؟ استفاده از راهنما ۵۰ امتیاز از شما کم می‌کند.')) return;
-        state.socket.emit('game:hint', { 
-            game_id: state.gameId, 
-            user_id: state.user.id 
-        });
-    };
-    
-    $('btnExitGame').onclick = () => {
-        // این دکمه کاربر را به لابی برمی‌گرداند.
-        state.gameId = null;
-        state.currentGame = null;
-        stopTimer();
-        $('tabGame').style.display = 'none';
-        $('btnExitGame').style.display = 'none';
-        switchView('lobby');
-    };
-
-
-    // Timer Functions
-    function startTimer(initialMs = 0){ 
-        stopTimer();
-        state.timerMs = initialMs;
-        const renderTime = () => {
-            const s = Math.floor(state.timerMs / 1000); 
-            $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'));
+async function loadLeaderboard() {
+  const cont = $('leaderboardContainer');
+  cont.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:40px 20px;">در حال بارگذاری...</div>';
+  try {
+    const res = await fetch('/stats/leaderboard', { method:'POST', headers:{'Content-Type':'application/json'} });
+    const d = await res.json();
+    if(d.ok && d.list) {
+      if(!d.list.length) { 
+        cont.innerHTML = `
+          <div style="text-align:center; padding:40px 20px; color:#94a3b8;">
+            <div style="font-size:48px; margin-bottom:16px;">🏆</div>
+            <div>لیست رتبه‌بندی خالی است</div>
+          </div>`; 
+        return; 
+      }
+      
+      let html = '';
+      d.list.forEach((u, idx) => {
+         const isMe = String(u.user_id) === String(state.user.id);
+         const rank = idx + 1;
+         
+         // استفاده از fullname برای نمایش نام کاربر
+         const displayName = u.fullname || `کاربر ${String(u.user_id).slice(-4)}`;
+         
+         html += `
+           <div class="rank-item ${isMe ? 'me' : ''}">
+             ${isMe ? '<div class="rank-badge">شما</div>' : ''}
+             <div class="rank-position ${rank <= 3 ? 'top-' + rank : ''}">
+               ${toFaDigits(rank)}
+             </div>
+             <div class="rank-avatar">
+               ${(displayName.charAt(0) || 'U').toUpperCase()}
+             </div>
+             <div class="rank-player-info">
+               <div class="rank-player-name">${esc(displayName)}</div>
+               <div class="rank-player-stats">
+                 <span>${toFaDigits(u.games_played || 0)} بازی</span>
+                 <span>•</span>
+                 <span>${toFaDigits(u.total_score || 0)} امتیاز</span>
+               </div>
+             </div>
+             <div class="rank-score">${toFaDigits(u.total_score || 0)}</div>
+           </div>
+         `;
+      });
+      cont.innerHTML = html;
+      
+      // اضافه کردن event listener برای فیلترهای رتبه‌بندی
+      document.querySelectorAll('.rank-filter-btn').forEach(btn => {
+        btn.onclick = function() {
+          document.querySelectorAll('.rank-filter-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          $('rankPeriod').textContent = this.textContent;
+          // در اینجا می‌توانید فیلترهای مختلف رتبه‌بندی را اعمال کنید
         };
-        renderTime();
-
-        state.timerInterval = setInterval(() => { 
-            state.timerMs += 1000; 
-            renderTime();
-            // ارسال زمان به سرور هر ۵ ثانیه
-            if ((state.timerMs % 5000) === 0) {
-                 state.socket.emit('game:timer', { 
-                    game_id: state.gameId, 
-                    user_id: state.user.id, 
-                    timer_ms: state.timerMs 
-                });
-            }
-        }, 1000); 
+      });
+      
+    } else { 
+      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت اطلاعات</div>'; 
     }
+  } catch(e) { 
+    cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; 
+  }
+}
 
-    function stopTimer() {
-        if(state.timerInterval) {
-            clearInterval(state.timerInterval);
-            state.timerInterval = null;
-        }
-    }
-
-
-    // Modal & Room Creation
-    $('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
-    $('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
+// --- 3. NAVIGATION ---
+const showTab = (tab) => {
+  document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  
+  if(tab === 'game') {
+    $('view-game').classList.remove('hidden');
+    $('gameTabBtn').style.display = 'inline-block';
+    $('gameTabBtn').classList.add('active');
+    $('gameControls').classList.remove('hidden');
+  } else {
+    // مخفی کردن تب بازی فعال وقتی به تب دیگری می‌رویم
+    $('gameTabBtn').style.display = 'none';
+    $('gameControls').classList.add('hidden');
     
-    $('btnSubmitCreate').onclick = () => {
-        const roomName = $('txtRoomName').value.trim();
-        const level = $('selLevel').value;
-        
-        if (!roomName) return alert('لطفا نام اتاق را وارد کنید.');
+    if (tab === 'dashboard') { 
+      $('view-dashboard').classList.remove('hidden'); 
+      refreshLobby(); 
+    }
+    else if (tab === 'history') { 
+      $('view-history').classList.remove('hidden'); 
+      loadHistory(); 
+    }
+    else if (tab === 'profile') { 
+      $('view-profile').classList.remove('hidden'); 
+      loadProfile(); 
+    }
+    else if (tab === 'leaderboard') { 
+      $('view-leaderboard').classList.remove('hidden'); 
+      loadLeaderboard(); 
+    }
+    document.querySelector(`[data-target="${tab}"]`).classList.add('active');
+  }
+};
 
-        state.socket.emit('room:create', { 
-            user_id: state.user.id, 
-            room_name: roomName, 
-            level: level 
-        });
-        
-        $('modalCreate').style.display = 'none';
-    };
+$('btnBackMenu').onclick = () => showTab('dashboard');
+document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.target));
 
-    // Initialize
-    setupSocket();
+// --- 4. SOCKET & GAME ---
+const socket = io();
+socket.on('connect', () => { if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id }); });
+socket.on('game:started', (data) => { 
+  $('modalResults').style.display = 'none'; 
+  updateState(data.game_id, data.deck, { score:0, correct_letters:[], wrong_letters:[], current_index:0 }, data.players); 
+  showTab('game'); 
+});
+socket.on('game:state', (data) => {
+  let gs = data.state;
+  if(typeof gs.correct_letters === 'string') gs.correct_letters = JSON.parse(gs.correct_letters);
+  if(typeof gs.wrong_letters === 'string') gs.wrong_letters = JSON.parse(gs.wrong_letters);
+  updateState(gs.game_id, data.deck, gs, data.players);
+  state.timerMs = Number(gs.timer_ms) || 0;
+  showTab('game');
+});
+socket.on('game:finished', (data) => { 
+  // بستن کامل صفحه بازی و بازگشت به لابی
+  showResultsModal(data); 
+  // پاک کردن state بازی
+  state.roomId = null;
+  state.gameId = null;
+  state.deck = [];
+  state.gameState = {};
+  
+  // بازگشت به لابی پس از پایان تایمر
+  setTimeout(() => {
+    $('modalResults').style.display = 'none';
+    showTab('dashboard');
+  }, 5000);
+});
+socket.on('room:reset', () => { if(state.roomId) enterRoomMode(state.roomId, true); });
+
+function updateState(gid, deck, localState, allPlayers) {
+  state.gameId = gid; state.deck = deck; state.gameState = localState; state.allStates = allPlayers || [];
+  $('lblTotalWords').textContent = toFaDigits(deck ? deck.length : 0);
+  startTimer(); renderGame(); updatePlayersUI();
+}
+
+socket.on('game:states', (data) => { if(data.game_id === state.gameId) { state.allStates = data.states; updatePlayersUI(); } });
+socket.on('game:next', (data) => {
+  if(data.game_id !== state.gameId) return;
+  if(data.states) state.allStates = data.states;
+  if(String(data.by_user) === String(state.user.id)) {
+     $('txtLetter').value = ''; state.gameState.correct_letters = []; state.gameState.wrong_letters = []; state.gameState.current_index = data.nextIndex;
+     renderGame(); $('slotsContainer').style.opacity = 0; setTimeout(() => $('slotsContainer').style.opacity = 1, 300);
+  }
+  updatePlayersUI();
+});
+socket.on('game:letter:correct', (data) => {
+  const isMe = String(data.user_id) === String(state.user.id);
+  const pIndex = state.allStates.findIndex(p => String(p.user_id) === String(data.user_id));
+  if(pIndex >= 0 && data.player) state.allStates[pIndex] = { ...state.allStates[pIndex], ...data.player };
+  updatePlayersUI();
+  if(isMe) {
+    if(!state.gameState.correct_letters.includes(data.letter)) state.gameState.correct_letters.push(data.letter);
+    state.gameState.score = data.player.score; 
+    $('lblCurrentScore').textContent = toFaDigits(state.gameState.score);
+    renderGame();
+  }
+});
+socket.on('game:letter:wrong', (data) => {
+  const isMe = String(data.user_id) === String(state.user.id);
+  if(isMe) {
+    if(!state.gameState.wrong_letters.includes(data.letter)) state.gameState.wrong_letters.push(data.letter);
+    renderGame(); 
+    $('txtLetter').classList.add('shake'); 
+    setTimeout(()=> $('txtLetter').classList.remove('shake'), 400);
+  }
+});
+socket.on('game:hint:reveal', (data) => {
+  const isMe = String(data.user_id) === String(state.user.id);
+  if(isMe) { 
+    if(!state.gameState.correct_letters.includes(data.letter)) state.gameState.correct_letters.push(data.letter); 
+    renderGame(); 
+  }
+});
+socket.on('game:feedback', (data) => {
+  if(data.type === 'word-failed') { 
+    $('slotsContainer').innerHTML = `
+      <div style="width:100%; text-align:center; color:red; font-weight:bold; padding:20px; background:var(--danger-light); border-radius:var(--radius-sm); border:1px solid rgba(239,68,68,0.3);">
+        <div style="font-size:18px; margin-bottom:8px;">کلمه سوخت!</div>
+        <div style="font-size:24px; font-weight:800;">${data.word}</div>
+      </div>`; 
+    setTimeout(renderGame, 2000); 
+  }
+});
+
+async function enterRoomMode(roomId, skipApi = false) {
+  if(!skipApi) {
+    const res = await fetch('/rooms/join', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId, user_id: state.user.id }) });
+    const d = await res.json();
+    if(!d.ok) {
+        if(d.error === 'finished') alert('این بازی تمام شده است.');
+        else if(d.error === 'full') alert('اتاق پر است.');
+        else alert('خطا در اتصال');
+        return;
+    }
+  }
+  state.roomId = roomId; socket.emit('join-room', { room_id: roomId, user_id: state.user.id });
+  fetch('/rooms/state', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId }) }).then(r=>r.json()).then(d => {
+    if(d.ok && d.game) {
+       if(d.game.status === 'finished') {
+         showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
+         setTimeout(() => {
+           $('modalResults').style.display = 'none';
+           showTab('dashboard');
+         }, 5000);
+       }
+       else socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
+    } else {
+       showTab('game'); 
+       $('slotsContainer').innerHTML = `
+         <div style="padding:40px; color:#64748b; text-align:center; background:#f8fafc; border-radius:var(--radius-sm); border:1px solid #e2e8f0;">
+           <div style="font-size:32px; margin-bottom:12px;">⏳</div>
+           <div>در انتظار شروع بازی...</div>
+         </div>`; 
+       $('lblDescription').textContent = '...'; 
+       updatePlayersUI(d.players || []);
+    }
+    if(d.ok && String(d.room.created_by) === String(state.user.id)) $('btnRestartGame').classList.remove('hidden');
+    else $('btnRestartGame').classList.add('hidden');
+  });
+}
+
+$('btnLeave').onclick = async () => {
+  if(!state.roomId || !confirm('آیا مطمئن هستید که می‌خواهید بازی را ترک کنید؟')) return;
+  await fetch('/rooms/leave', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.user.id }) });
+  state.roomId = null; state.gameId = null; showTab('dashboard');
+};
+
+$('btnRefresh').onclick = refreshLobby; 
+$('filterLevel').onchange = refreshLobby;
+
+function renderGame() {
+  if(!state.deck || !state.deck.length) {
+      $('lblDescription').textContent = 'در حال دریافت اطلاعات...';
+      return;
+  }
+
+  const idx = Number(state.gameState.current_index) || 0;
+  if(idx >= state.deck.length) { 
+      $('lblDescription').textContent = '🎉 پایان بازی!'; 
+      $('slotsContainer').innerHTML = ''; 
+      return; 
+  }
+
+  const wordObj = state.deck[idx];
+  
+  $('lblWordIndex').textContent = toFaDigits(idx + 1); 
+  $('lblCategory').textContent = wordObj.category; 
+  $('lblLevel').textContent = trLevel(wordObj.level); 
+  $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
+
+  const word = normalize(wordObj.word);
+  const container = $('slotsContainer'); container.innerHTML = '';
+  const correctLetters = state.gameState.correct_letters || [];
+  const wrongLetters = state.gameState.wrong_letters || [];
+  
+  $('lblWrongCount').textContent = toFaDigits(wrongLetters.length); 
+  
+  // محاسبه تعداد مجاز خطا (1.5 برابر طول کلمه)
+  const wordLength = word.replace(/[\s\u200c]/g, '').length;
+  const allowedWrong = Math.max(1, Math.ceil(wordLength * 1.5));
+  $('lblAllowedWrong').textContent = toFaDigits(allowedWrong);
+  
+  [...word].forEach(char => {
+    if(char === ' ' || char === '\u200c') { 
+       const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap); 
+    } else { 
+       const slot = document.createElement('div'); slot.className='slot'; 
+       if(correctLetters.includes(char)) { 
+         slot.textContent = char; 
+         slot.classList.add('correct'); 
+       } 
+       container.appendChild(slot); 
+    }
+  });
+  
+  renderChips('chipsCorrect', correctLetters, 'correct'); 
+  renderChips('chipsWrong', wrongLetters, 'wrong');
+}
+
+function renderChips(id, arr, cls) { 
+  const el = $(id); el.innerHTML = ''; 
+  arr.forEach(l => { 
+    const c = document.createElement('div'); 
+    c.className=`chip ${cls}`; 
+    c.textContent=l; 
+    el.appendChild(c); 
+  }); 
+}
+
+function updatePlayersUI(rawList) {
+  const list = rawList || state.allStates || [];
+  const cont = $('playersListContainer'); cont.innerHTML = '';
+  
+  if(!list.length) {
+    cont.innerHTML = `
+      <div style="text-align:center; color:#94a3b8; font-size:13px; padding:20px;">
+        <div style="font-size:32px; margin-bottom:8px;">🎮</div>
+        در انتظار بازیکنان...
+      </div>`;
+    return;
+  }
+  
+  list.forEach(p => {
+    const isMe = String(p.user_id) === String(state.user.id);
+    const div = document.createElement('div'); div.className = 'player-card' + (isMe ? ' me' : '');
+    let progressTxt = 'لابی';
+    if(typeof p.current_index !== 'undefined') progressTxt = `کلمه ${toFaDigits((p.current_index||0)+1)} از ${toFaDigits(state.deck ? state.deck.length : 0)}`;
+    div.innerHTML = `
+      <div>
+        <div class="p-name">${esc(p.fullname || 'کاربر')} ${isMe?'<span style="color:var(--primary);">(شما)</span>':''}</div>
+        <div class="p-status">${progressTxt}</div>
+      </div>
+      <div class="p-score">${toFaDigits(p.score||0)}</div>`;
+    cont.appendChild(div);
+  });
+}
+
+function startAutoCloseTimer() {
+  let seconds = 5;
+  if (state.autoCloseInterval) clearInterval(state.autoCloseInterval);
+  
+  state.autoCloseInterval = setInterval(() => {
+    seconds--;
+    $('countdown').textContent = toFaDigits(seconds);
+    
+    if (seconds <= 0) {
+      clearInterval(state.autoCloseInterval);
+      $('modalResults').style.display = 'none';
+      showTab('dashboard');
+    }
+  }, 1000);
+}
+
+function showResultsModal(data) {
+    const results = data.results || []; const deck = data.deck || []; const players = data.players || [];
+    const tbody = $('resultsTableBody'); tbody.innerHTML = '';
+    const playerNames = {}; players.forEach(p => playerNames[p.user_id] = p.fullname || 'کاربر');
+    deck.forEach((wordObj, idx) => {
+        const res = results.find(r => r.index === idx);
+        const tr = document.createElement('tr');
+        let winnersHtml = '-';
+        if(res && res.winners && res.winners.length) winnersHtml = res.winners.map(uid => `<span class="winner-badge">${esc(playerNames[uid]||'Unknown')}</span>`).join(' ');
+        tr.innerHTML = `
+          <td>${toFaDigits(idx + 1)}</td>
+          <td style="font-weight:bold; font-size:15px;">${esc(wordObj.word)}</td>
+          <td style="font-size:12px; color:#64748b; max-width:200px;">${esc(wordObj.description)}</td>
+          <td>${winnersHtml}</td>`;
+        tbody.appendChild(tr);
+    });
+    $('modalResults').style.display = 'flex';
+    startAutoCloseTimer();
+}
+
+$('btnCloseResults').onclick = () => { 
+  if (state.autoCloseInterval) clearInterval(state.autoCloseInterval);
+  $('modalResults').style.display = 'none'; 
+  showTab('dashboard'); 
+};
+
+$('btnRestartGame').onclick = async () => { 
+  if(!state.roomId) return; 
+  await fetch('/game/restart', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.user.id }) }); 
+};
+
+$('btnGuess').onclick = () => { 
+  const val = $('txtLetter').value; 
+  if(!val) return $('txtLetter').focus(); 
+  socket.emit('game:guess', { game_id: state.gameId, user_id: state.user.id, letter: val }); 
+  $('txtLetter').value = ''; 
+  $('txtLetter').focus(); 
+};
+
+$('txtLetter').onkeydown = (e) => { if(e.key === 'Enter') $('btnGuess').click(); };
+
+$('txtLetter').oninput = (e) => { 
+  const v=normalize(e.target.value); 
+  e.target.value = (v && /^[\u0600-\u06FF]$/.test(v)) ? v : ''; 
+};
+
+$('btnHint').onclick = () => socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
+
+function startTimer(){ 
+  if(state.timerInterval) clearInterval(state.timerInterval); 
+  state.timerInterval = setInterval(() => { 
+    state.timerMs += 1000; 
+    const s = Math.floor(state.timerMs/1000); 
+    $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0')); 
+  }, 1000); 
+}
+
+function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
+
+function trLevel(l){ 
+  return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); 
+}
+
+$('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
+
+$('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
+
+$('btnSubmitCreate').onclick = async () => { 
+  const roomName = $('inpRoomName').value.trim() || 'اتاق خصوصی';
+  const res = await fetch('/rooms/create', { 
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({ 
+      user_id: state.user.id, 
+      name: roomName, 
+      level: $('inpRoomLevel').value, 
+      max_players: 2 
+    }) 
+  }); 
+  const d = await res.json(); 
+  if(d.ok) { 
+    $('modalCreate').style.display = 'none'; 
+    enterRoomMode(d.room_id, true); 
+  } 
+};
+
+// مقداردهی اولیه امتیاز
+$('lblCurrentScore').textContent = '0';
 </script>
-
 </body>
 </html>
