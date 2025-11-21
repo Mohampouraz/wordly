@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
-  <title>وردلی رقابتی</title>
+  <title>وردلی رقابتی - نسخه حرفه‌ای</title>
   <script async src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     // UI mode detection (glassy / legacy)
@@ -51,6 +51,17 @@
     .room-meta { font-size: 12px; color: var(--text-muted); }
     .game-header { display: flex; justify-content: space-between; margin-bottom: 20px; align-items: center; }
     .timer-box { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 8px; min-width: 80px; text-align: center; }
+    /* NEW: Description Box Style */
+    .description-box {
+        background: #fffbe3; 
+        border: 1px solid #fde047; 
+        border-radius: 12px; 
+        padding: 15px; 
+        margin-bottom: 20px; 
+        font-size: 14px;
+        line-height: 1.8;
+        color: #78350f;
+    }
     .slots-area { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 20px 0; }
     .slot { width: 48px; height: 56px; border: 2px solid #d1d5db; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; background: white; transition: all 0.3s ease; }
     .slot.gap { border: none; background: transparent; width: 10px; }
@@ -117,14 +128,20 @@
              <div class="timer-box" id="lblTimer" style="color:var(--warning)">--:--</div>
           </div>
         </div>
+        
+        <div class="description-box">
+             <b style="color:#a16207">توضیح کلمه:</b> <span id="lblDescription">در انتظار شروع بازی...</span>
+        </div>
+        
         <div id="slotsContainer" class="slots-area"></div>
+        
         <div style="margin-top:auto; margin-bottom:20px;">
           <div class="input-area">
             <input id="txtLetter" class="letter-input" maxlength="1" placeholder="؟" autocomplete="off">
             <button id="btnGuess" class="btn btn-primary" style="min-width:80px">ثبت</button>
-            <button id="btnHint" class="btn btn-ghost">راهنما</button>
+            <button id="btnHint" class="btn btn-ghost">راهنما (امتیاز -۱۰)</button>
           </div>
-          <div style="text-align:center; font-size:12px; margin-bottom:10px;">مجاز: <span id="lblWrongCount">0</span> / <span id="lblAllowedWrong">-</span></div>
+          <div style="text-align:center; font-size:12px; margin-bottom:10px;">حدس‌های غلط مجاز: <span id="lblWrongCount">۰</span> / <span id="lblAllowedWrong">۵</span></div>
           <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--success)">حروف صحیح</div>
           <div id="chipsCorrect" class="chips-container" style="margin-bottom:16px;"></div>
           <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--danger)">حروف غلط</div>
@@ -185,8 +202,7 @@ const state = {
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
        const u = tg.initDataUnsafe.user;
        state.user.id = u.id;
-       state.user.name = (u.first_name + ' ' + (u.last_name || '')).trim();
-       try { await fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user:u})}); } catch(e){}
+       state.user.name = (u.first_name + ' ' + (u.last_name || '')).trim() || 'کاربر تلگرام';
     }
   }
   $('headerUsername').textContent = state.user.name;
@@ -232,12 +248,13 @@ const socket = io();
 socket.on('connect', () => { if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id }); });
 
 socket.on('game:started', (data) => { 
-  updateState(data.game_id, data.deck, {score:0, correct_letters:[], wrong_letters:[], current_index:0}, data.players); 
+  updateState(data.game_id, data.deck, {score:0, correct_letters:[], wrong_letters:[], current_index:0, allowed_wrong: 5}, data.players); 
   showTab('game'); 
 });
 
 socket.on('game:state', (data) => {
   let gs = data.state;
+  // Ensure array structure if necessary, though server should send correct types
   if(typeof gs.correct_letters === 'string') gs.correct_letters = JSON.parse(gs.correct_letters);
   if(typeof gs.wrong_letters === 'string') gs.wrong_letters = JSON.parse(gs.wrong_letters);
   updateState(gs.game_id, data.deck, gs, data.players);
@@ -262,7 +279,11 @@ socket.on('game:next', (data) => {
   if(data.game_id !== state.gameId) return;
   if(data.states) state.allStates = data.states;
   if(String(data.by_user) === String(state.user.id)) {
-     $('txtLetter').value = ''; state.gameState.correct_letters = []; state.gameState.wrong_letters = []; state.gameState.current_index = data.nextIndex;
+     $('txtLetter').value = ''; 
+     state.gameState.correct_letters = []; 
+     state.gameState.wrong_letters = []; 
+     state.gameState.current_index = data.nextIndex;
+     
      // Update deadline for new word
      if(data.newState && data.newState.word_deadline) state.deadline = new Date(data.newState.word_deadline).getTime();
      renderGame(); updatePlayersUI(); startCountdown();
@@ -290,6 +311,10 @@ socket.on('game:letter:wrong', (data) => {
   if(isMe) {
     state.gameState.wrong_letters = state.gameState.wrong_letters || [];
     if(!state.gameState.wrong_letters.includes(data.letter)) state.gameState.wrong_letters.push(data.letter);
+    // Find my state in allStates and update wrong_letters count for correct display of remaining tries
+    const myStateInAll = state.allStates.find(p => String(p.user_id) === String(state.user.id));
+    if(myStateInAll) myStateInAll.wrong_letters = state.gameState.wrong_letters;
+    
     renderGame(); 
     $('txtLetter').classList.add('shake'); setTimeout(()=> $('txtLetter').classList.remove('shake'), 400);
   }
@@ -297,17 +322,23 @@ socket.on('game:letter:wrong', (data) => {
 
 socket.on('game:hint:reveal', (data) => {
   const isMe = String(data.user_id) === String(state.user.id);
+  const pIndex = state.allStates.findIndex(p => String(p.user_id) === String(data.user_id));
+  if(pIndex >= 0 && data.player) state.allStates[pIndex] = { ...state.allStates[pIndex], ...data.player };
+  updatePlayersUI();
+  
   if(isMe) {
     state.gameState.correct_letters = state.gameState.correct_letters || [];
     if(!state.gameState.correct_letters.includes(data.letter)) state.gameState.correct_letters.push(data.letter);
+    state.gameState.score = data.player.score; 
     renderGame();
   }
 });
 
 socket.on('game:feedback', (data) => {
   if(data.type === 'word-failed') {
-     $('slotsContainer').innerHTML = `<div style="width:100%; text-align:center; color:red; font-weight:bold;">کلمه سوخت!<br>${data.word}</div>`;
-     setTimeout(renderGame, 1500);
+     const word = data.word || 'کلمه ناشناخته';
+     // NOTE: The word is the *actual* word, so we can display it for a moment
+     $('slotsContainer').innerHTML = `<div style="width:100%; text-align:center; color:red; font-weight:bold; padding:30px;">کلمه سوخت! کلمه صحیح:<br>${esc(word)}</div>`;
   }
 });
 
@@ -331,13 +362,14 @@ async function enterRoomMode(roomId, skipApi = false) {
     else { 
       showTab('game'); 
       $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; 
+      $('lblDescription').textContent = 'در انتظار شروع بازی...';
       updatePlayersUI(d.players || []); 
     }
   });
 }
 
 $('btnLeave').onclick = async () => {
-  if(!state.roomId || !confirm('آیا مطمئن هستید؟')) return;
+  if(!state.roomId || !confirm('آیا مطمئن هستید که می‌خواهید بازی را ترک کنید؟')) return;
   await fetch('/rooms/leave', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.user.id }) });
   state.roomId = null; 
   state.gameId = null; 
@@ -361,16 +393,23 @@ $('btnRefresh').onclick = loadPublicRooms;
 $('filterLevel').onchange = loadPublicRooms;
 
 function renderGame() {
-  if(!state.deck.length) return;
   const idx = Number(state.gameState.current_index) || 0;
   const wordObj = state.deck[idx]; 
-  if(!wordObj) return;
+  
+  if(!wordObj) {
+      $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">کلمه‌ای برای حدس وجود ندارد.</div>';
+      $('lblDescription').textContent = 'کلمه‌ای برای حدس وجود ندارد.';
+      return;
+  }
   
   $('lblWordIndex').textContent = toFaDigits(idx + 1); 
   $('lblCategory').textContent = wordObj.category; 
   $('lblLevel').textContent = trLevel(wordObj.level);
   
-  const word = normalize(wordObj.word); 
+  // NEW: Display the word description
+  $('lblDescription').textContent = esc(wordObj.description || 'توصیفی برای این کلمه موجود نیست.');
+  
+  const wordLength = Number(wordObj.word_length) || 0; 
   const container = $('slotsContainer'); 
   container.innerHTML = '';
   
@@ -381,20 +420,18 @@ function renderGame() {
   $('lblWrongCount').textContent = toFaDigits(wrongLetters.length); 
   $('lblAllowedWrong').textContent = toFaDigits(allowedWrong);
   
-  [...word].forEach(char => {
-    if(char === ' ' || char === '\u200c') { 
-      const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap); 
-    } else { 
-      const slot = document.createElement('div'); slot.className='slot'; 
-      if(correctLetters.includes(char)) { 
-        slot.textContent = char; slot.classList.add('correct'); 
-      } 
-      container.appendChild(slot); 
-    }
-  });
+  // Render slots based on word length
+  for(let i = 0; i < wordLength; i++) {
+    const slot = document.createElement('div'); slot.className='slot'; 
+    // Since we don't know the exact position of letters in the normalized word, 
+    // we just render blank slots based on length.
+    container.appendChild(slot);
+  }
+
   renderChips('chipsCorrect', correctLetters, 'correct'); 
   renderChips('chipsWrong', wrongLetters, 'wrong');
 }
+
 
 function renderChips(id, arr, cls) { 
   const el = $(id); el.innerHTML = ''; 
@@ -409,6 +446,9 @@ function updatePlayersUI(rawList) {
   if (!list.length) {
     cont.innerHTML = '<div style="text-align:center; color:#999; font-size:12px; padding:20px;">در انتظار بازیکنان...</div>';
   }
+
+  // Sort players by score
+  list.sort((a, b) => (b.score || 0) - (a.score || 0));
 
   list.forEach(p => {
     const isMe = String(p.user_id) === String(state.user.id); 
@@ -427,6 +467,8 @@ function updatePlayersUI(rawList) {
 $('btnGuess').onclick = () => { 
   const val = $('txtLetter').value; 
   if(!val) return $('txtLetter').focus(); 
+  if (!state.gameId) return alert('بازی هنوز شروع نشده است.');
+
   socket.emit('game:guess', { game_id: state.gameId, user_id: state.user.id, letter: val }); 
   $('txtLetter').value = ''; 
   $('txtLetter').focus(); 
@@ -437,9 +479,14 @@ $('txtLetter').onkeydown = (e) => {
 // Input normalization and filtering to only accept single Persian letters
 $('txtLetter').oninput = (e) => { 
   const v=normalize(e.target.value); 
-  e.target.value = (v && /^[\u0600-\u06FF]$/.test(v)) ? v : ''; 
+  // Allow only a single Persian character that is a letter (not space, number, etc.)
+  e.target.value = (v && /^[\u0600-\u06FF\s]$/.test(v) && v.trim().length === 1) ? v.trim() : ''; 
 };
-$('btnHint').onclick = () => socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
+$('btnHint').onclick = () => {
+    if (!state.gameId) return alert('بازی هنوز شروع نشده است.');
+    if (state.gameState.score < 10) return alert('امتیاز شما کافی نیست. (حداقل ۱۰ امتیاز برای استفاده از راهنما نیاز است)');
+    socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
+};
 
 function startCountdown(){
   if(state.timerInterval) clearInterval(state.timerInterval);
@@ -453,8 +500,18 @@ function startCountdown(){
     const diff = Math.max(0, state.deadline - now);
     const s = Math.floor(diff/1000);
     
+    const minutes = String(Math.floor(s/60)).padStart(2,'0');
+    const seconds = String(s%60).padStart(2,'0');
+    
     // Update display
-    $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'));
+    $('lblTimer').textContent = toFaDigits(minutes + ':' + seconds);
+    
+    // Change color near end
+    if (s <= 10 && s > 0) {
+        $('lblTimer').style.color = var(--danger);
+    } else if (s > 10) {
+        $('lblTimer').style.color = var(--warning);
+    }
     
     // Check for timeout
     if (s <= 0) { 
@@ -470,20 +527,24 @@ function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
 function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
 
 $('btnNewRoom').onclick = () => {
-    $('inpRoomName').value = 'اتاق خصوصی';
+    $('inpRoomName').value = `اتاق ${Math.floor(Math.random()*1000)}`;
     $('modalCreate').style.display = 'flex';
+    $('inpRoomName').focus();
 };
 $('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
 $('btnSubmitCreate').onclick = async () => {
+  const roomName = $('inpRoomName').value.trim() || 'اتاق ناشناس';
   const res = await fetch('/rooms/create', { 
     method:'POST', 
     headers:{'Content-Type':'application/json'}, 
-    body: JSON.stringify({ user_id: state.user.id, name: $('inpRoomName').value, level: $('inpRoomLevel').value, max_players: 2 }) 
+    body: JSON.stringify({ user_id: state.user.id, name: roomName, level: $('inpRoomLevel').value, max_players: 2 }) 
   });
   const d = await res.json(); 
   if(d.ok) { 
     $('modalCreate').style.display = 'none'; 
     enterRoomMode(d.room_id, true); 
+  } else {
+    alert('خطا در ساخت اتاق. لطفا دوباره تلاش کنید.');
   }
 };
 </script>
