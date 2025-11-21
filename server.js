@@ -1,5 +1,3 @@
-
-
 require('dotenv').config();
 
 const express = require('express');
@@ -481,6 +479,20 @@ async function getGameStates(gameId) {
   return q.rows;
 }
 
+// تابع کمکی برای پیدا کردن socket کاربر
+function findUserSocket(roomId, userId) {
+  const roomSocketsSet = roomSockets.get(roomId);
+  if (!roomSocketsSet) return null;
+  
+  for (const socketId of roomSocketsSet) {
+    const meta = socketMeta.get(socketId);
+    if (meta && String(meta.user_id) === String(userId)) {
+      return socketId;
+    }
+  }
+  return null;
+}
+
 async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
   const currentWordObj = deck[currentIdx];
   if (currentWordObj) {
@@ -521,9 +533,29 @@ async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
   
   const playersState = await getGameStates(gameId);
   const newState = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2`, [gameId, userId]);
+  
+  // ارسال state جدید به همه کاربران
   if (roomId) {
-    io.to(roomId).emit('game:next', { game_id: gameId, by_user: userId, nextIndex, states: playersState });
-    io.to(roomId).emit('game:states', { game_id: gameId, states: playersState }); 
+    // ارسال state جدید به همه کاربران
+    for (const playerState of playersState) {
+      const userSocket = findUserSocket(roomId, playerState.user_id);
+      if (userSocket) {
+        io.to(userSocket).emit('game:state', { 
+          state: playerState, 
+          deck: deck, 
+          players: playersState 
+        });
+      }
+    }
+    
+    // همچنین event عمومی برای به‌روزرسانی UI
+    io.to(roomId).emit('game:word:advanced', { 
+      game_id: gameId, 
+      next_index: nextIndex,
+      states: playersState 
+    });
+    
+    io.to(roomId).emit('game:states', { game_id: gameId, states: playersState });
   }
   return newState.rows[0];
 }
