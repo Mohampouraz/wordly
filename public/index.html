@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="fa" dir="rtl">
 <head>
@@ -159,6 +160,25 @@
     .rank-row.me { background: #eff6ff; }
     .rank-num { font-weight: 900; color: var(--primary); width: 40px; text-align: center; display: inline-block; }
 
+    .history-game-card {
+      background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+      border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .history-game-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+    }
+    .history-game-title { font-weight: 700; font-size: 16px; color: var(--text-main); }
+    .history-game-meta { font-size: 12px; color: var(--text-muted); }
+    .history-players {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .history-player {
+      display: flex; justify-content: space-between; align-items: center; padding: 8px;
+      background: #f9fafb; border-radius: 8px;
+    }
+    .history-player-name { font-weight: 600; font-size: 14px; }
+    .history-player-score { font-weight: 700; color: var(--primary); }
+
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -195,6 +215,7 @@
 
   <nav class="nav-tabs">
     <button class="tab-btn active" data-target="dashboard">لابی</button>
+    <button class="tab-btn" data-target="history">تاریخچه بازی‌ها</button>
     <button class="tab-btn" data-target="leaderboard">رتبه‌بندی</button>
     <button class="tab-btn" data-target="profile">پروفایل</button>
     <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
@@ -223,6 +244,13 @@
         </div>
         <div id="roomsListContainer" class="room-list">
           <div style="text-align:center; color:#999; margin-top:20px;">در حال بارگذاری...</div>
+        </div>
+      </section>
+
+      <section id="view-history" class="panel hidden" style="height:100%; overflow-y:auto;">
+        <h3>تاریخچه بازی‌های من</h3>
+        <div id="historyContainer">
+           <div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>
         </div>
       </section>
 
@@ -422,6 +450,65 @@ async function loadPublicRooms(){
   });
 }
 
+async function loadHistory() {
+  const cont = $('historyContainer');
+  cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>';
+  try {
+    const res = await fetch('/stats/history', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
+    const d = await res.json();
+    if(d.ok && d.games) {
+      if(!d.games.length) { 
+        cont.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">هنوز بازی‌ای انجام نداده‌اید</div>'; 
+        return; 
+      }
+      
+      let html = '';
+      d.games.forEach(game => {
+        const date = new Date(game.finished_at).toLocaleDateString('fa-IR');
+        const time = new Date(game.finished_at).toLocaleTimeString('fa-IR');
+        
+        html += `
+          <div class="history-game-card">
+            <div class="history-game-header">
+              <div class="history-game-title">${esc(game.room_name || 'اتاق خصوصی')}</div>
+              <div class="history-game-meta">${toFaDigits(date)} - ${time}</div>
+            </div>
+            <div class="history-game-meta" style="margin-bottom:12px;">
+              سطح: ${trLevel(game.level)} | امتیاز شما: ${toFaDigits(game.user_score || 0)}
+            </div>
+            <div class="history-players">
+        `;
+        
+        // Sort players by score
+        const players = game.players || [];
+        players.sort((a, b) => (b.score || 0) - (a.score || 0));
+        
+        players.forEach(player => {
+          const isMe = String(player.user_id) === String(state.user.id);
+          html += `
+            <div class="history-player ${isMe ? 'me' : ''}">
+              <div class="history-player-name">${esc(player.fullname || 'کاربر')} ${isMe ? '(شما)' : ''}</div>
+              <div class="history-player-score">${toFaDigits(player.score || 0)}</div>
+            </div>
+          `;
+        });
+        
+        html += `
+            </div>
+          </div>
+        `;
+      });
+      
+      cont.innerHTML = html;
+    } else { 
+      cont.innerHTML = '<div style="text-align:center; color:red;">خطا در دریافت تاریخچه</div>'; 
+    }
+  } catch(e) { 
+    console.error('History load error:', e);
+    cont.innerHTML = '<div style="text-align:center; color:red;">خطا در اتصال</div>'; 
+  }
+}
+
 async function loadProfile() {
   const cont = $('profileContainer');
   cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>';
@@ -478,9 +565,22 @@ const showTab = (tab) => {
     $('gameControls').classList.remove('hidden');
   } else {
     $('gameControls').classList.add('hidden');
-    if (tab === 'dashboard') { $('view-dashboard').classList.remove('hidden'); refreshLobby(); }
-    else if (tab === 'profile') { $('view-profile').classList.remove('hidden'); loadProfile(); }
-    else if (tab === 'leaderboard') { $('view-leaderboard').classList.remove('hidden'); loadLeaderboard(); }
+    if (tab === 'dashboard') { 
+      $('view-dashboard').classList.remove('hidden'); 
+      refreshLobby(); 
+    }
+    else if (tab === 'history') { 
+      $('view-history').classList.remove('hidden'); 
+      loadHistory(); 
+    }
+    else if (tab === 'profile') { 
+      $('view-profile').classList.remove('hidden'); 
+      loadProfile(); 
+    }
+    else if (tab === 'leaderboard') { 
+      $('view-leaderboard').classList.remove('hidden'); 
+      loadLeaderboard(); 
+    }
     document.querySelector(`[data-target="${tab}"]`).classList.add('active');
   }
 };
@@ -503,12 +603,18 @@ socket.on('game:state', (data) => {
   state.timerMs = Number(gs.timer_ms) || 0;
   showTab('game');
 });
-socket.on('game:finished', (data) => { showResultsModal(data); });
+socket.on('game:finished', (data) => { 
+  // بستن صفحه بازی و نمایش نتایج
+  showResultsModal(data); 
+  // بازگشت به لابی پس از پایان تایمر
+  setTimeout(() => {
+    showTab('dashboard');
+  }, 5000);
+});
 socket.on('room:reset', () => { if(state.roomId) enterRoomMode(state.roomId, true); });
 
 function updateState(gid, deck, localState, allPlayers) {
   state.gameId = gid; state.deck = deck; state.gameState = localState; state.allStates = allPlayers || [];
-  // FIX: Ensure deck exists before accessing length
   $('lblTotalWords').textContent = toFaDigits(deck ? deck.length : 0);
   startTimer(); renderGame(); updatePlayersUI();
 }
@@ -562,7 +668,12 @@ async function enterRoomMode(roomId, skipApi = false) {
   state.roomId = roomId; socket.emit('join-room', { room_id: roomId, user_id: state.user.id });
   fetch('/rooms/state', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId }) }).then(r=>r.json()).then(d => {
     if(d.ok && d.game) {
-       if(d.game.status === 'finished') showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
+       if(d.game.status === 'finished') {
+         showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
+         setTimeout(() => {
+           showTab('dashboard');
+         }, 5000);
+       }
        else socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
     } else {
        showTab('game'); $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; $('lblDescription').textContent = '...'; updatePlayersUI(d.players || []);
@@ -581,7 +692,6 @@ $('btnLeave').onclick = async () => {
 $('btnRefresh').onclick = refreshLobby; $('filterLevel').onchange = refreshLobby;
 
 function renderGame() {
-  // Check if deck is ready
   if(!state.deck || !state.deck.length) {
       $('lblDescription').textContent = 'در حال دریافت اطلاعات...';
       return;
@@ -596,7 +706,6 @@ function renderGame() {
 
   const wordObj = state.deck[idx];
   
-  // --- UI Update ---
   $('lblWordIndex').textContent = toFaDigits(idx + 1); 
   $('lblCategory').textContent = wordObj.category; 
   $('lblLevel').textContent = trLevel(wordObj.level); 
@@ -687,4 +796,3 @@ $('btnSubmitCreate').onclick = async () => { const res = await fetch('/rooms/cre
 </script>
 </body>
 </html>
-[file content end]
