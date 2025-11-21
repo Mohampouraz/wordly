@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 
 /* ----------------------------------------------------------------
-   DB CONFIGURATION
+   DB CONNECTION
 ---------------------------------------------------------------- */
 const buildConnectionString = () => {
   let cs = process.env.DATABASE_URL;
@@ -35,20 +35,17 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// words.js must export { categories: [{ name, words:[{text, level}] }, ...] }
 const wordsData = require('./words');
 
 /* ----------------------------------------------------------------
-   HELPERS (Logic & Normalization)
+   HELPERS
 ---------------------------------------------------------------- */
-// 1. Normalize Single Letter (User Input)
 const normalizeFaLetter = ch => {
   if (!ch) return '';
   const map = { '\u064A':'\u06CC', '\u0643':'\u06A9' };
   return (map[ch] || ch).normalize('NFC');
 };
 
-// 2. Normalize Word for Display (Keep Spaces/ZWNJ)
 const normalizeFaWordKeepSpaces = word => {
   if (!word) return '';
   const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g;
@@ -57,19 +54,15 @@ const normalizeFaWordKeepSpaces = word => {
   return w.normalize('NFC');
 };
 
-// 3. Strict Normalization for Logic (REMOVE ALL SPACES)
-// This fixes the issue with "خوش نویسی" not completing.
+// حذف تمام فاصله‌ها برای محاسبه طول دقیق و شرط برد
 const normalizeFaWordStrict = word => {
   let w = normalizeFaWordKeepSpaces(word);
-  // Removes: Regular Space, ZWNJ (\u200c), ZWJ (\u200d), No-Break Space (\u00a0), etc.
   return w.replace(/[\s\u200c\u200d\u200b\u00a0]/g, '');
 };
 
-const lenNoSpaces = s => normalizeFaWordStrict(s).length;
 const floor = Math.floor;
 const ceil = Math.ceil;
 
-// Deterministic Deck
 const newGameDeckForRoom = (roomId, level = 'medium') => {
   const all = [];
   for (const cat of wordsData.categories) {
@@ -122,19 +115,32 @@ const ensureSchema = async () => {
 /* ----------------------------------------------------------------
    API ROUTES
 ---------------------------------------------------------------- */
+// ذخیره اطلاعات تلگرام در دیتابیس
 app.post('/auth/telegram', async (req, res) => {
   const { user } = req.body;
   try {
     const uid = Number(user?.id);
     if (!uid) return res.status(400).json({ ok:false });
-    const fullname = `${user.first_name || ''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || null;
+    
+    // ساخت نام کامل از روی اطلاعات تلگرام
+    const fullname = `${user.first_name || ''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || `کاربر ${uid}`;
+    
     await pool.query(`
       INSERT INTO users (id, username, first_name, last_name, fullname, language_code, photo_url)
       VALUES ($1,$2,$3,$4,$5,$6,$7)
-      ON CONFLICT (id) DO UPDATE SET fullname = EXCLUDED.fullname, photo_url = EXCLUDED.photo_url, updated_at = NOW();
+      ON CONFLICT (id) DO UPDATE SET 
+        first_name = EXCLUDED.first_name, 
+        last_name = EXCLUDED.last_name, 
+        fullname = EXCLUDED.fullname, 
+        photo_url = EXCLUDED.photo_url, 
+        updated_at = NOW();
     `, [uid, user.username, user.first_name, user.last_name, fullname, user.language_code, user.photo_url]);
+    
     res.json({ ok:true });
-  } catch (e) { res.status(500).json({ ok:false }); }
+  } catch (e) { 
+    console.error(e);
+    res.status(500).json({ ok:false }); 
+  }
 });
 
 app.get('/rooms/list', async (req, res) => {
@@ -156,7 +162,7 @@ app.post('/rooms/create', async (req, res) => {
   if (!user_id) return res.status(400).json({ ok:false });
   try {
     const roomId = crypto.randomUUID();
-    const mode = reveal_mode || 'private'; // Default to Private
+    const mode = reveal_mode || 'private'; 
     await pool.query(`INSERT INTO rooms (id, name, status, level, max_players, created_by, reveal_mode) VALUES ($1,$2,'waiting',$3,$4,$5,$6);`, 
       [roomId, name || 'اتاق خصوصی', level || 'medium', Number(max_players) || 2, user_id, mode]);
     await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3);`, [roomId, user_id, 'host']);
@@ -189,8 +195,8 @@ app.post('/rooms/join', async (req, res) => {
 
       for (const p of players.rows) {
         const strictLen = normalizeFaWordStrict(deck[0]?.word || '').length;
-        const hintsAllowed = Math.max(0, floor(strictLen / 2));
-        const allowedWrong = Math.max(1, ceil(strictLen * 1.5));
+        const hintsAllowed = Math.max(1, floor(strictLen / 3)); // Hint rule
+        const allowedWrong = Math.max(1, ceil(strictLen * 1.5)); // 1.5x Rule
         
         await pool.query(`INSERT INTO game_states (game_id,user_id,current_index,correct_letters,wrong_letters,hints_used,hints_allowed,score,guessed_count,allowed_wrong,timer_ms) 
           VALUES ($1,$2,0,'[]','[]',0,$3,0,0,$4,0) ON CONFLICT DO NOTHING;`, 
@@ -239,7 +245,7 @@ app.post('/rooms/state', async (req, res) => {
 });
 
 /* ----------------------------------------------------------------
-   SOCKETS
+   SOCKET LOGIC
 ---------------------------------------------------------------- */
 const roomSockets = new Map();
 const socketMeta = new Map();
@@ -263,11 +269,12 @@ async function advanceToNextWord(gameId, userId, currentIdx, deck, roomId) {
     return;
   }
 
-  // Use Strict length for limits (ignoring spaces)
   const nextWord = String(deck[nextIndex]?.word || '');
   const strictLen = normalizeFaWordStrict(nextWord).length;
-  const hintsAllowedNext = Math.max(0, floor(strictLen / 2));
-  const allowedWrongNext = Math.max(1, ceil(strictLen * 1.5));
+  
+  // Rules for next word
+  const hintsAllowedNext = Math.max(1, floor(strictLen / 3));
+  const allowedWrongNext = Math.max(1, ceil(strictLen * 1.5)); // 1.5x Rule applied here too
 
   await pool.query(`
     UPDATE game_states 
@@ -314,20 +321,6 @@ io.on('connection', (socket) => {
     } catch (e) { console.error(e); }
   });
 
-  socket.on('game:next', async({ game_id, user_id }) => {
-    try {
-      const gs = await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id]);
-      const g = await pool.query(`SELECT * FROM games WHERE id=$1`, [game_id]);
-      if(!gs.rows.length || !g.rows.length) return;
-      
-      const deck = g.rows[0].deck;
-      const idx = Number(gs.rows[0].current_index);
-      const gameRow = await pool.query(`SELECT room_id FROM games WHERE id=$1`, [game_id]);
-      
-      await advanceToNextWord(game_id, user_id, idx, deck, gameRow.rows[0]?.room_id);
-    } catch(e) {}
-  });
-
   socket.on('game:guess', async ({ game_id, user_id, letter }) => {
     try {
       if (!game_id || !user_id || !letter) return;
@@ -340,7 +333,6 @@ io.on('connection', (socket) => {
       const idx = Number(gs.current_index) || 0;
       
       const currentWordOrig = String(deck[idx]?.word || '');
-      // Use KEEP SPACES for position mapping
       const currentWord = normalizeFaWordKeepSpaces(currentWordOrig);
       
       const normalized = normalizeFaLetter(String(letter).trim());
@@ -380,9 +372,8 @@ io.on('connection', (socket) => {
            if(roomId) socket.to(roomId).emit('game:letter:correct', { user_id, letter: null, positions: [], scoreDelta, player: updatedPlayer.rows[0], shared: false });
         }
 
-        // WIN CHECK (STRICT - ignoring spaces)
+        // WIN CHECK (Strict)
         const currentWordStrict = normalizeFaWordStrict(currentWordOrig);
-        // Only unique ACTUAL characters
         const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
         const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
 
@@ -397,14 +388,22 @@ io.on('connection', (socket) => {
           [game_id, user_id, JSON.stringify(wrongLetters)]);
         
         const strictLen = normalizeFaWordStrict(currentWordOrig).length;
-        const allowedWrong = Number(gs.allowed_wrong) || Math.max(1, ceil(strictLen * 1.5));
-        const payload = { user_id, letter: normalized, wrongCount: wrongLetters.length, allowedWrong };
         
+        // Ensure allowedWrong matches rule
+        const allowedWrong = Number(gs.allowed_wrong) || Math.max(1, ceil(strictLen * 1.5));
+        
+        const payload = { user_id, letter: normalized, wrongCount: wrongLetters.length, allowedWrong };
         socket.emit('game:letter:wrong', payload);
 
+        // FAILURE CHECK (1.5x Rule)
         if (wrongLetters.length >= allowedWrong) {
-          const penalty = 10 * correctLetters.length;
+          const penalty = 5 * correctLetters.length; // Penalty logic
           await pool.query(`UPDATE game_states SET score = GREATEST(score - $3, 0) WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, penalty]);
+          
+          // Emit fail info (optional UI enhancement)
+          socket.emit('game:feedback', { type: 'word-failed', word: currentWordOrig });
+          
+          // Advance immediately
           await advanceToNextWord(game_id, user_id, idx, deck, roomId);
         }
       }
@@ -421,7 +420,6 @@ io.on('connection', (socket) => {
       const gs = gsq.rows[0];
       const deck = gq.rows[0].deck;
       const idx = Number(gs.current_index) || 0;
-      // Use Keep Spaces for positions
       const currentWord = normalizeFaWordKeepSpaces(String(deck[idx]?.word || ''));
       
       const hintsUsed = Number(gs.hints_used) || 0;
@@ -431,7 +429,7 @@ io.on('connection', (socket) => {
 
       let correctLetters = Array.isArray(gs.correct_letters) ? gs.correct_letters : JSON.parse(gs.correct_letters || '[]');
       
-      // Candidates must ignore spaces
+      // Filter candidates
       const candidates = currentWord.split('').filter(ch => ch.trim() !== '' && ch !== '\u200c' && !correctLetters.includes(ch));
       const uniqueCandidates = [...new Set(candidates)];
       
@@ -458,7 +456,6 @@ io.on('connection', (socket) => {
          socket.to(roomId).emit('game:states', { game_id, states: [updatedPlayer.rows[0]] });
       }
 
-      // CHECK WIN AFTER HINT (STRICT)
       const currentWordStrict = normalizeFaWordStrict(deck[idx]?.word || '');
       const uniqueRequired = new Set(currentWordStrict.split('').filter(c => c && c.trim() !== ''));
       const isWin = [...uniqueRequired].every(char => correctLetters.includes(char));
