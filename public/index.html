@@ -8,7 +8,6 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <script>
-    // تشخیص قابلیت‌های گرافیکی برای تم شیشه‌ای
     (function detectUi(){
       const supportsBackdrop = CSS.supports && (CSS.supports('backdrop-filter','blur(10px)') || CSS.supports('-webkit-backdrop-filter','blur(10px)'));
       if(supportsBackdrop) document.documentElement.classList.add('glassy');
@@ -40,7 +39,6 @@
     body { margin: 0; font-family: var(--font); background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; }
     .app-container { display: flex; flex-direction: column; height: 100%; max-width: 1200px; margin: 0 auto; }
 
-    /* HEADER */
     header {
       display: flex; justify-content: space-between; align-items: center;
       padding: 12px 20px; background: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -50,7 +48,6 @@
     .user-info { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
     .user-info b { font-size: 14px; }
 
-    /* LAYOUT */
     .main-grid {
       display: grid; grid-template-columns: 1fr 320px; gap: 20px; padding: 20px; flex: 1; overflow: hidden;
     }
@@ -74,7 +71,6 @@
       background: var(--primary); border-radius: 10px;
     }
 
-    /* BUTTONS */
     .btn {
       border: none; padding: 10px 16px; border-radius: 12px; cursor: pointer;
       font-family: var(--font); font-weight: 700; font-size: 14px;
@@ -86,7 +82,6 @@
     .btn-danger { background: #fee2e2; color: var(--danger); }
     .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
 
-    /* LISTS */
     .room-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 300px; }
     .room-item {
       display: flex; justify-content: space-between; align-items: center;
@@ -104,7 +99,6 @@
       margin-bottom: 8px;
     }
 
-    /* GAME UI */
     .game-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
     .timer-box { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 8px; }
     
@@ -144,7 +138,7 @@
     .p-score { font-weight: 900; color: var(--primary); font-size: 16px; }
     .p-status { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
-    /* PROFILE & STATS */
+    /* PROFILE & LEADERBOARD CSS */
     .profile-card {
       text-align: center; padding: 20px; background: linear-gradient(180deg, #eef2ff 0%, #fff 100%);
       border-radius: 20px; border: 1px solid #e0e7ff; margin-bottom: 20px;
@@ -165,7 +159,6 @@
     .rank-row.me { background: #eff6ff; }
     .rank-num { font-weight: 900; color: var(--primary); width: 40px; text-align: center; display: inline-block; }
 
-    /* MODALS */
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -250,7 +243,9 @@
           </div>
           <div class="timer-box" id="lblTimer">۰۰:۰۰</div>
         </div>
+        
         <div id="lblDescription" class="description-box">در حال بارگذاری...</div>
+
         <div id="slotsContainer" class="slots-area"></div>
         <div style="margin-top:auto; margin-bottom:20px;">
           <div class="input-area">
@@ -258,9 +253,11 @@
             <button id="btnGuess" class="btn btn-primary" style="min-width:80px">ثبت</button>
             <button id="btnHint" class="btn btn-ghost">راهنما</button>
           </div>
+          
           <div style="text-align:center; font-size:12px; margin-bottom:10px;">
              مجاز: <span id="lblWrongCount">0</span> / <span id="lblAllowedWrong">-</span>
           </div>
+
           <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--success)">حروف صحیح</div>
           <div id="chipsCorrect" class="chips-container" style="margin-bottom:16px;"></div>
           <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--danger)">حروف غلط</div>
@@ -335,7 +332,7 @@ const state = {
   gameState: {}, allStates: [], timerInterval: null, timerMs: 0
 };
 
-// --- 1. INIT ---
+// --- 1. INIT & AUTH ---
 (async function init(){
   let localUid = localStorage.getItem('w_uid');
   if(!localUid) { localUid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', localUid); }
@@ -360,7 +357,7 @@ function updateHeaderUI() {
   $('headerUserId').textContent = toFaDigits(state.user.id);
 }
 
-// --- 2. API CALLS ---
+// --- 2. DATA LOADERS ---
 async function refreshLobby() {
   await checkMyGames();
   await loadPublicRooms();
@@ -390,6 +387,22 @@ async function checkMyGames(){
   } catch(e) {}
 }
 
+async function loadPublicRooms(){
+  const lvl = $('filterLevel').value;
+  const res = await fetch('/rooms/list' + (lvl ? '?level='+lvl : ''));
+  const d = await res.json();
+  const cont = $('roomsListContainer'); cont.innerHTML = '';
+  if(!d.rooms || !d.rooms.length) return cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px">اتاقی یافت نشد</div>';
+  d.rooms.forEach(r => {
+    const div = document.createElement('div'); div.className = 'room-item';
+    const isFinished = r.status === 'finished';
+    const statusTxt = isFinished ? '<span style="color:#6b7280">تمام شده</span>' : (r.status === 'playing' ? '<span style="color:#ef4444">در حال بازی</span>' : '<span style="color:#10b981">در انتظار</span>');
+    const btnAttr = isFinished ? 'disabled style="opacity:0.5; cursor:not-allowed"' : `onclick="enterRoomMode('${r.id}')"`;
+    div.innerHTML = `<div class="room-info"><h4>${esc(r.name)}</h4><div class="room-meta">${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر | ${trLevel(r.level)} | ${statusTxt}</div></div><button class="btn btn-primary" ${btnAttr}>پیوستن</button>`;
+    cont.appendChild(div);
+  });
+}
+
 async function loadProfile() {
   const cont = $('profileContainer');
   cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>';
@@ -400,7 +413,6 @@ async function loadProfile() {
       const u = d.user || {};
       const s = d.stats || {};
       let avatarHtml = u.photo_url ? `<img src="${esc(u.photo_url)}" class="profile-avatar">` : `<div class="profile-avatar">${(state.user.name||'U').charAt(0).toUpperCase()}</div>`;
-      
       cont.innerHTML = `
         <div class="profile-card">
           ${avatarHtml}
@@ -410,8 +422,7 @@ async function loadProfile() {
              <div class="stat-box"><div class="stat-val">${toFaDigits(s.games_played || 0)}</div><div class="stat-lbl">بازی‌ها</div></div>
              <div class="stat-box"><div class="stat-val">${toFaDigits(s.total_score || 0)}</div><div class="stat-lbl">مجموع امتیاز</div></div>
           </div>
-        </div>
-      `;
+        </div>`;
     } else { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در دریافت اطلاعات</div>'; }
   } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در اتصال</div>'; }
 }
@@ -457,7 +468,7 @@ const showTab = (tab) => {
 $('btnBackMenu').onclick = () => showTab('dashboard');
 document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.target));
 
-// --- 4. SOCKET & GAME LOGIC ---
+// --- 4. SOCKET & GAME ---
 const socket = io();
 socket.on('connect', () => { if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id }); });
 socket.on('game:started', (data) => { 
@@ -478,9 +489,11 @@ socket.on('room:reset', () => { if(state.roomId) enterRoomMode(state.roomId, tru
 
 function updateState(gid, deck, localState, allPlayers) {
   state.gameId = gid; state.deck = deck; state.gameState = localState; state.allStates = allPlayers || [];
-  $('lblTotalWords').textContent = toFaDigits(deck.length);
+  // FIX: Ensure deck exists before accessing length
+  $('lblTotalWords').textContent = toFaDigits(deck ? deck.length : 0);
   startTimer(); renderGame(); updatePlayersUI();
 }
+
 socket.on('game:states', (data) => { if(data.game_id === state.gameId) { state.allStates = data.states; updatePlayersUI(); } });
 socket.on('game:next', (data) => {
   if(data.game_id !== state.gameId) return;
@@ -533,7 +546,7 @@ async function enterRoomMode(roomId, skipApi = false) {
        if(d.game.status === 'finished') showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
        else socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
     } else {
-       showTab('game'); $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; $('lblDescription').textContent = 'در انتظار...'; updatePlayersUI(d.players || []);
+       showTab('game'); $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; $('lblDescription').textContent = '...'; updatePlayersUI(d.players || []);
     }
     if(d.ok && String(d.room.created_by) === String(state.user.id)) $('btnRestartGame').classList.remove('hidden');
     else $('btnRestartGame').classList.add('hidden');
@@ -546,52 +559,32 @@ $('btnLeave').onclick = async () => {
   state.roomId = null; state.gameId = null; showTab('dashboard');
 };
 
-async function loadPublicRooms(){
-  const lvl = $('filterLevel').value;
-  const res = await fetch('/rooms/list' + (lvl ? '?level='+lvl : ''));
-  const d = await res.json();
-  const cont = $('roomsListContainer'); cont.innerHTML = '';
-  if(!d.rooms || !d.rooms.length) return cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px">اتاقی یافت نشد</div>';
-  d.rooms.forEach(r => {
-    const div = document.createElement('div'); div.className = 'room-item';
-    const isFinished = r.status === 'finished';
-    const statusTxt = isFinished ? '<span style="color:#6b7280">تمام شده</span>' : (r.status === 'playing' ? '<span style="color:#ef4444">در حال بازی</span>' : '<span style="color:#10b981">در انتظار</span>');
-    const btnAttr = isFinished ? 'disabled style="opacity:0.5; cursor:not-allowed"' : `onclick="enterRoomMode('${r.id}')"`;
-    div.innerHTML = `<div class="room-info"><h4>${esc(r.name)}</h4><div class="room-meta">${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر | ${trLevel(r.level)} | ${statusTxt}</div></div><button class="btn btn-primary" ${btnAttr}>پیوستن</button>`;
-    cont.appendChild(div);
-  });
-}
 $('btnRefresh').onclick = refreshLobby; $('filterLevel').onchange = refreshLobby;
 
 function renderGame() {
-  // --- BUG FIX: Check deck existence ---
+  // Check if deck is ready
   if(!state.deck || !state.deck.length) {
-     $('lblDescription').textContent = 'در حال دریافت اطلاعات بازی...';
-     return;
+      $('lblDescription').textContent = 'در حال دریافت اطلاعات...';
+      return;
   }
-  
+
   const idx = Number(state.gameState.current_index) || 0;
-  
-  // Check completion
   if(idx >= state.deck.length) { 
-      $('lblDescription').textContent = 'پایان بازی! در حال دریافت نتایج...'; 
+      $('lblDescription').textContent = 'پایان بازی!'; 
       $('slotsContainer').innerHTML = ''; 
       return; 
   }
-  
+
   const wordObj = state.deck[idx];
   
-  // --- UI Updates ---
+  // --- UI Update ---
   $('lblWordIndex').textContent = toFaDigits(idx + 1); 
   $('lblCategory').textContent = wordObj.category; 
   $('lblLevel').textContent = trLevel(wordObj.level); 
   $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
-  
-  // --- Render Slots ---
+
   const word = normalize(wordObj.word);
-  const container = $('slotsContainer'); 
-  container.innerHTML = '';
-  
+  const container = $('slotsContainer'); container.innerHTML = '';
   const correctLetters = state.gameState.correct_letters || [];
   const wrongLetters = state.gameState.wrong_letters || [];
   
@@ -600,20 +593,13 @@ function renderGame() {
   
   [...word].forEach(char => {
     if(char === ' ' || char === '\u200c') { 
-        const gap = document.createElement('div'); 
-        gap.className='slot gap'; 
-        container.appendChild(gap); 
+       const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap); 
     } else { 
-        const slot = document.createElement('div'); 
-        slot.className='slot'; 
-        if(correctLetters.includes(char)) { 
-            slot.textContent = char; 
-            slot.classList.add('correct'); 
-        } 
-        container.appendChild(slot); 
+       const slot = document.createElement('div'); slot.className='slot'; 
+       if(correctLetters.includes(char)) { slot.textContent = char; slot.classList.add('correct'); } 
+       container.appendChild(slot); 
     }
   });
-  
   renderChips('chipsCorrect', correctLetters, 'correct'); 
   renderChips('chipsWrong', wrongLetters, 'wrong');
 }
@@ -626,7 +612,7 @@ function updatePlayersUI(rawList) {
     const isMe = String(p.user_id) === String(state.user.id);
     const div = document.createElement('div'); div.className = 'player-card' + (isMe ? ' me' : '');
     let progressTxt = 'لابی';
-    if(typeof p.current_index !== 'undefined') progressTxt = `کلمه ${toFaDigits((p.current_index||0)+1)} از ${toFaDigits(state.deck.length)}`;
+    if(typeof p.current_index !== 'undefined') progressTxt = `کلمه ${toFaDigits((p.current_index||0)+1)} از ${toFaDigits(state.deck ? state.deck.length : 0)}`;
     div.innerHTML = `<div><div class="p-name">${esc(p.fullname || 'کاربر')} ${isMe?'(شما)':''}</div><div class="p-status">${progressTxt}</div></div><div class="p-score">${toFaDigits(p.score||0)}</div>`;
     cont.appendChild(div);
   });
