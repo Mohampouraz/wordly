@@ -9,13 +9,17 @@ const { Pool } = require('pg');
 const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 
-// فراخوانی فایل کلمات و اطمینان از اینکه خروجی یک آرایه است.
+// فراخوانی فایل کلمات.
 const importedData = require('./words');
-// اگر آرایه نبود، به دنبال ویژگی 'words' یا 'default' می‌گردیم.
-const wordsData = Array.isArray(importedData) ? importedData : importedData.words || importedData.default || [];
+
+let wordsData = [];
+if (importedData && Array.isArray(importedData.categories)) {
+    // استخراج تمامی کلمات از زیرآرایه‌های categories و تبدیل به یک آرایه مسطح
+    wordsData = importedData.categories.flatMap(category => category.words || []);
+}
 
 if (wordsData.length === 0) {
-    console.error("WARNING: words.js was loaded but contains no words. Please check the file's export format (expected: module.exports = [...] or module.exports = { words: [...] }).");
+    console.error("WARNING: words.js was loaded but contains no words. Please check the file's export format (expected: module.exports = { categories: [...] }).");
 }
 
 
@@ -73,9 +77,10 @@ async function getRoom(room_id) {
 const cachedWordsByLevel = {};
 
 /**
- * واکشی تصادفی کلمه جدید از آرایه wordsData (فایل words.js) در حافظه بر اساس سطح.
+ * واکشی تصادفی کلمه جدید از آرایه wordsData در حافظه بر اساس سطح.
+ * کلمه‌ای که از wordsData انتخاب می‌شود، فیلد 'text' را به 'word' تغییر می‌دهد.
  * @param {string} level سطح کلمه (easy, medium, hard)
- * @returns {object} کلمه و توضیحات آن
+ * @returns {object} کلمه و توضیحات آن ({ word: string, description: string, level: string })
  */
 function getNewWord(level) {
     if (!cachedWordsByLevel[level]) {
@@ -92,7 +97,14 @@ function getNewWord(level) {
     }
     
     const randomIndex = Math.floor(Math.random() * filteredWords.length);
-    return filteredWords[randomIndex];
+    const selectedWord = filteredWords[randomIndex];
+    
+    // تبدیل فیلد 'text' به 'word' برای سازگاری با بقیه کد سرور
+    return {
+        word: selectedWord.text, 
+        description: selectedWord.description,
+        level: selectedWord.level 
+    };
 }
 
 // واکشی وضعیت کامل بازی برای یک کاربر
@@ -134,7 +146,7 @@ async function createGame(owner_id, room_id, level) {
     const deck = []; 
     for(let i=0; i<deckSize; i++) { 
         const word = getNewWord(level); // استفاده از تابع جدید getNewWord
-        if (!word) throw new Error(`Could not generate enough words for deck. Level: ${level}`);
+        if (!word || !word.word) throw new Error(`Could not generate enough words for deck. Level: ${level}`);
         deck.push(word);
     }
     const game_id = crypto.randomUUID();
