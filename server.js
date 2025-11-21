@@ -1,5 +1,3 @@
-[file name]: StableSERVER.txt
-[file content begin]
 require('dotenv').config();
 
 const express = require('express');
