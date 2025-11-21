@@ -161,23 +161,78 @@
     .rank-num { font-weight: 900; color: var(--primary); width: 40px; text-align: center; display: inline-block; }
 
     .history-game-card {
-      background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
-      border: 1px solid #e5e7eb; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px;
+      border: 1px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .history-game-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
     }
     .history-game-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+      display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;
+      padding-bottom: 12px; border-bottom: 1px solid #f3f4f6;
     }
-    .history-game-title { font-weight: 700; font-size: 16px; color: var(--text-main); }
-    .history-game-meta { font-size: 12px; color: var(--text-muted); }
+    .history-game-title { font-weight: 700; font-size: 16px; color: var(--text-main); margin: 0; }
+    .history-game-meta { font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .history-game-stats {
+      display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap;
+    }
+    .history-stat {
+      display: flex; flex-direction: column; align-items: center; padding: 8px 12px;
+      background: #f8fafc; border-radius: 8px; min-width: 80px;
+    }
+    .history-stat-value { font-weight: 900; font-size: 18px; color: var(--primary); }
+    .history-stat-label { font-size: 11px; color: #6b7280; margin-top: 2px; }
     .history-players {
-      display: flex; flex-direction: column; gap: 8px;
+      display: flex; flex-direction: column; gap: 8px; margin-top: 12px;
     }
     .history-player {
-      display: flex; justify-content: space-between; align-items: center; padding: 8px;
-      background: #f9fafb; border-radius: 8px;
+      display: flex; justify-content: space-between; align-items: center; padding: 10px 12px;
+      background: #f9fafb; border-radius: 8px; border-left: 4px solid #e5e7eb;
     }
-    .history-player-name { font-weight: 600; font-size: 14px; }
-    .history-player-score { font-weight: 700; color: var(--primary); }
+    .history-player.me { 
+      background: #eff6ff; 
+      border-left-color: var(--primary);
+    }
+    .history-player.winner { 
+      background: #f0fdf4; 
+      border-left-color: var(--success);
+    }
+    .history-player-name { 
+      font-weight: 600; font-size: 14px; 
+      display: flex; align-items: center; gap: 6px;
+    }
+    .winner-badge {
+      background: #dcfce7; color: #166534; 
+      padding: 2px 6px; border-radius: 4px; 
+      font-size: 10px; font-weight: 700;
+    }
+    .history-player-score { 
+      font-weight: 900; color: var(--primary); 
+      font-size: 16px;
+    }
+    .history-words-progress {
+      margin-top: 16px; padding-top: 12px; border-top: 1px dashed #e5e7eb;
+    }
+    .history-words-title {
+      font-size: 13px; font-weight: 700; color: var(--text-muted); 
+      margin-bottom: 8px;
+    }
+    .history-words-list {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .history-word {
+      padding: 4px 8px; background: white; border-radius: 6px;
+      border: 1px solid #e5e7eb; font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .history-word.guessed {
+      background: #f0fdf4; border-color: #bbf7d0; color: #166534;
+    }
+    .history-word.failed {
+      background: #fef2f2; border-color: #fecaca; color: #991b1b;
+    }
 
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
@@ -467,31 +522,95 @@ async function loadHistory() {
         const date = new Date(game.finished_at).toLocaleDateString('fa-IR');
         const time = new Date(game.finished_at).toLocaleTimeString('fa-IR');
         
+        // محاسبه آمار
+        const totalWords = game.deck?.length || 0;
+        const guessedWords = game.results?.filter(r => r.winners && r.winners.length > 0).length || 0;
+        const failedWords = totalWords - guessedWords;
+        
+        // پیدا کردن برنده (بازیکن با بیشترین امتیاز)
+        const players = game.players || [];
+        const maxScore = Math.max(...players.map(p => p.score || 0));
+        const winners = players.filter(p => p.score === maxScore);
+        
         html += `
           <div class="history-game-card">
             <div class="history-game-header">
-              <div class="history-game-title">${esc(game.room_name || 'اتاق خصوصی')}</div>
-              <div class="history-game-meta">${toFaDigits(date)} - ${time}</div>
+              <div>
+                <div class="history-game-title">${esc(game.room_name || 'اتاق خصوصی')}</div>
+                <div style="font-size:12px; color:#6b7280; margin-top:4px;">سطح: ${trLevel(game.level)}</div>
+              </div>
+              <div class="history-game-meta">
+                <div>${toFaDigits(date)}</div>
+                <div>${time}</div>
+              </div>
             </div>
-            <div class="history-game-meta" style="margin-bottom:12px;">
-              سطح: ${trLevel(game.level)} | امتیاز شما: ${toFaDigits(game.user_score || 0)}
+            
+            <div class="history-game-stats">
+              <div class="history-stat">
+                <div class="history-stat-value">${toFaDigits(totalWords)}</div>
+                <div class="history-stat-label">کل کلمات</div>
+              </div>
+              <div class="history-stat">
+                <div class="history-stat-value" style="color:#10b981">${toFaDigits(guessedWords)}</div>
+                <div class="history-stat-label">حدس زده</div>
+              </div>
+              <div class="history-stat">
+                <div class="history-stat-value" style="color:#ef4444">${toFaDigits(failedWords)}</div>
+                <div class="history-stat-label">نزده</div>
+              </div>
+              <div class="history-stat">
+                <div class="history-stat-value">${toFaDigits(game.user_score || 0)}</div>
+                <div class="history-stat-label">امتیاز شما</div>
+              </div>
             </div>
+            
             <div class="history-players">
         `;
         
-        // Sort players by score
-        const players = game.players || [];
+        // مرتب‌سازی بازیکنان بر اساس امتیاز
         players.sort((a, b) => (b.score || 0) - (a.score || 0));
         
         players.forEach(player => {
           const isMe = String(player.user_id) === String(state.user.id);
+          const isWinner = winners.some(w => w.user_id === player.user_id);
+          
           html += `
-            <div class="history-player ${isMe ? 'me' : ''}">
-              <div class="history-player-name">${esc(player.fullname || 'کاربر')} ${isMe ? '(شما)' : ''}</div>
+            <div class="history-player ${isMe ? 'me' : ''} ${isWinner ? 'winner' : ''}">
+              <div class="history-player-name">
+                ${esc(player.fullname || 'کاربر')} 
+                ${isMe ? '(شما)' : ''}
+                ${isWinner ? '<span class="winner-badge">🏆 برنده</span>' : ''}
+              </div>
               <div class="history-player-score">${toFaDigits(player.score || 0)}</div>
             </div>
           `;
         });
+        
+        // نمایش کلمات
+        if (game.results && game.results.length > 0) {
+          html += `
+            <div class="history-words-progress">
+              <div class="history-words-title">روند بازی:</div>
+              <div class="history-words-list">
+          `;
+          
+          game.results.forEach((result, index) => {
+            const isGuessed = result.winners && result.winners.length > 0;
+            const userGuessed = isGuessed && result.winners.some(w => String(w) === String(state.user.id));
+            
+            html += `
+              <div class="history-word ${isGuessed ? 'guessed' : 'failed'}">
+                ${toFaDigits(index + 1)}
+                ${userGuessed ? '✓' : (isGuessed ? '●' : '✗')}
+              </div>
+            `;
+          });
+          
+          html += `
+              </div>
+            </div>
+          `;
+        }
         
         html += `
             </div>
@@ -546,7 +665,9 @@ async function loadLeaderboard() {
          const isMe = String(u.user_id) === String(state.user.id);
          const rank = idx + 1;
          let rankColor = rank===1?'#fbbf24':(rank===2?'#9ca3af':(rank===3?'#b45309':'#6b7280'));
-         html += `<tr class="rank-row ${isMe?'me':''}"><td style="text-align:center"><span class="rank-num" style="color:${rankColor}">${toFaDigits(rank)}</span></td><td style="font-weight:700; font-size:13px;">${esc(u.fullname)} ${isMe?'(شما)':''}</td><td style="text-align:center">${toFaDigits(u.games_played||0)}</td><td style="text-align:center; font-weight:900; color:var(--primary)">${toFaDigits(u.total_score||0)}</td></tr>`;
+         // استفاده از fullname برای نمایش نام کاربر
+         const displayName = u.fullname || `کاربر ${u.user_id}`;
+         html += `<tr class="rank-row ${isMe?'me':''}"><td style="text-align:center"><span class="rank-num" style="color:${rankColor}">${toFaDigits(rank)}</span></td><td style="font-weight:700; font-size:13px;">${esc(displayName)} ${isMe?'(شما)':''}</td><td style="text-align:center">${toFaDigits(u.games_played||0)}</td><td style="text-align:center; font-weight:900; color:var(--primary)">${toFaDigits(u.total_score||0)}</td></tr>`;
       });
       cont.innerHTML = html + '</tbody></table>';
     } else { cont.innerHTML = '<div style="text-align:center; color:red;">خطا در دریافت اطلاعات</div>'; }
@@ -564,7 +685,10 @@ const showTab = (tab) => {
     $('gameTabBtn').classList.add('active');
     $('gameControls').classList.remove('hidden');
   } else {
+    // مخفی کردن تب بازی فعال وقتی به تب دیگری می‌رویم
+    $('gameTabBtn').style.display = 'none';
     $('gameControls').classList.add('hidden');
+    
     if (tab === 'dashboard') { 
       $('view-dashboard').classList.remove('hidden'); 
       refreshLobby(); 
@@ -604,10 +728,17 @@ socket.on('game:state', (data) => {
   showTab('game');
 });
 socket.on('game:finished', (data) => { 
-  // بستن صفحه بازی و نمایش نتایج
+  // بستن کامل صفحه بازی و بازگشت به لابی
   showResultsModal(data); 
+  // پاک کردن state بازی
+  state.roomId = null;
+  state.gameId = null;
+  state.deck = [];
+  state.gameState = {};
+  
   // بازگشت به لابی پس از پایان تایمر
   setTimeout(() => {
+    $('modalResults').style.display = 'none';
     showTab('dashboard');
   }, 5000);
 });
@@ -671,6 +802,7 @@ async function enterRoomMode(roomId, skipApi = false) {
        if(d.game.status === 'finished') {
          showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
          setTimeout(() => {
+           $('modalResults').style.display = 'none';
            showTab('dashboard');
          }, 5000);
        }
