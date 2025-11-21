@@ -3,66 +3,86 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>وردلی رقابتی — نسخه استاندارد سبک</title>
+  <title>وردلی رقابتی — نسخه سازگار</title>
+
+  <!-- زودهنگام: تشخیص وضعیت UI قبل از بارگذاری استایل‌ها -->
+  <script>
+    (function detectAndApplyUiMode(){
+      function supportsCssVariables(){ return window.CSS && window.CSS.supports && window.CSS.supports('--a','0'); }
+      function supportsBackdropFilter(){
+        try { return window.CSS && window.CSS.supports && (window.CSS.supports('backdrop-filter','blur(4px)') || window.CSS.supports('-webkit-backdrop-filter','blur(4px)')); } catch(e){ return false; }
+      }
+      function isVeryOldBrowser(){
+        var ua = (navigator.userAgent||'').toLowerCase();
+        if (!ua) return false;
+        if (/\b(msie|trident)\b/.test(ua)) return true;
+        if (/\bwv\b/.test(ua) || /\bucbrowser\b/.test(ua) || /\bqqbrowser\b/.test(ua)) return true;
+        // heuristic for old Android stock browser
+        if (/\bandroid\b/.test(ua) && !/\bchrome\/(6[0-9]|[7-9][0-9])\b/.test(ua) && /\bversion\/([1-5]\.)/.test(ua)) return true;
+        return false;
+      }
+      var cssVars = supportsCssVariables();
+      var backdrop = supportsBackdropFilter();
+      var old = isVeryOldBrowser();
+      var useGlassy = cssVars && backdrop && !old;
+      try {
+        if (useGlassy) {
+          document.documentElement.classList.add('glassy-ui');
+          document.documentElement.setAttribute('data-ui-mode','glassy');
+        } else {
+          document.documentElement.classList.add('legacy-ui');
+          document.documentElement.setAttribute('data-ui-mode','legacy');
+        }
+        window.__UI_MODE__ = useGlassy ? 'glassy' : 'legacy';
+      } catch(e){}
+    })();
+  </script>
+
   <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
+
   <style>
-    /* ---------- پایه سبک و استاندارد ---------- */
     :root{
-      --bg: #f5f7fb;
+      --bg-glass: radial-gradient(1200px 600px at 20% -10%, #eaf3ff 0%, #f8fbff 30%, #ffffff 60%);
+      --bg-plain: #f5f7fb;
       --panel: #ffffff;
       --muted: #6b7280;
-      --text: #0f172a;
+      --text: #081124;
       --border: rgba(15,23,42,0.12);
       --accent: #4f46e5;
       --accent-2: #06b6d4;
       --success: #10b981;
       --danger: #ef4444;
       --radius: 12px;
-      --shadow-1: 0 4px 16px rgba(16,24,40,0.08);
-      --shadow-2: 0 8px 24px rgba(16,24,40,0.12);
+      --glass-blur: 12px;
+      --shadow-1: 0 6px 24px rgba(16,24,40,0.06);
     }
 
     *{box-sizing:border-box;font-family:'Vazirmatn',system-ui,Segoe UI,Roboto,-apple-system}
     html,body{height:100%;margin:0}
-    body{min-height:100vh;background:var(--bg);color:var(--text);-webkit-text-size-adjust:100%}
+    body{min-height:100vh;color:var(--text);-webkit-text-size-adjust:100%}
 
+    /* Branching: default legacy-friendly base */
+    body { background: var(--bg-plain); }
     .shell{
       max-width:1100px;margin:10px auto;padding:0;
       height:100vh; max-height:100vh; overflow:auto;
       border-radius:12px;
       background:var(--panel);
-      box-shadow:var(--shadow-2);
+      box-shadow:var(--shadow-1);
       border:1px solid var(--border);
     }
 
-    header.appbar{
-      display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
-      background:var(--panel);
-      border-bottom:1px solid var(--border);
-    }
+    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--panel);border-bottom:1px solid var(--border)}
     .brand{display:flex;gap:10px;align-items:center}
-    .badge{
-      width:44px;height:44px;border-radius:10px;
-      background:linear-gradient(135deg,var(--accent),var(--accent-2));
-      color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;
-      box-shadow:var(--shadow-1);
-    }
+    .badge{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;box-shadow:0 6px 18px rgba(79,70,229,0.12)}
     .title{font-weight:800;font-size:16px}
     .subtitle{font-size:12px;color:var(--muted)}
     .controls{display:flex;gap:8px;align-items:center}
 
-    .btn{
-      display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;
-      border:1px solid rgba(13,20,36,0.10);cursor:pointer;font-weight:700;font-size:14px;background:#f9fafb;color:#223;
-      transition: background .2s ease, box-shadow .2s ease, transform .15s ease;
-    }
-    .btn:hover{ background:#fff; box-shadow:0 4px 12px rgba(16,24,40,0.08); transform: translateY(-1px); }
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;border:1px solid rgba(13,20,36,0.10);cursor:pointer;font-weight:700;font-size:14px;background:#f9fafb;color:#223;transition:transform .15s ease,box-shadow .18s ease}
+    .btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,24,40,0.06)}
     .btn.ghost{background:#f9fafb;color:var(--muted)}
-    .btn.primary{
-      background:linear-gradient(90deg,var(--accent),var(--accent-2));
-      color:#fff;border:1px solid transparent;
-      box-shadow:0 6px 18px rgba(79,70,229,0.22);
-    }
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:1px solid transparent;box-shadow:0 10px 28px rgba(79,70,229,0.18)}
 
     nav.mini-tabs{display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border);background:#f7f9fc}
     .tab{padding:8px 10px;border-radius:10px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent}
@@ -71,38 +91,21 @@
     main.content{display:grid;grid-template-columns:1fr minmax(220px, 32%);gap:12px;padding:12px}
     @media (max-width:980px){ main.content{grid-template-columns:1fr} }
 
-    .panel{
-      background:var(--panel);
-      border:1px solid var(--border);
-      box-shadow:var(--shadow-1);
-      border-radius:var(--radius);
-      padding:12px;
-    }
+    .panel{background:var(--panel);border:1px solid var(--border);box-shadow:var(--shadow-1);border-radius:var(--radius);padding:12px}
     .hero{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px;border-radius:10px;background:#f8fbff;border:1px solid #e8eef7}
 
     .word-slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    .slot{
-      min-width:36px;min-height:44px;height:auto;padding:8px;border-radius:10px;border:1px solid rgba(20,30,60,0.10);
-      display:flex;align-items:center;justify-content:center;font-size:18px;background:#ffffff;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,0.7), 0 3px 10px rgba(16,24,40,0.06);
-      transition: background .15s ease, box-shadow .2s ease, transform .12s ease;
-    }
+    .slot{min-width:36px;min-height:44px;padding:8px;border-radius:10px;border:1px solid rgba(20,30,60,0.10);display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7),0 3px 10px rgba(16,24,40,0.06);transition:all .16s ease}
     .slot.gap{width:18px;border:0;background:transparent}
     .slot.revealed{background:#eef6ff}
-    .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.22);box-shadow:0 6px 16px rgba(16,185,129,0.12)}
-    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.20);box-shadow:0 6px 16px rgba(239,68,68,0.10)}
+    .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.22);box-shadow:0 6px 16px rgba(16,185,129,0.10)}
+    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.20);box-shadow:0 6px 16px rgba(239,68,68,0.08)}
 
     .controls-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center}
-    input.letter{
-      flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);
-      padding:8px;text-align:center;font-size:18px;background:#fff;
-    }
+    input.letter{flex:0 0 68px;min-width:56px;height:48px;border-radius:10px;border:1px solid var(--border);padding:8px;text-align:center;font-size:18px;background:#fff}
 
     .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip-letter{
-      padding:6px 10px;border-radius:999px;border:1px solid rgba(79,70,229,0.12);
-      background:#ffffff;font-weight:700;box-shadow:0 4px 12px rgba(16,24,40,0.06);
-    }
+    .chip-letter{padding:6px 10px;border-radius:999px;border:1px solid rgba(79,70,229,0.12);background:#fff;font-weight:700;box-shadow:0 4px 12px rgba(16,24,40,0.06)}
     .chip-letter.correct{background:#ecfdf5;color:var(--success);border-color:rgba(16,185,129,0.24)}
     .chip-letter.wrong{background:#fef2f2;color:var(--danger);border-color:rgba(239,68,68,0.22)}
 
@@ -112,7 +115,7 @@
     .pill{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--border);background:#fbfdff;color:var(--muted);font-weight:700;white-space:nowrap}
     .timer{font-weight:900;color:var(--accent);font-size:18px;min-width:56px;text-align:center}
 
-    input, textarea { scroll-margin-top: 20vh; outline:none; }
+    input, textarea { scroll-margin-top: 20vh; outline:none }
 
     @media (max-width:760px){
       html,body{padding:8px}
@@ -124,26 +127,37 @@
       .timer{font-size:16px}
     }
 
-    @keyframes shake {
-      10%, 90% { transform: translateX(-1px); }
-      20%, 80% { transform: translateX(2px); }
-      30%, 50%, 70% { transform: translateX(-4px); }
-      40%, 60% { transform: translateX(4px); }
-    }
-    .letter.shake { animation: shake .28s ease both; }
+    @keyframes shake {10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+    .letter.shake{animation:shake .28s ease both;}
 
-    @supports(backdrop-filter: blur(8px)) {
-      .shell{
-        background:linear-gradient(180deg, rgba(255,255,255,0.60), rgba(255,255,255,0.40));
-        backdrop-filter: blur(12px) saturate(1.05);
-      }
-      .panel{ background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82)); backdrop-filter: blur(10px) saturate(1.05); }
-      .hero{ background:linear-gradient(180deg,#f8fbff,#f2f6ff); }
+    /* ========== Glassy enhancements (only when detected) ========== */
+    .glassy-ui body { background: var(--bg-glass); }
+    .glassy-ui .shell{
+      background:linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0.35));
+      backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
+      -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.1);
+      border:1px solid rgba(79,70,229,0.14); box-shadow:0 24px 60px rgba(16,24,40,0.12)
     }
+    .glassy-ui .panel{ background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82)); backdrop-filter: blur(10px) saturate(1.05); -webkit-backdrop-filter: blur(10px) saturate(1.05); box-shadow:0 18px 48px rgba(16,24,40,0.12) }
+
+    /* ========== Legacy tweaks ========== */
+    .legacy-ui .shell{ background:var(--panel); box-shadow:var(--shadow-1); border:1px solid var(--border) }
+    .legacy-ui .panel{ background:var(--panel); box-shadow:0 6px 18px rgba(16,24,40,0.06) }
+
+    /* ========== Modal fixes: ensure inputs fit and wrap inside modal ========= */
+    #roomsModal > div { box-sizing:border-box; max-width:980px; width:calc(100% - 40px); }
+    #roomsModal .grid-rooms { display:grid; grid-template-columns:1fr 320px; gap:12px; align-items:start; }
+    @media (max-width:980px){ #roomsModal .grid-rooms{ grid-template-columns:1fr; } }
+    #roomsModal input, #roomsModal select { width:100%; box-sizing:border-box; display:block; }
+    #publicRoomsList, #myRoomsList { max-height:420px; overflow:auto; padding-right:6px; box-sizing:border-box; }
+    /* ensure buttons inside each room entry wrap */
+    .room { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px; border-radius:10px; background:transparent; }
+    .room button { white-space:nowrap; flex:0 0 auto; min-width:64px }
+
   </style>
 </head>
 <body>
-  <div class="shell" role="application" aria-label="وردلی رقابتی">
+  <div class="shell" role="application" aria-label="بازی حدس کلمه">
     <header class="appbar" role="banner">
       <div class="brand">
         <div class="badge" aria-hidden="true">و</div>
@@ -235,7 +249,7 @@
 
         <div id="aboutPanel" class="panel" style="margin-top:12px;display:none">
           <h3>درباره</h3>
-          <p class="muted">وردلی رقابتی — نسخه وب اپ با تاکید روی تجربه موبایل.</p>
+          <p class="muted">وردلی!</p>
         </div>
       </section>
 
@@ -271,10 +285,11 @@
 
     <footer style="padding:10px;border-top:1px solid var(--border);display:flex;justify-content:space-between;background:#f7f9fc">
       <div class="muted">وردلی — نسخه وب اپ</div>
-      <div class="muted">موبایل اول</div>
+      <div class="muted">توسعه توسط ابوالفضل محمدپور</div>
     </footer>
   </div>
 
+  <!-- Rooms Modal -->
   <div id="roomsModal" style="display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.28);z-index:1400;padding:20px" role="dialog" aria-hidden="true">
     <div style="width:100%;max-width:980px;background:#fff;border-radius:12px;padding:14px;box-shadow:0 12px 40px rgba(0,0,0,0.08)">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -284,7 +299,7 @@
         </div>
       </div>
 
-      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px">
+      <div class="grid-rooms" style="margin-top:12px;display:grid;grid-template-columns:1fr 320px;gap:12px">
         <div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
             <select id="filterLevel" style="padding:8px;border-radius:10px;border:1px solid var(--border)">
@@ -307,7 +322,7 @@
             <option value="hard">سخت</option>
           </select>
           <input id="newRoomMax" type="number" min="2" max="8" value="2" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);margin-top:8px" />
-          <div style="display:flex;gap:8px;margin-top:10px">
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
             <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
             <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
           </div>
@@ -340,7 +355,7 @@
 
     /* ---------- State ---------- */
     const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [], revealMode: 'shared', composing:false };
-    const socket = io ? io() : { emit(){}, on(){}, off(){} };
+    const socket = (typeof io !== 'undefined') ? io() : { emit(){}, on(){}, off(){} };
 
     /* ---------- DOM refs ---------- */
     const tabs = document.querySelectorAll('.tab');
@@ -388,6 +403,7 @@
     const progressMe = document.getElementById('progressMe');
     const progressOpp = document.getElementById('progressOpp');
 
+    /* ---------- Tabs and modal handlers ---------- */
     tabs.forEach(t => t.addEventListener('click', () => {
       tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
       const tab = t.dataset.tab;
@@ -403,16 +419,15 @@
     closeRooms.addEventListener('click', closeModal);
     window.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
 
+    /* ---------- Telegram WebApp init (best-effort) ---------- */
     (async function initTelegram(){
       function waitForTelegram(timeout = 2000){
         return new Promise(resolve => {
           const start = Date.now();
           (function check(){
-            try {
-              if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp);
-            } catch(e){}
+            try { if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp); } catch(e){}
             if (Date.now() - start > timeout) return resolve(null);
-            setTimeout(check, 50);
+            setTimeout(check,50);
           })();
         });
       }
@@ -426,18 +441,16 @@
             const fullname = `${user.first_name||''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || ('#' + state.myId);
             userNameEl.textContent = fullname;
             userIdEl.textContent = toFaDigits(state.myId);
-            try {
-              fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{});
-              tg.expand && tg.expand();
-            } catch(e){}
+            try { fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{}); tg.expand && tg.expand(); } catch(e){}
           } else fallbackGuest();
-        } catch (e) { fallbackGuest(); }
+        } catch(e){ fallbackGuest(); }
       } else fallbackGuest();
       loadSuggestedRooms();
     })();
 
     function fallbackGuest(){ if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999); userNameEl.textContent = 'کاربر مهمان'; userIdEl.textContent = toFaDigits(state.myId); }
 
+    /* ---------- Rooms loading ---------- */
     levelSelect.addEventListener('change', loadSuggestedRooms);
     if (refreshRooms) refreshRooms.addEventListener('click', loadPublicRooms);
     if (filterLevel) filterLevel.addEventListener('change', loadPublicRooms);
@@ -468,7 +481,7 @@
         if (!d.ok || !d.rooms || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
+          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||'اتاق')}</div><div class="muted" style="font-size:12px">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div></div>`;
           const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
           btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
           el.appendChild(btn); publicRoomsList.appendChild(el);
@@ -484,7 +497,7 @@
         if (!d.ok || !d.rooms || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted">شما اتاقی ندارید</div>'; return; }
         d.rooms.forEach(r => {
           const el = document.createElement('div'); el.className='room'; el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='8px'; el.style.borderRadius='10px';
-          el.innerHTML = `<div><div style="font-weight:800">${escapeHtml(r.name||r.id)}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'')}</div></div>`;
+          el.innerHTML = `<div style="min-width:0"><div style="font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.name||r.id)}</div><div class="muted" style="font-size:12px">${escapeHtml(r.level||'')}</div></div>`;
           const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
           open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
           const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
@@ -494,6 +507,7 @@
       } catch (e) { myRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
     }
 
+    /* ---------- Create / Join flows ---------- */
     if (createRoomBtn) {
       createRoomBtn.addEventListener('click', async () => {
         try {
@@ -533,7 +547,7 @@
       });
     }
 
-    // quickJoin: نام اتاق به "اتاق <کد>" تغییر می‌یابد
+    /* ---------- quickJoin: نام اتاق = "اتاق <کد>" ---------- */
     quickJoin.addEventListener('click', async () => {
       try {
         const code = generateRoomCode(4);
@@ -592,6 +606,7 @@
       playPanel.style.display = 'block';
     }
 
+    /* ---------- Socket events (resilient) ---------- */
     socket.on && socket.on('room:presence', ({ room_id, count, players }) => {
       playersCount.textContent = toFaDigits(count || 0);
       roomStatus.textContent = 'فعال';
@@ -618,6 +633,7 @@
       document.querySelector('.tab[data-tab="play"]').click();
       playPanel.style.display = 'block';
       updatePlayersList(players || []);
+      try { letterInput.focus({preventScroll:true}); } catch(e){}
     });
 
     socket.on && socket.on('game:states', ({ game_id, states }) => {
@@ -676,10 +692,11 @@
       }
     });
 
-    socket.on && socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) { /* server will send game:state */ } });
+    socket.on && socket.on('game:next', ({ game_id }) => { if (state.gameId === game_id) { /* server will emit game:state */ } });
 
     socket.on && socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); } });
 
+    /* ---------- Render ---------- */
     function renderGame(){
       if (!state.gameState || !state.deck || !state.deck.length) return;
       const idx = Number(state.gameState.current_index) || 0;
@@ -750,6 +767,7 @@
       setTimeout(()=> el.remove(), 1400);
     }
 
+    /* ---------- Input IME handling & sanitize ---------- */
     letterInput.addEventListener('compositionstart', () => { state.composing = true; });
     letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
     letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
@@ -757,6 +775,7 @@
 
     function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
 
+    /* ---------- Actions (guesses/hints/leave) ---------- */
     guessBtn.addEventListener('click', () => {
       if (state.composing) return;
       const vRaw = (letterInput.value||'').trim();
@@ -775,6 +794,7 @@
       document.querySelector('.tab[data-tab="dashboard"]').click();
     });
 
+    /* ---------- Timer ---------- */
     let timerHandle = null;
     function startTimer(){
       if (timerHandle) clearInterval(timerHandle);
@@ -790,8 +810,10 @@
       return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
     }
 
+    /* ---------- Misc ---------- */
     document.getElementById('clearState').addEventListener('click', () => { try{ localStorage.clear(); }catch(e){} alert('وضعیت محلی پاک شد'); });
 
+    // initial load
     loadSuggestedRooms();
   </script>
 </body>
