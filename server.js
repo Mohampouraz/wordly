@@ -62,10 +62,30 @@ async function getRoom(room_id) {
     return res.rows[0];
 }
 
-// واکشی کلمه برای بازی (از دیتابیس)
-async function getNewWord(level) {
-    const result = await pool.query(`SELECT word, description FROM words WHERE level=$1 ORDER BY RANDOM() LIMIT 1`, [level]);
-    return result.rows[0]; 
+// ذخیره‌سازی موقت کلمات فیلتر شده بر اساس سطح
+const cachedWordsByLevel = {};
+
+/**
+ * واکشی تصادفی کلمه جدید از آرایه wordsData (فایل words.js) در حافظه بر اساس سطح.
+ * @param {string} level سطح کلمه (easy, medium, hard)
+ * @returns {object} کلمه و توضیحات آن
+ */
+function getNewWord(level) {
+    if (!cachedWordsByLevel[level]) {
+        // فیلتر کردن و ذخیره در حافظه برای جستجوی سریعتر
+        cachedWordsByLevel[level] = wordsData.filter(w => w.level === level);
+    }
+    
+    const filteredWords = cachedWordsByLevel[level];
+    
+    if (filteredWords.length === 0) {
+        console.error(`No words available for level: ${level}. Check your words.js file.`);
+        // کلمه اضطراری
+        return { word: 'خطا', description: 'کلمه‌ای اضطراری. بانک کلمات خالی است.', level: level }; 
+    }
+    
+    const randomIndex = Math.floor(Math.random() * filteredWords.length);
+    return filteredWords[randomIndex];
 }
 
 // واکشی وضعیت کامل بازی برای یک کاربر
@@ -106,8 +126,8 @@ async function createGame(owner_id, room_id, level) {
     const deckSize = 3; 
     const deck = []; 
     for(let i=0; i<deckSize; i++) { 
-        const word = await getNewWord(level);
-        if (!word) throw new Error(`No word found for level: ${level}`);
+        const word = getNewWord(level); // استفاده از تابع جدید getNewWord
+        if (!word) throw new Error(`Could not generate enough words for deck. Level: ${level}`);
         deck.push(word);
     }
     const game_id = crypto.randomUUID();
@@ -264,7 +284,7 @@ io.on('connection', (socket) => {
           await pool.query(`INSERT INTO rooms (id, name, level, owner_id, status) VALUES ($1, $2, $3, $4, 'waiting');`, 
               [room_id, room_name, level, user_id]);
 
-          // 2. شروع بازی
+          // 2. شروع بازی (با کلمات بارگذاری شده از words.js)
           const { game_id } = await createGame(user_id, room_id, level);
 
           // 3. به‌روزرسانی اتاق و پیوستن سوکت
@@ -460,7 +480,6 @@ io.on('connection', (socket) => {
                   u.username,
                   COALESCE(SUM(gs.score), 0) AS total_score,
                   COUNT(DISTINCT gs.game_id) AS games_played,
-                  -- تعداد بردها: بازی‌هایی که در وضعیت completed هستند و ID کاربر در آرایه برندگان (winners) ثبت شده باشد.
                   COUNT(DISTINCT CASE WHEN g.status = 'completed' AND g.results @> jsonb_build_array(jsonb_build_object('winners', jsonb_build_array(gs.user_id))) THEN g.id ELSE NULL END) AS wins
               FROM 
                   users u
@@ -588,32 +607,7 @@ async function setupDatabase() {
         );
     `);
 
-    // 2. جدول کلمات 
-    await pool.query(`
-        CREATE TABLE IF NOT EXISTS words (
-            id SERIAL PRIMARY KEY,
-            word VARCHAR(50) NOT NULL,
-            description TEXT,
-            level VARCHAR(10) NOT NULL, -- easy, medium, hard
-            CONSTRAINT unique_word_level UNIQUE (word, level)
-        );
-    `);
-    
-    // وارد کردن داده‌ها از فایل words.js به دیتابیس
-    console.log(`Inserting/Updating ${wordsData.length} words from ./words.js into database...`);
-    for (const word of wordsData) {
-        if (!word.word || !word.level) continue; // Skip if mandatory fields are missing
-        await pool.query(`
-            INSERT INTO words (word, description, level) 
-            VALUES ($1, $2, $3)
-            ON CONFLICT (word, level) 
-            DO UPDATE SET description = EXCLUDED.description;
-        `, [word.word, word.description || '', word.level]);
-    }
-    console.log('Word data synchronization complete.');
-
-
-    // 3. جدول اتاق‌ها
+    // 2. جدول اتاق‌ها
     await pool.query(`
         CREATE TABLE IF NOT EXISTS rooms (
             id UUID PRIMARY KEY,
@@ -626,7 +620,7 @@ async function setupDatabase() {
         );
     `);
 
-    // 4. جدول بازی‌ها (شامل دک کلمات و نتایج)
+    // 3. جدول بازی‌ها (شامل دک کلمات و نتایج)
     await pool.query(`
         CREATE TABLE IF NOT EXISTS games (
             id UUID PRIMARY KEY,
@@ -640,7 +634,7 @@ async function setupDatabase() {
         );
     `);
 
-    // 5. جدول وضعیت بازی‌ها (امتیاز و حدس‌های هر بازیکن در هر بازی)
+    // 4. جدول وضعیت بازی‌ها (امتیاز و حدس‌های هر بازیکن در هر بازی)
     await pool.query(`
         CREATE TABLE IF NOT EXISTS game_states (
             game_id UUID REFERENCES games(id),
@@ -657,7 +651,8 @@ async function setupDatabase() {
         );
     `);
     
-    console.log('Database setup complete.');
+    // جدول کلمات حذف شد و کلمات مستقیماً از words.js استفاده می‌شوند.
+    console.log('Database setup complete. Word data is loaded from words.js in memory.');
 }
 
 
