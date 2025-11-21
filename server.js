@@ -170,7 +170,7 @@ const getRoomState = async (roomId) => {
     return room;
 };
 
-// FIX/OPTIMIZED: Function to broadcast room state and send specific game state to each player
+// Function to broadcast room state and send specific game state to each player
 const sendRoomState = async (roomId) => {
     const room = await getRoomState(roomId);
     if (!room) return;
@@ -201,8 +201,9 @@ const sendRoomState = async (roomId) => {
     }
 };
 
+// FIX: Added r.created_at to SELECT and g.id, r.created_at to GROUP BY to resolve the 42803 error.
 const getActiveRoomsList = async (level = null) => {
-    let q = `SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, r.reveal_mode, COUNT(rp.user_id) AS players, g.id AS game_id
+    let q = `SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, r.reveal_mode, r.created_at, COUNT(rp.user_id) AS players, g.id AS game_id
              FROM rooms r 
              LEFT JOIN room_players rp ON r.id = rp.room_id
              LEFT JOIN games g ON r.id = g.room_id AND r.status = 'in_game'
@@ -210,7 +211,8 @@ const getActiveRoomsList = async (level = null) => {
     const params = [];
     if (level) { params.push(level); q += ` AND r.level = $${params.length}`; }
     q += ` 
-    GROUP BY r.id ORDER BY r.created_at DESC LIMIT 100;`;
+    GROUP BY r.id, g.id, r.created_at -- FIX: Added g.id and r.created_at to GROUP BY
+    ORDER BY r.created_at DESC LIMIT 100;`;
     const out = await pool.query(q, params);
     // Correctly return players count as number
     return out.rows.map(row => ({ ...row, players: Number(row.players) }));
@@ -667,7 +669,7 @@ io.on('connection', (socket) => {
 
         const q = await pool.query(`
             SELECT 
-                gs.current_index, gs.correct_letters, gs.wrong_letters, gs.hints_used, gs.hints_allowed, 
+                gs.current_index, gs.correct_letters, gs.wrong_letters, gs.hints_used, gs.allowed_wrong, -- Corrected column name to allowed_wrong
                 g.deck, r.id AS room_id
             FROM game_states gs
             JOIN games g ON gs.game_id = g.id
@@ -677,7 +679,7 @@ io.on('connection', (socket) => {
 
         if (!q.rows.length) return socket.emit('error', { message: 'وضعیت بازی برای این کاربر یافت نشد.' });
         
-        const { current_index: idx, correct_letters: currentCorrect, hints_used, hints_allowed, deck, room_id } = q.rows[0];
+        const { current_index: idx, correct_letters: currentCorrect, hints_used, allowed_wrong, deck, room_id } = q.rows[0];
 
         if (idx >= deck.length) return socket.emit('error', { message: 'بازی به پایان رسیده است.' });
 
