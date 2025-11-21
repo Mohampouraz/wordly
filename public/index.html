@@ -31,25 +31,20 @@
       --radius: 16px;
       --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     }
-
     .glassy {
       --bg-body: linear-gradient(135deg, #e0e7ff 0%, #f3f4f6 100%);
       --bg-panel: rgba(255, 255, 255, 0.8);
     }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { margin: 0; font-family: var(--font); background: var(--bg-body); color: var(--text-main); height: 100vh; overflow: hidden; }
-
     .app-container { display: flex; flex-direction: column; height: 100%; max-width: 1200px; margin: 0 auto; }
 
     header {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 12px 20px;
-      background: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(0,0,0,0.05);
+      padding: 12px 20px; background: rgba(255,255,255,0.5); border-bottom: 1px solid rgba(0,0,0,0.05);
     }
     .logo { font-weight: 900; font-size: 20px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
     .logo span { background: var(--primary); color: white; width: 32px; height: 32px; border-radius: 8px; display: grid; place-items: center; }
-    
     .user-info { display: flex; flex-direction: column; align-items: flex-end; font-size: 13px; }
     .user-info b { font-size: 14px; }
 
@@ -60,16 +55,14 @@
 
     .panel {
       background: var(--bg-panel); border-radius: var(--radius); box-shadow: var(--shadow);
-      padding: 20px; display: flex; flex-direction: column;
-      border: 1px solid rgba(255,255,255,0.5);
+      padding: 20px; display: flex; flex-direction: column; border: 1px solid rgba(255,255,255,0.5);
     }
     .glassy .panel { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 
-    .nav-tabs { display: flex; gap: 10px; margin-bottom: 15px; padding: 0 20px; }
+    .nav-tabs { display: flex; gap: 10px; margin-bottom: 15px; padding: 0 20px; overflow-x: auto; }
     .tab-btn {
-      border: none; background: transparent; padding: 10px 0;
-      font-family: var(--font); font-weight: 700; color: var(--text-muted);
-      cursor: pointer; position: relative; transition: 0.3s;
+      border: none; background: transparent; padding: 10px 8px; font-family: var(--font); font-weight: 700; 
+      color: var(--text-muted); cursor: pointer; position: relative; transition: 0.3s; white-space: nowrap;
     }
     .tab-btn.active { color: var(--primary); }
     .tab-btn.active::after {
@@ -86,6 +79,7 @@
     .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
     .btn-ghost { background: rgba(0,0,0,0.05); color: var(--text-main); }
     .btn-danger { background: #fee2e2; color: var(--danger); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
 
     .room-list { display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 300px; }
     .room-item {
@@ -95,10 +89,18 @@
     .room-info h4 { margin: 0 0 4px 0; font-size: 15px; }
     .room-meta { font-size: 12px; color: var(--text-muted); }
 
+    #myActiveGamesContainer {
+      margin-bottom: 20px; border-bottom: 2px dashed #e5e7eb; padding-bottom: 20px;
+    }
+    .my-game-card {
+      background: linear-gradient(to right, #eff6ff, #fff); border: 1px solid #bfdbfe;
+      padding: 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    
     .game-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
     .timer-box { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--primary); background: #e0e7ff; padding: 4px 10px; border-radius: 8px; }
     
-    /* استایل توضیحات کلمه */
     .description-box {
       background: #eff6ff; color: #1e40af; padding: 12px; border-radius: 12px;
       text-align: center; font-size: 14px; line-height: 1.6; margin-bottom: 16px; 
@@ -135,14 +137,46 @@
     .p-score { font-weight: 900; color: var(--primary); font-size: 16px; }
     .p-status { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
+    /* --- Profile & Leaderboard Styles --- */
+    .profile-card {
+      text-align: center; padding: 20px; background: linear-gradient(180deg, #eef2ff 0%, #fff 100%);
+      border-radius: 20px; border: 1px solid #e0e7ff; margin-bottom: 20px;
+    }
+    .profile-avatar {
+      width: 80px; height: 80px; border-radius: 50%; background: var(--primary); color: white;
+      font-size: 32px; display: grid; place-items: center; margin: 0 auto 10px auto;
+      border: 4px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); object-fit: cover;
+    }
+    .profile-stats {
+      display: flex; justify-content: center; gap: 20px; margin-top: 20px;
+    }
+    .stat-box {
+      background: white; padding: 10px 20px; border-radius: 12px; border: 1px solid #e5e7eb;
+      min-width: 100px;
+    }
+    .stat-val { font-weight: 900; font-size: 20px; color: var(--primary); }
+    .stat-lbl { font-size: 12px; color: #6b7280; }
+
+    .rank-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .rank-table th { text-align: right; padding: 10px; color: #6b7280; font-size: 12px; }
+    .rank-table td { padding: 12px 10px; border-bottom: 1px solid #f3f4f6; }
+    .rank-row.me { background: #eff6ff; }
+    .rank-num { font-weight: 900; color: var(--primary); width: 40px; text-align: center; display: inline-block; }
+
+    /* Modal Styles */
     .modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
       display: none; align-items: center; justify-content: center; z-index: 1000;
     }
     .modal-content {
-      background: white; padding: 24px; border-radius: 20px; width: 90%; max-width: 500px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      background: white; padding: 24px; border-radius: 20px; width: 90%; max-width: 600px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto;
     }
+    .results-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+    .results-table th, .results-table td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; }
+    .results-table th { background: #f9fafb; color: #6b7280; font-weight: 600; }
+    .winner-badge { background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; display:inline-block; margin:1px;}
+
     .hidden { display: none !important; }
     .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
     @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
@@ -161,6 +195,8 @@
 
   <nav class="nav-tabs">
     <button class="tab-btn active" data-target="dashboard">لابی</button>
+    <button class="tab-btn" data-target="leaderboard">رتبه‌بندی</button>
+    <button class="tab-btn" data-target="profile">پروفایل</button>
     <button class="tab-btn" data-target="game" id="gameTabBtn" style="display:none">بازی فعال</button>
   </nav>
 
@@ -168,16 +204,13 @@
     <div class="content-area">
       
       <section id="view-dashboard" class="panel" style="height:100%">
+        <div id="myActiveGamesContainer" class="hidden">
+           <h4 style="margin:0 0 10px 0; color:var(--primary)">بازی‌های فعال من</h4>
+           <div id="myActiveGamesList"></div>
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
           <h3>اتاق‌های بازی</h3>
           <button id="btnNewRoom" class="btn btn-primary">ساخت اتاق +</button>
-        </div>
-        <div id="resumeBanner" class="hidden" style="background:#eff6ff; border:1px solid #bfdbfe; padding:12px; border-radius:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div style="font-weight:800; color:#1e40af">بازی در جریان دارید</div>
-            <div style="font-size:12px; color:#3b82f6" id="resumeRoomName">...</div>
-          </div>
-          <button id="btnResume" class="btn btn-primary" style="font-size:12px;">بازگشت به بازی</button>
         </div>
         <div style="display:flex; gap:10px; margin-bottom:10px;">
            <select id="filterLevel" style="padding:8px; border-radius:8px; border:1px solid #ccc">
@@ -188,23 +221,34 @@
            </select>
            <button id="btnRefresh" class="btn btn-ghost">بروزرسانی</button>
         </div>
-        
         <div id="roomsListContainer" class="room-list">
           <div style="text-align:center; color:#999; margin-top:20px;">در حال بارگذاری...</div>
+        </div>
+      </section>
+
+      <section id="view-leaderboard" class="panel hidden" style="height:100%; overflow-y:auto;">
+        <h3>برترین بازیکنان</h3>
+        <div id="leaderboardContainer">
+           <div style="text-align:center; color:#999; padding:20px;">در حال دریافت...</div>
+        </div>
+      </section>
+
+      <section id="view-profile" class="panel hidden" style="height:100%; overflow-y:auto;">
+        <h3>پروفایل من</h3>
+        <div id="profileContainer">
+           <div style="text-align:center; color:#999; padding:20px;">در حال دریافت...</div>
         </div>
       </section>
 
       <section id="view-game" class="panel hidden" style="height:100%">
         <div class="game-header">
           <div>
-            <h3 style="margin:0">کلمه <span id="lblWordIndex">۱</span> از ۱۰</h3>
+            <h3 style="margin:0">کلمه <span id="lblWordIndex">۱</span> از <span id="lblTotalWords">۱۰</span></h3>
             <div style="font-size:12px; color:#666"><span id="lblCategory">...</span> | <span id="lblLevel">...</span></div>
           </div>
           <div class="timer-box" id="lblTimer">۰۰:۰۰</div>
         </div>
-        
         <div id="lblDescription" class="description-box">در حال بارگذاری...</div>
-
         <div id="slotsContainer" class="slots-area"></div>
         <div style="margin-top:auto; margin-bottom:20px;">
           <div class="input-area">
@@ -212,18 +256,15 @@
             <button id="btnGuess" class="btn btn-primary" style="min-width:80px">ثبت</button>
             <button id="btnHint" class="btn btn-ghost">راهنما</button>
           </div>
-          
           <div style="text-align:center; font-size:12px; margin-bottom:10px;">
              مجاز: <span id="lblWrongCount">0</span> / <span id="lblAllowedWrong">-</span>
           </div>
-
           <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--success)">حروف صحیح</div>
           <div id="chipsCorrect" class="chips-container" style="margin-bottom:16px;"></div>
           <div style="text-align:center; margin-bottom:8px; font-size:12px; font-weight:700; color:var(--danger)">حروف غلط</div>
           <div id="chipsWrong" class="chips-container"></div>
         </div>
       </section>
-
     </div>
 
     <aside class="panel">
@@ -258,69 +299,58 @@
   </div>
 </div>
 
+<div id="modalResults" class="modal-backdrop" style="z-index: 1100;">
+  <div class="modal-content">
+    <h2 style="text-align:center; color:var(--primary)">پایان بازی</h2>
+    <div style="max-height:400px; overflow-y:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>کلمه</th>
+            <th>معنی</th>
+            <th>برندگان</th>
+          </tr>
+        </thead>
+        <tbody id="resultsTableBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:20px; display:flex; gap:10px; justify-content:center;">
+      <button id="btnRestartGame" class="btn btn-primary hidden">شروع بازی جدید</button>
+      <button id="btnCloseResults" class="btn btn-ghost">بستن و مشاهده لابی</button>
+    </div>
+  </div>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 const normalize = c => { if(!c) return ''; const m = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (m[c]||c).normalize('NFC'); };
 const $ = id => document.getElementById(id);
 
-// وضعیت گلوبال
 const state = {
   user: null, roomId: null, gameId: null, deck: [],
   gameState: {}, allStates: [], timerInterval: null, timerMs: 0
 };
 
-// --- 1. INIT & AUTHENTICATION ---
+// --- 1. INIT ---
 (async function init(){
-  // 1. ابتدا پیش‌فرض (مهمان) را تنظیم می‌کنیم
   let localUid = localStorage.getItem('w_uid');
-  if(!localUid) { 
-    localUid = Math.floor(100000 + Math.random()*900000); 
-    localStorage.setItem('w_uid', localUid); 
-  }
-  state.user = { 
-    id: localUid, 
-    name: 'کاربر ' + String(localUid).slice(-4), 
-    photo: null 
-  };
+  if(!localUid) { localUid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', localUid); }
+  state.user = { id: localUid, name: 'کاربر ' + String(localUid).slice(-4), photo: null };
 
-  // 2. بررسی وجود تلگرام وب‌اپ
-  let isTelegram = false;
   if (window.Telegram && window.Telegram.WebApp) {
     const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    
-    // بررسی دقیق initDataUnsafe
+    tg.ready(); tg.expand();
     if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-       isTelegram = true;
        const u = tg.initDataUnsafe.user;
-       
-       // استخراج صحیح نام
-       const firstName = u.first_name || '';
-       const lastName = u.last_name || '';
-       const fullName = (firstName + ' ' + lastName).trim() || 'کاربر تلگرام';
-
-       state.user.id = u.id;
-       state.user.name = fullName;
-       state.user.photo = u.photo_url;
-
-       // همگام‌سازی با سرور (ذخیره اطلاعات واقعی)
-       try {
-         await fetch('/auth/telegram', {
-           method: 'POST', headers: {'Content-Type':'application/json'},
-           body: JSON.stringify({ user: u })
-         });
-       } catch(e) { console.error('Auth Sync Error', e); }
+       const fullName = ((u.first_name||'') + ' ' + (u.last_name||'')).trim() || 'کاربر تلگرام';
+       state.user.id = u.id; state.user.name = fullName; state.user.photo = u.photo_url;
+       try { await fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user: u }) }); } catch(e){}
     }
   }
-  
-  // 3. به‌روزرسانی UI هدر
   updateHeaderUI();
-
-  // 4. ادامه بارگذاری
-  checkActiveGame();
-  loadPublicRooms();
+  refreshLobby();
 })();
 
 function updateHeaderUI() {
@@ -328,236 +358,263 @@ function updateHeaderUI() {
   $('headerUserId').textContent = toFaDigits(state.user.id);
 }
 
-// --- HELPER: Active Game Check ---
-async function checkActiveGame(){
+async function refreshLobby() {
+  await checkMyGames();
+  await loadPublicRooms();
+}
+
+async function checkMyGames(){
   try {
     const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
     const d = await res.json();
+    const cont = $('myActiveGamesList');
+    cont.innerHTML = '';
     if(d.ok && d.rooms && d.rooms.length > 0) {
-      const r = d.rooms[0];
-      // اگر بازی در جریان است، بنر نمایش داده شود
-      if(r.status === 'playing') {
-        $('resumeBanner').classList.remove('hidden');
-        $('resumeRoomName').textContent = r.name;
-        $('btnResume').onclick = () => enterRoomMode(r.id, true);
-      } else {
-        $('resumeBanner').classList.add('hidden');
-      }
+      $('myActiveGamesContainer').classList.remove('hidden');
+      d.rooms.forEach(r => {
+        if (r.status !== 'finished') {
+          const div = document.createElement('div'); div.className = 'my-game-card';
+          const statusText = r.status === 'playing' ? 'در جریان' : 'در انتظار';
+          const statusColor = r.status === 'playing' ? '#ef4444' : '#10b981';
+          div.innerHTML = `<div><div style="font-weight:bold; font-size:14px;">${esc(r.name)}</div><div style="font-size:12px; color:${statusColor}">${statusText}</div></div><button class="btn btn-primary btn-sm">بازگشت</button>`;
+          div.querySelector('button').onclick = () => enterRoomMode(r.id, true);
+          cont.appendChild(div);
+        }
+      });
     } else {
-      $('resumeBanner').classList.add('hidden');
+      $('myActiveGamesContainer').classList.add('hidden');
     }
   } catch(e) {}
 }
 
-// --- 2. NAVIGATION ---
+// --- NEW: PROFILE & LEADERBOARD LOADERS ---
+async function loadProfile() {
+  const cont = $('profileContainer');
+  cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>';
+  try {
+    const res = await fetch('/stats/profile', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id }) });
+    const d = await res.json();
+    if(d.ok) {
+      const u = d.user || {};
+      const s = d.stats || {};
+      // Fallback avatar if no photo
+      let avatarHtml = '';
+      if(u.photo_url) {
+        avatarHtml = `<img src="${esc(u.photo_url)}" class="profile-avatar" onerror="this.style.display='none'">`;
+      } else {
+        const initial = (state.user.name || 'U').charAt(0).toUpperCase();
+        avatarHtml = `<div class="profile-avatar">${initial}</div>`;
+      }
+      
+      cont.innerHTML = `
+        <div class="profile-card">
+          ${avatarHtml}
+          <h2 style="margin:0 0 5px 0;">${esc(u.fullname || state.user.name)}</h2>
+          <div style="color:#6b7280; font-size:13px;">ID: ${toFaDigits(state.user.id)}</div>
+          
+          <div class="profile-stats">
+             <div class="stat-box">
+               <div class="stat-val">${toFaDigits(s.games_played || 0)}</div>
+               <div class="stat-lbl">بازی‌ها</div>
+             </div>
+             <div class="stat-box">
+               <div class="stat-val">${toFaDigits(s.total_score || 0)}</div>
+               <div class="stat-lbl">مجموع امتیاز</div>
+             </div>
+          </div>
+        </div>
+      `;
+    } else {
+      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت اطلاعات</div>';
+    }
+  } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; }
+}
+
+async function loadLeaderboard() {
+  const cont = $('leaderboardContainer');
+  cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">در حال بارگذاری...</div>';
+  try {
+    const res = await fetch('/stats/leaderboard', { method:'POST', headers:{'Content-Type':'application/json'} });
+    const d = await res.json();
+    if(d.ok && d.list) {
+      if(d.list.length === 0) {
+         cont.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">لیست خالی است</div>';
+         return;
+      }
+      let html = '<table class="rank-table"><thead><tr><th style="text-align:center">#</th><th>بازیکن</th><th style="text-align:center">بازی‌ها</th><th style="text-align:center">امتیاز</th></tr></thead><tbody>';
+      d.list.forEach((u, idx) => {
+         const isMe = String(u.user_id) === String(state.user.id);
+         const rank = idx + 1;
+         let rankColor = '#6b7280';
+         if(rank===1) rankColor='#fbbf24'; // Gold
+         else if(rank===2) rankColor='#9ca3af'; // Silver
+         else if(rank===3) rankColor='#b45309'; // Bronze
+
+         html += `
+           <tr class="rank-row ${isMe?'me':''}">
+             <td style="text-align:center"><span class="rank-num" style="color:${rankColor}">${toFaDigits(rank)}</span></td>
+             <td style="font-weight:700; font-size:13px;">${esc(u.fullname)} ${isMe?'(شما)':''}</td>
+             <td style="text-align:center">${toFaDigits(u.games_played||0)}</td>
+             <td style="text-align:center; font-weight:900; color:var(--primary)">${toFaDigits(u.total_score||0)}</td>
+           </tr>
+         `;
+      });
+      html += '</tbody></table>';
+      cont.innerHTML = html;
+    } else {
+      cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در دریافت اطلاعات</div>';
+    }
+  } catch(e) { cont.innerHTML = '<div style="text-align:center; color:red; padding:20px;">خطا در اتصال</div>'; }
+}
+
+// --- NAVIGATION ---
 const showTab = (tab) => {
   document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  
   if(tab === 'game') {
     $('view-game').classList.remove('hidden');
     $('gameTabBtn').style.display = 'inline-block';
     $('gameTabBtn').classList.add('active');
     $('gameControls').classList.remove('hidden');
   } else {
-    $('view-dashboard').classList.remove('hidden');
-    document.querySelector('[data-target="dashboard"]').classList.add('active');
     $('gameControls').classList.add('hidden');
-    checkActiveGame();
-    loadPublicRooms();
+    if (tab === 'dashboard') {
+        $('view-dashboard').classList.remove('hidden');
+        refreshLobby();
+    } else if (tab === 'profile') {
+        $('view-profile').classList.remove('hidden');
+        loadProfile();
+    } else if (tab === 'leaderboard') {
+        $('view-leaderboard').classList.remove('hidden');
+        loadLeaderboard();
+    }
+    document.querySelector(`[data-target="${tab}"]`).classList.add('active');
   }
 };
 $('btnBackMenu').onclick = () => showTab('dashboard');
 document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.dataset.target));
 
-// --- 3. SOCKET LOGIC ---
+// --- SOCKET & GAME LOGIC ---
 const socket = io();
-socket.on('connect', () => {
-  if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id });
-});
-socket.on('game:started', (data) => {
-  updateState(data.game_id, data.deck, { score:0, correct_letters:[], wrong_letters:[], current_index:0 }, data.players);
-  showTab('game');
-});
+socket.on('connect', () => { if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id }); });
+socket.on('game:started', (data) => { $('modalResults').style.display = 'none'; updateState(data.game_id, data.deck, { score:0, correct_letters:[], wrong_letters:[], current_index:0 }, data.players); showTab('game'); });
 socket.on('game:state', (data) => {
   let gs = data.state;
-  // پارس کردن JSON های دیتابیس اگر رشته باشند
   if(typeof gs.correct_letters === 'string') gs.correct_letters = JSON.parse(gs.correct_letters);
   if(typeof gs.wrong_letters === 'string') gs.wrong_letters = JSON.parse(gs.wrong_letters);
   updateState(gs.game_id, data.deck, gs, data.players);
   state.timerMs = Number(gs.timer_ms) || 0;
   showTab('game');
 });
-function updateState(gid, deck, localState, allPlayers) {
-  state.gameId = gid;
-  state.deck = deck;
-  state.gameState = localState;
-  state.allStates = allPlayers || [];
-  startTimer();
-  renderGame();
-  updatePlayersUI();
-}
+socket.on('game:finished', (data) => { showResultsModal(data); });
+socket.on('room:reset', () => { if(state.roomId) enterRoomMode(state.roomId, true); });
 
-socket.on('game:states', (data) => {
-  if(data.game_id !== state.gameId) return;
-  state.allStates = data.states;
-  updatePlayersUI();
-});
+function updateState(gid, deck, localState, allPlayers) {
+  state.gameId = gid; state.deck = deck; state.gameState = localState; state.allStates = allPlayers || [];
+  $('lblTotalWords').textContent = toFaDigits(deck.length);
+  startTimer(); renderGame(); updatePlayersUI();
+}
+socket.on('game:states', (data) => { if(data.game_id === state.gameId) { state.allStates = data.states; updatePlayersUI(); } });
 socket.on('game:next', (data) => {
   if(data.game_id !== state.gameId) return;
   if(data.states) state.allStates = data.states;
-  
   if(String(data.by_user) === String(state.user.id)) {
-     // ریست کردن ورودی‌ها برای کلمه جدید
-     $('txtLetter').value = '';
-     state.gameState.correct_letters = [];
-     state.gameState.wrong_letters = [];
-     state.gameState.current_index = data.nextIndex;
-     renderGame();
-     updatePlayersUI();
-     
-     const slots = $('slotsContainer');
-     slots.style.opacity = 0;
-     setTimeout(() => slots.style.opacity = 1, 300);
-  } else {
-    updatePlayersUI();
+     $('txtLetter').value = ''; state.gameState.correct_letters = []; state.gameState.wrong_letters = []; state.gameState.current_index = data.nextIndex;
+     renderGame(); $('slotsContainer').style.opacity = 0; setTimeout(() => $('slotsContainer').style.opacity = 1, 300);
   }
+  updatePlayersUI();
 });
 socket.on('game:letter:correct', (data) => {
   const isMe = String(data.user_id) === String(state.user.id);
   const pIndex = state.allStates.findIndex(p => String(p.user_id) === String(data.user_id));
   if(pIndex >= 0 && data.player) state.allStates[pIndex] = { ...state.allStates[pIndex], ...data.player };
   updatePlayersUI();
-
   if(isMe) {
     if(!state.gameState.correct_letters.includes(data.letter)) state.gameState.correct_letters.push(data.letter);
-    state.gameState.score = data.player.score;
-    renderGame();
+    state.gameState.score = data.player.score; renderGame();
   }
 });
 socket.on('game:letter:wrong', (data) => {
   const isMe = String(data.user_id) === String(state.user.id);
   if(isMe) {
     if(!state.gameState.wrong_letters.includes(data.letter)) state.gameState.wrong_letters.push(data.letter);
-    renderGame(); 
-    $('txtLetter').classList.add('shake');
-    setTimeout(()=> $('txtLetter').classList.remove('shake'), 400);
+    renderGame(); $('txtLetter').classList.add('shake'); setTimeout(()=> $('txtLetter').classList.remove('shake'), 400);
   }
 });
 socket.on('game:hint:reveal', (data) => {
   const isMe = String(data.user_id) === String(state.user.id);
-  if(isMe) {
-    if(!state.gameState.correct_letters.includes(data.letter)) state.gameState.correct_letters.push(data.letter);
-    renderGame();
-  }
+  if(isMe) { if(!state.gameState.correct_letters.includes(data.letter)) state.gameState.correct_letters.push(data.letter); renderGame(); }
 });
 socket.on('game:feedback', (data) => {
-  if(data.type === 'word-failed') {
-     $('slotsContainer').innerHTML = `<div style="width:100%; text-align:center; color:red; font-weight:bold;">کلمه سوخت! <br> ${data.word}</div>`;
-     setTimeout(renderGame, 1500);
-  }
-});
-socket.on('game:finished', () => {
-  alert('بازی پایان یافت!');
-  showTab('dashboard');
+  if(data.type === 'word-failed') { $('slotsContainer').innerHTML = `<div style="width:100%; text-align:center; color:red; font-weight:bold;">کلمه سوخت! <br> ${data.word}</div>`; setTimeout(renderGame, 1500); }
 });
 
-// --- 4. GAME LOGIC (JOIN/LEAVE) ---
 async function enterRoomMode(roomId, skipApi = false) {
   if(!skipApi) {
-    const res = await fetch('/rooms/join', {
-      method: 'POST', headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ room_id: roomId, user_id: state.user.id })
-    });
+    const res = await fetch('/rooms/join', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId, user_id: state.user.id }) });
     const d = await res.json();
-    if(!d.ok) return alert(d.error === 'full' ? 'اتاق پر است.' : 'خطا در اتصال');
-  }
-  
-  state.roomId = roomId;
-  socket.emit('join-room', { room_id: roomId, user_id: state.user.id });
-  
-  fetch('/rooms/state', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId }) })
-  .then(r=>r.json()).then(d => {
-    if(d.ok && d.game) {
-       // اتصال به بازی فعال
-       socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
-    } else {
-       showTab('game');
-       $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار...</div>';
-       $('lblDescription').textContent = 'در انتظار شروع بازی...';
-       updatePlayersUI(d.players || []);
+    if(!d.ok) {
+        if(d.error === 'finished') alert('این بازی تمام شده است.');
+        else if(d.error === 'full') alert('اتاق پر است.');
+        else alert('خطا در اتصال');
+        return;
     }
+  }
+  state.roomId = roomId; socket.emit('join-room', { room_id: roomId, user_id: state.user.id });
+  fetch('/rooms/state', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId }) }).then(r=>r.json()).then(d => {
+    if(d.ok && d.game) {
+       if(d.game.status === 'finished') showResultsModal({ results: d.game.results, deck: d.game.deck, players: d.players });
+       else socket.emit('game:resume', { game_id: d.game.id, user_id: state.user.id });
+    } else {
+       showTab('game'); $('slotsContainer').innerHTML = '<div style="padding:30px; color:#666">در انتظار شروع بازی...</div>'; $('lblDescription').textContent = '...'; updatePlayersUI(d.players || []);
+    }
+    if(d.ok && String(d.room.created_by) === String(state.user.id)) $('btnRestartGame').classList.remove('hidden');
+    else $('btnRestartGame').classList.add('hidden');
   });
 }
 
 $('btnLeave').onclick = async () => {
   if(!state.roomId || !confirm('آیا مطمئن هستید؟')) return;
   await fetch('/rooms/leave', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.user.id }) });
-  state.roomId = null;
-  state.gameId = null; showTab('dashboard');
+  state.roomId = null; state.gameId = null; showTab('dashboard');
 };
 
 async function loadPublicRooms(){
   const lvl = $('filterLevel').value;
   const res = await fetch('/rooms/list' + (lvl ? '?level='+lvl : ''));
   const d = await res.json();
-  const cont = $('roomsListContainer');
-  cont.innerHTML = '';
+  const cont = $('roomsListContainer'); cont.innerHTML = '';
   if(!d.rooms || !d.rooms.length) return cont.innerHTML = '<div style="text-align:center; color:#999; padding:20px">اتاقی یافت نشد</div>';
   d.rooms.forEach(r => {
     const div = document.createElement('div'); div.className = 'room-item';
-    const statusTxt = r.status === 'playing' ? '<span style="color:#ef4444">در حال بازی</span>' : '<span style="color:#10b981">در انتظار</span>';
-    div.innerHTML = `<div class="room-info"><h4>${esc(r.name)}</h4><div class="room-meta">${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر | ${trLevel(r.level)} | ${statusTxt}</div></div><button class="btn btn-primary" onclick="enterRoomMode('${r.id}')">پیوستن</button>`;
+    const isFinished = r.status === 'finished';
+    const statusTxt = isFinished ? '<span style="color:#6b7280">تمام شده</span>' : (r.status === 'playing' ? '<span style="color:#ef4444">در حال بازی</span>' : '<span style="color:#10b981">در انتظار</span>');
+    const btnAttr = isFinished ? 'disabled style="opacity:0.5; cursor:not-allowed"' : `onclick="enterRoomMode('${r.id}')"`;
+    div.innerHTML = `<div class="room-info"><h4>${esc(r.name)}</h4><div class="room-meta">${toFaDigits(r.players)}/${toFaDigits(r.max_players)} نفر | ${trLevel(r.level)} | ${statusTxt}</div></div><button class="btn btn-primary" ${btnAttr}>پیوستن</button>`;
     cont.appendChild(div);
   });
 }
-$('btnRefresh').onclick = loadPublicRooms; $('filterLevel').onchange = loadPublicRooms;
+$('btnRefresh').onclick = refreshLobby; $('filterLevel').onchange = refreshLobby;
 
-// --- 5. RENDER GAME UI ---
 function renderGame() {
   if(!state.deck.length) return;
   const idx = Number(state.gameState.current_index) || 0;
+  if(idx >= state.deck.length) { $('lblDescription').textContent = 'پایان بازی! در حال دریافت نتایج...'; $('slotsContainer').innerHTML = ''; return; }
   const wordObj = state.deck[idx];
-  if(!wordObj) {
-      $('lblDescription').textContent = 'پایان بازی';
-      return;
-  }
-
-  $('lblWordIndex').textContent = toFaDigits(idx + 1);
-  $('lblCategory').textContent = wordObj.category;
-  $('lblLevel').textContent = trLevel(wordObj.level);
-  
-  // نمایش توضیحات کلمه
-  $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
-
+  $('lblWordIndex').textContent = toFaDigits(idx + 1); $('lblCategory').textContent = wordObj.category; $('lblLevel').textContent = trLevel(wordObj.level); $('lblDescription').textContent = wordObj.description || 'توضیحات در دسترس نیست.';
   const word = normalize(wordObj.word);
-  const container = $('slotsContainer');
-  container.innerHTML = '';
-  
+  const container = $('slotsContainer'); container.innerHTML = '';
   const correctLetters = state.gameState.correct_letters || [];
   const wrongLetters = state.gameState.wrong_letters || [];
-  const allowedWrong = Number(state.gameState.allowed_wrong) || 0;
-  
-  $('lblWrongCount').textContent = toFaDigits(wrongLetters.length);
-  $('lblAllowedWrong').textContent = toFaDigits(allowedWrong);
-  
+  $('lblWrongCount').textContent = toFaDigits(wrongLetters.length); $('lblAllowedWrong').textContent = toFaDigits(Number(state.gameState.allowed_wrong) || 0);
   [...word].forEach(char => {
-    if(char === ' ' || char === '\u200c') {
-      const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap);
-    } else {
-      const slot = document.createElement('div'); slot.className='slot';
-      if(correctLetters.includes(char)) { slot.textContent = char; slot.classList.add('correct'); }
-      container.appendChild(slot);
-    }
+    if(char === ' ' || char === '\u200c') { const gap = document.createElement('div'); gap.className='slot gap'; container.appendChild(gap); } 
+    else { const slot = document.createElement('div'); slot.className='slot'; if(correctLetters.includes(char)) { slot.textContent = char; slot.classList.add('correct'); } container.appendChild(slot); }
   });
-  renderChips('chipsCorrect', correctLetters, 'correct');
-  renderChips('chipsWrong', wrongLetters, 'wrong');
+  renderChips('chipsCorrect', correctLetters, 'correct'); renderChips('chipsWrong', wrongLetters, 'wrong');
 }
-
-function renderChips(id, arr, cls) {
-  const el = $(id); el.innerHTML = '';
-  arr.forEach(l => { const c = document.createElement('div'); c.className=`chip ${cls}`; c.textContent=l; el.appendChild(c); });
-}
-
+function renderChips(id, arr, cls) { const el = $(id); el.innerHTML = ''; arr.forEach(l => { const c = document.createElement('div'); c.className=`chip ${cls}`; c.textContent=l; el.appendChild(c); }); }
 function updatePlayersUI(rawList) {
   const list = rawList || state.allStates || [];
   const cont = $('playersListContainer'); cont.innerHTML = '';
@@ -570,37 +627,32 @@ function updatePlayersUI(rawList) {
     cont.appendChild(div);
   });
 }
-
-// --- 6. INPUT HANDLERS ---
-$('btnGuess').onclick = () => {
-  const val = $('txtLetter').value;
-  if(!val) return $('txtLetter').focus();
-  socket.emit('game:guess', { game_id: state.gameId, user_id: state.user.id, letter: val });
-  $('txtLetter').value = ''; $('txtLetter').focus();
-};
-$('txtLetter').onkeydown = (e) => { if(e.key === 'Enter') $('btnGuess').click(); };
-$('txtLetter').oninput = (e) => { const v=normalize(e.target.value);
-  e.target.value = (v && /^[\u0600-\u06FF]$/.test(v)) ? v : ''; };
-$('btnHint').onclick = () => socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
-
-function startTimer(){
-  if(state.timerInterval) clearInterval(state.timerInterval);
-  state.timerInterval = setInterval(() => {
-    state.timerMs += 1000;
-    const s = Math.floor(state.timerMs/1000);
-    $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'));
-  }, 1000);
+function showResultsModal(data) {
+    const results = data.results || []; const deck = data.deck || []; const players = data.players || [];
+    const tbody = $('resultsTableBody'); tbody.innerHTML = '';
+    const playerNames = {}; players.forEach(p => playerNames[p.user_id] = p.fullname || 'کاربر');
+    deck.forEach((wordObj, idx) => {
+        const res = results.find(r => r.index === idx);
+        const tr = document.createElement('tr');
+        let winnersHtml = '-';
+        if(res && res.winners && res.winners.length) winnersHtml = res.winners.map(uid => `<span class="winner-badge">${esc(playerNames[uid]||'Unknown')}</span>`).join(' ');
+        tr.innerHTML = `<td>${toFaDigits(idx + 1)}</td><td style="font-weight:bold">${esc(wordObj.word)}</td><td style="font-size:11px; color:#666; max-width:150px;">${esc(wordObj.description)}</td><td>${winnersHtml}</td>`;
+        tbody.appendChild(tr);
+    });
+    $('modalResults').style.display = 'flex';
 }
+$('btnCloseResults').onclick = () => { $('modalResults').style.display = 'none'; showTab('dashboard'); };
+$('btnRestartGame').onclick = async () => { if(!state.roomId) return; await fetch('/game/restart', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.user.id }) }); };
+$('btnGuess').onclick = () => { const val = $('txtLetter').value; if(!val) return $('txtLetter').focus(); socket.emit('game:guess', { game_id: state.gameId, user_id: state.user.id, letter: val }); $('txtLetter').value = ''; $('txtLetter').focus(); };
+$('txtLetter').onkeydown = (e) => { if(e.key === 'Enter') $('btnGuess').click(); };
+$('txtLetter').oninput = (e) => { const v=normalize(e.target.value); e.target.value = (v && /^[\u0600-\u06FF]$/.test(v)) ? v : ''; };
+$('btnHint').onclick = () => socket.emit('game:hint', { game_id: state.gameId, user_id: state.user.id });
+function startTimer(){ if(state.timerInterval) clearInterval(state.timerInterval); state.timerInterval = setInterval(() => { state.timerMs += 1000; const s = Math.floor(state.timerMs/1000); $('lblTimer').textContent = toFaDigits(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0')); }, 1000); }
 function esc(s){ return s ? s.replace(/</g,'&lt;') : ''; }
 function trLevel(l){ return l==='easy'?'آسان':(l==='hard'?'سخت':'متوسط'); }
-
 $('btnNewRoom').onclick = () => $('modalCreate').style.display = 'flex';
 $('btnCloseModal').onclick = () => $('modalCreate').style.display = 'none';
-$('btnSubmitCreate').onclick = async () => {
-  const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id, name: $('inpRoomName').value, level: $('inpRoomLevel').value, max_players: 2 }) });
-  const d = await res.json();
-  if(d.ok) { $('modalCreate').style.display = 'none'; enterRoomMode(d.room_id, true); }
-};
+$('btnSubmitCreate').onclick = async () => { const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.user.id, name: $('inpRoomName').value, level: $('inpRoomLevel').value, max_players: 2 }) }); const d = await res.json(); if(d.ok) { $('modalCreate').style.display = 'none'; enterRoomMode(d.room_id, true); } };
 </script>
 </body>
 </html>
