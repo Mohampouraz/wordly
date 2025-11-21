@@ -212,6 +212,13 @@
       font-weight: 900; color: var(--primary); 
       font-size: 16px;
     }
+    .history-player-details {
+      display: flex; gap: 12px; font-size: 11px; color: #6b7280;
+      margin-top: 4px;
+    }
+    .history-player-detail {
+      display: flex; align-items: center; gap: 2px;
+    }
     .history-words-progress {
       margin-top: 16px; padding-top: 12px; border-top: 1px dashed #e5e7eb;
     }
@@ -226,12 +233,22 @@
       padding: 4px 8px; background: white; border-radius: 6px;
       border: 1px solid #e5e7eb; font-size: 11px; font-weight: 600;
       display: flex; align-items: center; gap: 4px;
+      position: relative;
     }
     .history-word.guessed {
       background: #f0fdf4; border-color: #bbf7d0; color: #166534;
     }
     .history-word.failed {
       background: #fef2f2; border-color: #fecaca; color: #991b1b;
+    }
+    .history-word-details {
+      position: absolute; top: -20px; right: 0;
+      background: #1f2937; color: white; padding: 2px 6px;
+      border-radius: 4px; font-size: 9px; white-space: nowrap;
+      z-index: 10; display: none;
+    }
+    .history-word:hover .history-word-details {
+      display: block;
     }
 
     .modal-backdrop {
@@ -574,34 +591,57 @@ async function loadHistory() {
           const isMe = String(player.user_id) === String(state.user.id);
           const isWinner = winners.some(w => w.user_id === player.user_id);
           
+          // محاسبه آمار بازیکن
+          const playerStats = game.player_stats?.find(p => p.user_id === player.user_id) || {};
+          const wrongAttempts = playerStats.wrong_attempts || 0;
+          const allowedWrong = playerStats.allowed_wrong || 0;
+          
           html += `
             <div class="history-player ${isMe ? 'me' : ''} ${isWinner ? 'winner' : ''}">
-              <div class="history-player-name">
-                ${esc(player.fullname || 'کاربر')} 
-                ${isMe ? '(شما)' : ''}
-                ${isWinner ? '<span class="winner-badge">🏆 برنده</span>' : ''}
+              <div>
+                <div class="history-player-name">
+                  ${esc(player.fullname || 'کاربر')} 
+                  ${isMe ? '(شما)' : ''}
+                  ${isWinner ? '<span class="winner-badge">🏆 برنده</span>' : ''}
+                </div>
+                <div class="history-player-details">
+                  <div class="history-player-detail">خطاها: ${toFaDigits(wrongAttempts)}/${toFaDigits(allowedWrong)}</div>
+                  <div class="history-player-detail">راهنما: ${toFaDigits(playerStats.hints_used || 0)}</div>
+                </div>
               </div>
               <div class="history-player-score">${toFaDigits(player.score || 0)}</div>
             </div>
           `;
         });
         
-        // نمایش کلمات
+        // نمایش کلمات با جزئیات کامل
         if (game.results && game.results.length > 0) {
           html += `
             <div class="history-words-progress">
-              <div class="history-words-title">روند بازی:</div>
+              <div class="history-words-title">جزئیات کلمات بازی:</div>
               <div class="history-words-list">
           `;
           
           game.results.forEach((result, index) => {
             const isGuessed = result.winners && result.winners.length > 0;
             const userGuessed = isGuessed && result.winners.some(w => String(w) === String(state.user.id));
+            const wordObj = game.deck?.[index];
+            const word = wordObj?.word || 'نامشخص';
+            const description = wordObj?.description || 'بدون توضیح';
+            
+            // محاسبه تعداد مجاز خطا برای این کلمه
+            const wordLength = word.replace(/[\s\u200c]/g, '').length;
+            const allowedWrongForWord = Math.max(1, Math.ceil(wordLength * 1.5));
             
             html += `
               <div class="history-word ${isGuessed ? 'guessed' : 'failed'}">
                 ${toFaDigits(index + 1)}
                 ${userGuessed ? '✓' : (isGuessed ? '●' : '✗')}
+                <div class="history-word-details">
+                  <div>${esc(word)}</div>
+                  <div>${esc(description)}</div>
+                  <div>مجاز خطا: ${toFaDigits(allowedWrongForWord)}</div>
+                </div>
               </div>
             `;
           });
