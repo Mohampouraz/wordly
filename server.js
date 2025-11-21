@@ -10,6 +10,9 @@ const { Pool } = require('pg');
 const crypto = require('crypto');
 const PORT = process.env.PORT || 3000;
 
+// FIX: Ensure wordsData is imported
+const wordsData = require('./words'); 
+
 /* ----------------------------------------------------------------
    DB CONNECTION
 ---------------------------------------------------------------- */
@@ -34,7 +37,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const wordsData = require('./words');
 
 /* ----------------------------------------------------------------
    HELPERS
@@ -97,6 +99,9 @@ const getGameState = async (gameId, userId) => {
     if (!q.rows.length) return null;
     
     const state = q.rows[0];
+    // Check if the deck has been initialized for this game (should always be true)
+    if (!state.deck || state.current_index >= state.deck.length) return null; 
+
     const currentWord = state.deck[state.current_index];
     const wordStrict = normalizeFaWordStrict(currentWord.word);
     
@@ -123,7 +128,7 @@ const getGameState = async (gameId, userId) => {
     };
 };
 
-// NEW/UPDATED: Function to get the complete room state including full user data
+// Function to get the complete room state including full user data
 const getRoomState = async (roomId) => {
     const r = await pool.query(`
         SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, r.reveal_mode, g.id AS game_id
@@ -165,8 +170,8 @@ const getRoomState = async (roomId) => {
     return room;
 };
 
-// Function to broadcast room state and send specific game state to each player
-const sendRoomState = async (roomId, targetSocketId = null) => {
+// FIX/OPTIMIZED: Function to broadcast room state and send specific game state to each player
+const sendRoomState = async (roomId) => {
     const room = await getRoomState(roomId);
     if (!room) return;
     
@@ -175,44 +180,44 @@ const sendRoomState = async (roomId, targetSocketId = null) => {
     
     // 2. Send individual game state if a game is active
     if (room.status === 'in_game' && room.game_id) {
+        // Get all connected sockets for this room
         const socketsInRoom = io.sockets.adapter.rooms.get(roomId) || new Set();
         
-        // Target specific user if provided, otherwise send to all
-        const targetIds = targetSocketId ? [targetSocketId] : Array.from(socketsInRoom);
-
-        for (const socketId of targetIds) {
+        for (const socketId of Array.from(socketsInRoom)) {
             const socket = io.sockets.sockets.get(socketId);
-            if (!socket) continue;
+            const userId = socket?.userId; // Check for socket existence and userId
             
-            const userId = socket.userId; // Assuming userId is attached to socket in 'auth'
-            if (!userId) continue;
-
-            const gameState = await getGameState(room.game_id, userId);
-            if(gameState) {
-                socket.emit('game:state', { 
-                    game_id: room.game_id, 
-                    game_state: gameState,
-                    room: room // Send room state for score update in sidebar
-                });
+            if (userId && room.players.some(p => p.user_id === userId)) {
+                const gameState = await getGameState(room.game_id, userId);
+                if(gameState) {
+                    socket.emit('game:state', { 
+                        game_id: room.game_id, 
+                        game_state: gameState,
+                        room: room // Send room state for score update in sidebar
+                    });
+                }
             }
         }
     }
 };
 
 const getActiveRoomsList = async (level = null) => {
-    let q = `SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, r.reveal_mode, COUNT(rp.user_id) AS players
-             FROM rooms r LEFT JOIN room_players rp ON r.id = rp.room_id
+    let q = `SELECT r.id, r.name, r.level, r.status, r.max_players, r.created_by, r.reveal_mode, COUNT(rp.user_id) AS players, g.id AS game_id
+             FROM rooms r 
+             LEFT JOIN room_players rp ON r.id = rp.room_id
+             LEFT JOIN games g ON r.id = g.room_id AND r.status = 'in_game'
              WHERE r.status <> 'finished'`;
     const params = [];
     if (level) { params.push(level); q += ` AND r.level = $${params.length}`; }
     q += ` 
     GROUP BY r.id ORDER BY r.created_at DESC LIMIT 100;`;
     const out = await pool.query(q, params);
-    return out.rows;
+    // Correctly return players count as number
+    return out.rows.map(row => ({ ...row, players: Number(row.players) }));
 };
 
 
-// NEW: Function to finish the game (ایراد سوم)
+// Function to finish the game
 const finishGame = async (gameId, roomId) => {
     try {
         // Update room and game status to finished
@@ -232,9 +237,9 @@ const finishGame = async (gameId, roomId) => {
         
         const results = resultsQuery.rows.map( (r, index) => ({
             rank: index + 1,
-            score: r.score,
-            timer_ms: r.timer_ms,
-            words_guessed: r.words_guessed,
+            score: Number(r.score), // Ensure score is a number
+            timer_ms: Number(r.timer_ms), // Ensure time is a number
+            words_guessed: Number(r.words_guessed),
             user: { // Send user subset for client to display name
                 id: r.user_id, 
                 username: r.username, 
@@ -246,12 +251,19 @@ const finishGame = async (gameId, roomId) => {
         // 2. Broadcast results
         io.to(roomId).emit('game:finished', { game_id: gameId, room_id: roomId, results });
         
+        // 3. Kick everyone out of the socket.io room (Optional but helpful for cleanup)
+        const socketsInRoom = io.sockets.adapter.rooms.get(roomId) || new Set();
+        for (const socketId of Array.from(socketsInRoom)) {
+            const socket = io.sockets.sockets.get(socketId);
+            socket?.leave(roomId);
+        }
+
     } catch(e) {
         console.error("Error in finishGame:", e);
     }
 }
 
-// UPDATED: Function to advance to the next word or finish the game
+// Function to advance to the next word or finish the game
 const advanceToNextWord = async (gameId, userId, currentIndex, deck, roomId) => {
     const nextIndex = currentIndex + 1;
     
@@ -265,6 +277,7 @@ const advanceToNextWord = async (gameId, userId, currentIndex, deck, roomId) => 
     }
     
     // Continue to next word: reset letters and calculate new allowed wrong count
+    const nextWordStrict = normalizeFaWordStrict(deck[nextIndex].word);
     await pool.query(`
         UPDATE game_states SET 
             current_index=$3, 
@@ -274,7 +287,7 @@ const advanceToNextWord = async (gameId, userId, currentIndex, deck, roomId) => 
             allowed_wrong=CEIL(LENGTH(REPLACE($4, '\u200c', '')) / 2),
             last_update=NOW()
         WHERE game_id=$1 AND user_id=$2;
-    `, [gameId, userId, nextIndex, normalizeFaWordStrict(deck[nextIndex].word)]);
+    `, [gameId, userId, nextIndex, nextWordStrict]);
 
     // Notify room/game update
     await sendRoomState(roomId);
@@ -340,13 +353,15 @@ app.post('/auth/telegram', async (req, res) => {
   }
 });
 
-// استفاده از تابع کمکی جدید
 app.get('/rooms/list', async (req, res) => {
   try {
     const level = req.query.level;
     const rooms = await getActiveRoomsList(level);
     res.json({ ok:true, rooms: rooms });
-  } catch (e) { res.status(500).json({ ok:false }); }
+  } catch (e) { 
+    console.error("Error in /rooms/list:", e);
+    res.status(500).json({ ok:false }); 
+  }
 });
 
 app.post('/rooms/create', async (req, res) => {
@@ -358,37 +373,44 @@ app.post('/rooms/create', async (req, res) => {
     await pool.query(`INSERT INTO rooms (id, name, status, level, max_players, created_by, reveal_mode) VALUES ($1,$2,'waiting',$3,$4,$5,$6);`, 
       [roomId, name || 'اتاق خصوصی', level || 'medium', Number(max_players) || 2, user_id, mode]);
     await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,$3);`, [roomId, user_id, 'host']);
-    res.json({ ok:true, room_id: 
-    roomId });
-  } catch (e) { res.status(500).json({ ok:false }); }
+    res.json({ ok:true, room_id: roomId });
+  } catch (e) { 
+    console.error("Error in /rooms/create:", e);
+    res.status(500).json({ ok:false }); 
+  }
 });
 
+// این API در کلاینت استفاده نمی‌شود، اما برای حفظ کدهای قبلی آن را نگه می‌داریم.
 app.post('/rooms/join', async (req, res) => {
   const { room_id, user_id } = req.body;
   if (!room_id || !user_id) return res.status(400).json({ ok:false });
   try {
     const r = await pool.query(`SELECT * FROM rooms WHERE id=$1 LIMIT 1;`, [room_id]);
-    if (!r.rows.length) return res.status(404).json({ ok:false });
+    if (!r.rows.length) return res.status(404).json({ ok:false, message: 'اتاق یافت نشد.' });
     const rn = r.rows[0];
     
     const count = await pool.query(`SELECT COUNT(*) AS count FROM room_players WHERE room_id=$1;`, [room_id]);
     const playerCount = Number(count.rows[0].count);
     
     if (rn.status === 'in_game' && playerCount >= rn.max_players) {
-        return res.status(400).json({ ok:false, message: 'ظرفیت اتاق پر است و بازی شروع شده است.' });
+        // Check if the user is already a player in the room
+        const check = await pool.query(`SELECT 1 FROM room_players WHERE room_id=$1 AND user_id=$2;`, [room_id, user_id]);
+        if (!check.rows.length) {
+            return res.status(400).json({ ok:false, message: 'ظرفیت اتاق پر است و بازی شروع شده است.' });
+        }
     }
     
     if (playerCount < rn.max_players) {
         await pool.query(`
             INSERT INTO room_players (room_id, user_id, role) 
             VALUES ($1, $2, 'player') 
-            ON CONFLICT DO NOTHING;
+            ON CONFLICT (room_id, user_id) DO NOTHING;
         `, [room_id, user_id]);
     }
 
     res.json({ ok:true, room_id });
   } catch (e) { 
-    console.error(e);
+    console.error("Error in /rooms/join:", e);
     res.status(500).json({ ok:false }); 
   }
 });
@@ -425,35 +447,39 @@ io.on('connection', (socket) => {
       const room = r.rows[0];
       
       const count = await pool.query(`SELECT COUNT(*) AS count FROM room_players WHERE room_id=$1;`, [room_id]);
-      const playerCount = Number(count.rows[0].count);
-      
-      // Ensure player is registered in the room
-      if (playerCount < room.max_players || room.status !== 'in_game') {
-          await pool.query(`
-              INSERT INTO room_players (room_id, user_id, role) 
-              VALUES ($1, $2, 'player') 
-              ON CONFLICT (room_id, user_id) DO NOTHING;
-          `, [room_id, uid]);
-      } else {
-          // If room is full and in game, do a final check if user is already in it
-          const check = await pool.query(`SELECT 1 FROM room_players WHERE room_id=$1 AND user_id=$2;`, [room_id, uid]);
-          if (!check.rows.length) return socket.emit('error', { message: 'ظرفیت اتاق پر است و بازی شروع شده است.' });
+      const playerCountBeforeJoin = Number(count.rows[0].count);
+      const isPlayerAlreadyInRoom = await pool.query(`SELECT 1 FROM room_players WHERE room_id=$1 AND user_id=$2;`, [room_id, uid]);
+
+      // 1. Check capacity for new players
+      if (room.status === 'in_game' && !isPlayerAlreadyInRoom.rows.length) {
+         return socket.emit('error', { message: 'ظرفیت اتاق پر است و بازی شروع شده است.' });
       }
 
-      // Join the socket.io room
+      // 2. Register player in room (if not already there)
+      if (!isPlayerAlreadyInRoom.rows.length && playerCountBeforeJoin < room.max_players) {
+          await pool.query(`
+              INSERT INTO room_players (room_id, user_id, role) 
+              VALUES ($1, $2, 'player');
+          `, [room_id, uid]);
+      }
+
+      // 3. Join the socket.io room
       socket.join(room_id);
       socketMeta.get(socket.id)?.room_ids.add(room_id);
 
-      // Fetch the full room state and send to the joining user
+      // 4. Fetch the full room state and send to the joining user
       const roomState = await getRoomState(room_id);
       if(roomState) {
-        socket.emit('room:joined', { room_id, room: roomState, is_host: room.created_by === uid, reveal_mode: room.reveal_mode });
+        const isHost = room.created_by === uid;
+        socket.emit('room:joined', { room_id, room: roomState, is_host: isHost, reveal_mode: room.reveal_mode });
         
-        // Broadcast updated room state to everyone in the room
+        // 5. Broadcast updated room state to everyone in the room
         await sendRoomState(room_id);
         
-        // If a game is not running and max players reached, start the game
-        if (room.status === 'waiting' && playerCount + 1 >= room.max_players) {
+        const playerCountAfterJoin = isPlayerAlreadyInRoom.rows.length ? playerCountBeforeJoin : playerCountBeforeJoin + 1;
+
+        // 6. If a game is not running and max players reached, start the game
+        if (room.status === 'waiting' && playerCountAfterJoin >= room.max_players) {
             const gameId = crypto.randomUUID();
             const deck = newGameDeckForRoom(room_id, room.level);
             
@@ -473,12 +499,13 @@ io.on('connection', (socket) => {
             }
             
             io.to(room_id).emit('game:start', { game_id: gameId, room_id });
-            await sendRoomState(room_id); // Broadcast new state
+            // Send the full state again after starting the game
+            await sendRoomState(room_id); 
         }
       }
 
     } catch (e) { 
-      console.error(e);
+      console.error("Error in room:join:", e);
       socket.emit('error', { message: 'خطا در ورود به اتاق.' });
     }
   });
@@ -489,7 +516,7 @@ io.on('connection', (socket) => {
         const uid = Number(user_id);
 
         const activeGameQuery = await pool.query(`
-            SELECT r.id AS room_id, g.id AS game_id
+            SELECT r.id AS room_id, g.id AS game_id, r.created_by
             FROM rooms r
             JOIN room_players rp ON r.id = rp.room_id
             JOIN games g ON r.id = g.room_id
@@ -499,7 +526,7 @@ io.on('connection', (socket) => {
         `, [uid]);
 
         if (activeGameQuery.rows.length) {
-            const { room_id, game_id } = activeGameQuery.rows[0];
+            const { room_id, game_id, created_by } = activeGameQuery.rows[0];
             
             // Re-join the room (socket.io room)
             socket.join(room_id);
@@ -508,7 +535,7 @@ io.on('connection', (socket) => {
             const roomState = await getRoomState(room_id);
             if(roomState) {
                 // Fetch the full room state and send to the joining user
-                socket.emit('room:joined', { room_id, room: roomState, is_host: roomState.created_by === uid, reveal_mode: roomState.reveal_mode });
+                socket.emit('room:joined', { room_id, room: roomState, is_host: created_by === uid, reveal_mode: roomState.reveal_mode });
 
                 // Send their specific game state
                 const gameState = await getGameState(game_id, uid);
@@ -548,16 +575,22 @@ io.on('connection', (socket) => {
       }
       
     } catch (e) { 
-      console.error(e);
+      console.error("Error in room:leave:", e);
       socket.emit('error', { message: 'خطا در خروج از اتاق.' });
     }
   });
 
   socket.on('game:guess_letter', async ({ game_id, user_id, letter }) => {
     try {
-      if (!game_id || !user_id || !letter) return;
+      if (!game_id || !user_id || !letter) {
+         return socket.emit('error', { message: 'داده‌های ارسالی ناقص است.' });
+      }
       const uid = Number(user_id);
       const normalizedLetter = normalizeFaLetter(letter);
+
+      if (!normalizedLetter) {
+          return socket.emit('error', { message: 'حرف وارد شده معتبر نیست.' });
+      }
       
       const q = await pool.query(`
         SELECT 
@@ -569,13 +602,19 @@ io.on('connection', (socket) => {
         WHERE gs.game_id = $1 AND gs.user_id = $2;
       `, [game_id, uid]);
 
-      if (!q.rows.length) return;
+      if (!q.rows.length) return socket.emit('error', { message: 'وضعیت بازی برای این کاربر یافت نشد.' });
+      
       const { current_index: idx, correct_letters: currentCorrect, wrong_letters: currentWrong, allowed_wrong, deck, room_id, reveal_mode } = q.rows[0];
+      
+      if (idx >= deck.length) return socket.emit('error', { message: 'بازی به پایان رسیده است.' });
+
       const currentWord = deck[idx].word;
       const wordStrict = normalizeFaWordStrict(currentWord);
       
       if (currentWrong.length >= allowed_wrong) return socket.emit('error', { message: 'تعداد حدس‌های اشتباه شما به سقف مجاز رسیده است.' });
-      if (currentCorrect.includes(normalizedLetter) || currentWrong.includes(normalizedLetter)) return; // Already guessed
+      if (currentCorrect.includes(normalizedLetter) || currentWrong.includes(normalizedLetter)) {
+          return socket.emit('error', { message: 'این حرف قبلاً حدس زده شده است.' });
+      }
 
       let newScore = 0;
       let isCorrect = wordStrict.includes(normalizedLetter);
@@ -623,7 +662,7 @@ io.on('connection', (socket) => {
 
   socket.on('game:hint', async ({ game_id, user_id }) => {
     try {
-        if (!game_id || !user_id) return;
+        if (!game_id || !user_id) return socket.emit('error', { message: 'داده‌های ارسالی ناقص است.' });
         const uid = Number(user_id);
 
         const q = await pool.query(`
@@ -636,12 +675,16 @@ io.on('connection', (socket) => {
             WHERE gs.game_id = $1 AND gs.user_id = $2;
         `, [game_id, uid]);
 
-        if (!q.rows.length) return;
+        if (!q.rows.length) return socket.emit('error', { message: 'وضعیت بازی برای این کاربر یافت نشد.' });
+        
         const { current_index: idx, correct_letters: currentCorrect, hints_used, hints_allowed, deck, room_id } = q.rows[0];
+
+        if (idx >= deck.length) return socket.emit('error', { message: 'بازی به پایان رسیده است.' });
+
         const currentWord = deck[idx].word;
         const wordStrict = normalizeFaWordStrict(currentWord);
 
-        if (hints_used >= hints_allowed) {
+        if (hints_used >= allowed_wrong) { // Allowed_wrong is usually the hint limit
             return socket.emit('error', { message: 'تعداد راهنماهای مجاز برای این کلمه به پایان رسیده است.' });
         }
         
@@ -686,7 +729,7 @@ io.on('connection', (socket) => {
   });
 
 
-  // NEW: Handler for history request (ایراد دوم)
+  // Handler for history request
   socket.on('history:request', async ({ user_id }) => {
     try {
         if (!user_id) return;
@@ -695,10 +738,11 @@ io.on('connection', (socket) => {
         // Join finished games and game states for this user
         const historyQuery = await pool.query(`
             SELECT 
-                g.id AS game_id, g.level, g.finished_at AS end_time,
+                g.id AS game_id, g.level, g.finished_at AS end_time, r.name AS room_name,
                 gs.score, gs.timer_ms, gs.current_index AS words_guessed
             FROM games g
             JOIN game_states gs ON g.id = gs.game_id
+            JOIN rooms r ON g.room_id = r.id
             WHERE g.status = 'finished' AND gs.user_id = $1
             ORDER BY g.finished_at DESC;
         `, [uid]);
@@ -721,6 +765,7 @@ io.on('connection', (socket) => {
 
             history.push({
                 game_id: row.game_id,
+                room_name: row.room_name,
                 level: row.level,
                 end_time: row.end_time,
                 score: Number(row.score),
@@ -743,19 +788,20 @@ io.on('connection', (socket) => {
       if (!game_id || !user_id) return;
       const safeMs = Math.max(0, parseInt(timer_ms) || 0);
       await pool.query(`UPDATE game_states SET timer_ms=$3, last_update=NOW() WHERE game_id=$1 AND user_id=$2;`, [game_id, user_id, safeMs]);
-    } catch (e) {}
+    } catch (e) {
+        console.error("Error in game:timer:", e);
+    }
   });
 
   socket.on('disconnect', () => {
     const m = socketMeta.get(socket.id);
     if (!m) return;
     
-    // Broadcast presence update for all rooms user was in
-    for (const rid of m.room_ids) {
-        // We could emit a cleaner 'room:leave' event here, but for simplicity, we rely on the
-        // client-side logic that handles the socket disconnect. If the user was in a room, the
-        // room host might decide to take action. For now, we only clean up the socket.io room.
+    // Remove room association from socketMeta
+    for (const rid of Array.from(m.room_ids)) {
+        // Clean up socket.io room manually if the room is still active
         socket.leave(rid);
+        // We don't remove from DB on simple disconnect, rely on 'room:leave' button.
     }
     
     socketMeta.delete(socket.id);
