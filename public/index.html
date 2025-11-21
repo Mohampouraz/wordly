@@ -2,905 +2,1029 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>وردلی رقابتی — نسخه حرفه‌ای و بهینه</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+  <title>وردلی رقابتی — نسخه حرفه‌ای</title>
 
-  <!-- UI mode detection (glassy / legacy) اجرا قبل از لود CSS -->
   <script>
     (function detectAndApplyUiMode(){
       function supportsCssVariables(){ return window.CSS && window.CSS.supports && window.CSS.supports('--a','0'); }
       function supportsBackdropFilter(){ try { return window.CSS && window.CSS.supports && (window.CSS.supports('backdrop-filter','blur(4px)') || window.CSS.supports('-webkit-backdrop-filter','blur(4px)')); } catch(e){ return false; } }
-      function isVeryOldBrowser(){
-        var ua = (navigator.userAgent||'').toLowerCase();
-        if (!ua) return false;
-        if (/\b(msie|trident)\b/.test(ua)) return true;
-        if (/\bwv\b/.test(ua) || /\bucbrowser\b/.test(ua) || /\bqqbrowser\b/.test(ua)) return true;
-        if (/\bandroid\b/.test(ua) && !/\bchrome\/(6[0-9]|[7-9][0-9])\b/.test(ua) && /\bversion\/([1-5]\.)/.test(ua)) return true;
-        return false;
+      var useGlassy = supportsCssVariables() && supportsBackdropFilter();
+      if (useGlassy) {
+        document.documentElement.classList.add('glassy-ui');
+        document.documentElement.setAttribute('data-ui-mode','glassy');
+      } else {
+        document.documentElement.classList.add('legacy-ui');
       }
-      var cssVars = supportsCssVariables();
-      var backdrop = supportsBackdropFilter();
-      var old = isVeryOldBrowser();
-      var useGlassy = cssVars && backdrop && !old;
-      try {
-        if (useGlassy) {
-          document.documentElement.classList.add('glassy-ui');
-          document.documentElement.setAttribute('data-ui-mode','glassy');
-        } else {
-          document.documentElement.classList.add('legacy-ui');
-          document.documentElement.setAttribute('data-ui-mode','legacy');
-        }
-        window.__UI_MODE__ = useGlassy ? 'glassy' : 'legacy';
-      } catch(e){}
     })();
   </script>
 
-  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
   <style>
-    /* design tokens + styles (same as previous professional theme) */
-    :root{
-      --bg-glass: radial-gradient(1000px 500px at 10% -20%, #eaf4ff 0%, #fbfdff 35%, #ffffff 70%);
-      --bg-plain: #f6f8fb;
-      --panel: #ffffff;
-      --muted: #6b7280;
-      --text: #071728;
-      --border: rgba(15,23,42,0.08);
-      --accent: #4f46e5;
-      --accent-2: #06b6d4;
+    /* --- Modern Design System --- */
+    :root {
+      --font-main: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+      
+      /* Color Palette */
+      --bg-app: #f0f2f5;
+      --bg-gradient: linear-gradient(135deg, #ece9f6 0%, #eef2f3 100%);
+      --panel-bg: rgba(255, 255, 255, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.6);
+      
+      --primary: #6366f1;     /* Indigo */
+      --primary-dark: #4f46e5;
+      --secondary: #ec4899;   /* Pink */
+      --accent: #8b5cf6;      /* Violet */
+      
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      
       --success: #10b981;
       --danger: #ef4444;
-      --radius: 14px;
-      --glass-blur: 12px;
-      --card-shadow: 0 10px 30px rgba(16,24,40,0.08);
-      --card-elev: 0 18px 50px rgba(16,24,40,0.10);
-      --fast: 180ms;
-      --ease: cubic-bezier(.2,.9,.2,1);
+      --warning: #f59e0b;
+
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.04);
+      --shadow-md: 0 8px 16px rgba(0,0,0,0.06);
+      --shadow-lg: 0 20px 40px rgba(0,0,0,0.08);
+      
+      --radius-sm: 8px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      
+      --slot-size: 48px;
     }
 
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font-family:'Vazirmatn', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
-    body{min-height:100vh;color:var(--text);-webkit-text-size-adjust:100%;background:var(--bg-plain);-webkit-font-smoothing:antialiased}
-    .app{max-width:1100px;margin:16px auto;padding:12px;display:flex;flex-direction:column;gap:12px}
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    html, body {
+      height: 100%; margin: 0; padding: 0;
+      font-family: var(--font-main);
+      background: var(--bg-app);
+      color: var(--text-main);
+      overflow-x: hidden;
+    }
 
-    .shell{border-radius:18px;overflow:hidden;background:var(--panel);border:1px solid var(--border);box-shadow:var(--card-shadow);transition:box-shadow var(--fast) var(--ease), transform var(--fast) var(--ease);display:flex;flex-direction:column;min-height:78vh}
-    .shell:focus-within{box-shadow:var(--card-elev);transform:translateY(-4px)}
+    body.glassy-ui {
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+    }
 
-    header.appbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);gap:12px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .badge{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 8px 24px rgba(79,70,229,0.12);font-size:20px}
-    .title{font-weight:800;font-size:18px}
-    .subtitle{font-size:12px;color:var(--muted)}
-    .controls{display:flex;align-items:center;gap:8px}
-    .user-chip{display:flex;flex-direction:column;align-items:flex-end;line-height:1}
-    .user-chip #userName{font-weight:700}
-    .user-chip .muted{font-size:12px;color:var(--muted)}
+    /* Layout */
+    .app {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 16px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-    nav.mini-tabs{display:flex;gap:8px;padding:10px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff,#fafcff)}
-    .tab{padding:8px 12px;border-radius:12px;background:transparent;color:var(--muted);cursor:pointer;font-weight:700;border:1px solid transparent;transition:all var(--fast) var(--ease)}
-    .tab.active{color:var(--accent);background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));border-color:rgba(79,70,229,0.06);box-shadow:0 6px 18px rgba(79,70,229,0.06)}
+    .shell {
+      background: var(--panel-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex: 1;
+      transition: transform 0.2s ease;
+    }
 
-    main.content{display:grid;grid-template-columns:1fr 320px;gap:16px;padding:16px}
-    @media (max-width:980px){ main.content{grid-template-columns:1fr; padding:12px} }
+    /* Header */
+    header.appbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: rgba(255,255,255,0.4);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
 
-    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.95));border-radius:12px;padding:14px;border:1px solid var(--border);box-shadow:0 8px 30px rgba(16,24,40,0.04)}
-    .panel h3{margin:0 0 8px 0;font-size:16px}
-    .hero{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .badge {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      border-radius: var(--radius-md);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: 900;
+      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+    }
+    .title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .subtitle { font-size: 12px; color: var(--text-muted); font-weight: 500; }
 
-    .word-slots{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center}
-    .slot{min-width:40px;height:52px;padding:10px;border-radius:12px;border:1px solid rgba(15,23,42,0.06);display:flex;align-items:center;justify-content:center;font-size:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.7);transition:transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease), background var(--fast) var(--ease)}
-    .slot.gap{width:18px;height:auto;border:0;background:transparent}
-    .slot.revealed{background:linear-gradient(90deg, rgba(79,70,229,0.06), rgba(6,182,212,0.04));font-weight:800}
-    .slot.correct{color:var(--success);border-color:rgba(16,185,129,0.16);box-shadow:0 8px 24px rgba(16,185,129,0.06)}
-    .slot.wrong{color:var(--danger);border-color:rgba(239,68,68,0.12);box-shadow:0 8px 24px rgba(239,68,68,0.06)}
+    .user-chip { text-align: left; }
+    #userName { font-weight: 700; font-size: 14px; }
+    #userId { font-size: 11px; color: var(--text-muted); font-family: monospace; }
 
-    .controls-row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;align-items:center}
-    input.letter{flex:0 0 74px;min-width:56px;height:52px;border-radius:12px;border:1px solid var(--border);padding:10px;text-align:center;font-size:18px;background:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,0.5)}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border-radius:12px;border:1px solid rgba(13,20,36,0.06);cursor:pointer;font-weight:800;font-size:14px;background:#fff;color:var(--accent);transition:transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease)}
-    .btn:hover{transform:translateY(-3px);box-shadow:0 12px 30px rgba(16,24,40,0.06)}
-    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#fff;border:none;box-shadow:0 12px 36px rgba(79,70,229,0.12)}
-    .btn.ghost{background:transparent;border:1px solid rgba(15,23,42,0.04);color:var(--muted)}
+    /* Tabs */
+    nav.mini-tabs {
+      display: flex; padding: 8px 24px; gap: 12px;
+      background: rgba(255,255,255,0.3);
+    }
+    .tab {
+      border: none; background: transparent;
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      color: var(--text-muted);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: var(--font-main);
+    }
+    .tab:hover { background: rgba(0,0,0,0.03); color: var(--primary); }
+    .tab.active {
+      background: white;
+      color: var(--primary-dark);
+      box-shadow: var(--shadow-sm);
+    }
 
-    .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .chip-letter{padding:8px 12px;border-radius:999px;border:1px solid rgba(79,70,229,0.06);background:#fff;font-weight:800;box-shadow:0 6px 18px rgba(16,24,40,0.04)}
-    .chip-letter.correct{background:rgba(16,185,129,0.08);color:var(--success);border-color:rgba(16,185,129,0.12)}
-    .chip-letter.wrong{background:rgba(239,68,68,0.06);color:var(--danger);border-color:rgba(239,68,68,0.08)}
+    /* Main Content Grid */
+    main.content {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      padding: 24px;
+      flex: 1;
+    }
+    @media (max-width: 850px) {
+      main.content { grid-template-columns: 1fr; padding: 16px; }
+    }
 
-    aside.right{display:flex;flex-direction:column;gap:12px}
-    .score-card{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
-    .score-big{font-weight:900;color:var(--accent);font-size:26px}
+    /* Panels */
+    .panel {
+      background: #fff;
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0,0,0,0.03);
+      margin-bottom: 16px;
+    }
+    .panel:last-child { margin-bottom: 0; }
+    .panel h3 { margin: 0 0 12px 0; font-size: 16px; font-weight: 800; color: var(--text-main); }
 
-    footer{padding:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;background:linear-gradient(180deg,#fff,#fafcff)}
+    /* Game Area */
+    .hero { display: flex; flex-direction: column; gap: 16px; }
+    .hero .left { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    
+    /* Select & Buttons */
+    select {
+      padding: 10px 30px 10px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid #e2e8f0;
+      background: #fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat left 10px center;
+      background-size: 10px;
+      appearance: none;
+      font-family: var(--font-main);
+      font-weight: 500;
+    }
+    
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 10px 20px;
+      border-radius: var(--radius-sm);
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-main);
+      font-size: 14px;
+    }
+    .btn:active { transform: scale(0.96); }
+    
+    .btn.primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+    .btn.primary:hover { box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); transform: translateY(-1px); }
+    
+    .btn.ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+    }
+    .btn.ghost:hover { background: rgba(0,0,0,0.04); color: var(--text-main); }
 
-    /* modal redesigned */
-    .modal-backdrop{position:fixed;inset:0;background:rgba(6,10,20,0.42);display:flex;align-items:center;justify-content:center;z-index:1400;padding:20px}
-    .modal-card{width:100%;max-width:980px;border-radius:14px;background:linear-gradient(180deg, rgba(255,255,255,0.98), rgba(250,252,255,0.96));box-shadow:0 30px 80px rgba(2,6,23,0.5);border:1px solid rgba(255,255,255,0.6);overflow:hidden;display:flex;flex-direction:column}
-    .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid rgba(15,23,42,0.04)}
-    .modal-body{display:grid;grid-template-columns:1fr 360px;gap:18px;padding:18px}
-    @media (max-width:980px){ .modal-body{grid-template-columns:1fr; } .modal-card{max-height:92vh;overflow:auto} }
+    /* Game Slots */
+    .word-slots {
+      display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; justify-content: center;
+    }
+    .slot {
+      width: var(--slot-size); height: calc(var(--slot-size) * 1.2);
+      background: #fff;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; font-weight: 800;
+      box-shadow: 0 4px 0 #cbd5e1;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+    .slot.revealed {
+      background: white;
+      border-color: #94a3b8;
+      box-shadow: 0 4px 0 #64748b;
+      color: var(--text-main);
+    }
+    .slot.correct {
+      background: var(--success);
+      border-color: #059669;
+      box-shadow: 0 4px 0 #047857;
+      color: white;
+      animation: pop 0.4s forwards;
+    }
+    .slot.wrong {
+      background: var(--danger);
+      border-color: #dc2626;
+      color: white;
+      animation: shake 0.4s;
+    }
+    .slot.gap {
+      width: 16px; height: auto; border: none; background: transparent; box-shadow: none;
+    }
+    .slot.opponent {
+      border-style: dashed;
+      opacity: 0.8;
+    }
 
-    .rooms-list{display:grid;gap:10px;max-height:52vh;overflow:auto;padding-right:6px}
-    .room-row{background:linear-gradient(180deg,#ffffff,#fbfdff);border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid rgba(15,23,42,0.04);transition:transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease)}
-    .room-row:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(2,6,23,0.06)}
-    .room-meta{min-width:0}
-    .room-title{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52ch}
-    .room-sub{font-size:12px;color:var(--muted);margin-top:4px}
+    @keyframes pop { 0%{transform:scale(0.8)} 50%{transform:scale(1.1)} 100%{transform:scale(1)} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
 
-    .create-card{background:linear-gradient(180deg,#ffffff,#fcfeff);border-radius:12px;padding:14px;border:1px solid rgba(15,23,42,0.04);box-shadow:0 12px 30px rgba(2,6,23,0.04)}
-    .form-row{display:flex;flex-direction:column;gap:8px;margin-top:10px}
-    label.small{font-size:13px;color:var(--muted);font-weight:700}
-    .modal-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-    .modal-chips .chip-letter{font-size:13px;padding:6px 10px}
+    /* Controls */
+    .controls-row {
+      display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 24px;
+    }
+    input.letter {
+      width: 60px; height: 60px;
+      font-size: 24px; text-align: center; font-weight: 700;
+      border: 2px solid var(--primary);
+      border-radius: 14px;
+      background: #fff;
+      outline: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    input.letter:focus { box-shadow: 0 0 0 4px rgba(99,102,241,0.2); }
 
-    .glassy-ui body{background:var(--bg-glass)}
-    .glassy-ui .shell{background:linear-gradient(180deg, rgba(255,255,255,0.64), rgba(255,255,255,0.44));backdrop-filter:blur(var(--glass-blur)) saturate(1.05);-webkit-backdrop-filter:blur(var(--glass-blur)) saturate(1.05);border:1px solid rgba(255,255,255,0.35)}
-    .glassy-ui .panel{background:linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.82));box-shadow:0 20px 60px rgba(16,24,40,0.08)}
-    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    /* Chips (Correct/Wrong) */
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-height: 32px; }
+    .chip-letter {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .chip-letter.correct { background: var(--success); color: white; }
+    .chip-letter.wrong { background: #fee2e2; color: var(--danger); border: 1px solid #fecaca; }
+
+    /* Room List & Modal */
+    .rooms-list { display: grid; gap: 10px; }
+    .room-row {
+      background: #fff; padding: 14px; border-radius: 12px;
+      border: 1px solid #f1f5f9;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: transform 0.2s;
+    }
+    .room-row:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .room-title { font-weight: 700; color: var(--text-main); }
+    
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-card {
+      width: 100%; max-width: 900px; background: #fff;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      display: flex; flex-direction: column;
+      max-height: 90vh; overflow: hidden;
+    }
+    .modal-head { padding: 20px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 20px; display: grid; grid-template-columns: 2fr 1fr; gap: 24px; overflow-y: auto; }
+    @media(max-width: 800px){ .modal-body { grid-template-columns: 1fr; } }
+
+    /* Footer */
+    footer {
+      margin-top: auto; padding: 20px; border-top: 1px solid rgba(0,0,0,0.05);
+      display: flex; justify-content: space-between; color: var(--text-muted); font-size: 12px;
+    }
+
+    /* Utility */
+    .muted { color: var(--text-muted); }
+    .pill {
+      background: #f1f5f9; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+      display: inline-flex; align-items: center;
+    }
+    .timer { font-family: monospace; font-weight: 700; color: var(--primary); font-size: 16px; }
+    .shake { animation: shake 0.4s; }
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="shell" role="application" aria-label="وردلی رقابتی">
-      <header class="appbar" role="banner">
-        <div class="brand">
-          <div class="badge" aria-hidden="true">و</div>
-          <div style="min-width:0">
-            <div class="title">وردلی رقابتی</div>
-            <div class="subtitle muted">دو نفره · بلادرنگ</div>
-          </div>
-        </div>
 
-        <div class="controls" role="navigation">
-          <div class="user-chip">
-            <div id="userName">کاربر مهمان</div>
-            <div id="userId" class="muted">—</div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button id="manageRoomsBtn" class="btn ghost" aria-haspopup="dialog">مدیریت اتاق‌ها</button>
-          </div>
-        </div>
-      </header>
-
-      <nav class="mini-tabs" role="tablist">
-        <button class="tab active" data-tab="dashboard">داشبورد</button>
-        <button class="tab" data-tab="play">بازی</button>
-        <button class="tab" data-tab="about">درباره</button>
-      </nav>
-
-      <main class="content" role="main">
-        <section>
-          <div class="panel hero">
-            <div class="left">
-              <div class="subtitle muted">حالت سریع</div>
-              <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                <select id="levelSelect" style="padding:10px;border-radius:10px;border:1px solid var(--border);background:#fff;min-width:120px">
-                  <option value="easy">آسان</option>
-                  <option value="medium" selected>متوسط</option>
-                  <option value="hard">سخت</option>
-                </select>
-                <button id="quickJoin" class="btn primary">پیوستن سریع</button>
-                <button id="resumeGame" class="btn">ادامه</button>
-              </div>
-            </div>
-
-            <div class="meta">
-              <div class="muted" style="text-align:right">وضعیت اتاق</div>
-              <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-                <div class="pill" id="roomStatus" style="padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fbfdff">—</div>
-                <div class="pill" id="playersCount" style="padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fbfdff">—</div>
-              </div>
-            </div>
-          </div>
-
-          <div id="dashboardPanel" class="panel" style="margin-top:16px">
-            <h3 id="roomsTitle">اتاق‌های موجود</h3>
-            <div id="roomsList" role="list" aria-live="polite"></div>
-          </div>
-
-          <div id="playPanel" class="panel" style="margin-top:16px;display:none" aria-live="polite">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-              <div>
-                <div style="font-weight:900">بازی رقابتی</div>
-                <div id="playSubtitle" class="muted">کلمهٔ فعلی و کنترل‌ها</div>
-              </div>
-
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <div class="pill">دسته: <span id="categoryName">—</span></div>
-                <div class="pill">سطح: <span id="levelName">—</span></div>
-                <div class="pill">کلمه: <span id="wordIndex">—</span>/10</div>
-                <div class="timer" id="timer">۰۰:۰۰</div>
-              </div>
-            </div>
-
-            <div id="wordSlots" class="word-slots" aria-live="polite"></div>
-
-            <div class="controls-row">
-              <input id="letterInput" class="letter" maxlength="2" inputmode="text" placeholder="حرف" aria-label="حرف برای حدس" autocomplete="off" autocorrect="off" autocapitalize="off" enterkeyhint="go" />
-              <button id="guessBtn" class="btn primary">حدس</button>
-              <button id="hintBtn" class="btn">راهنما</button>
-              <button id="leaveBtn" class="btn ghost">خروج</button>
-            </div>
-
-            <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap">
-              <div style="flex:1;min-width:140px">
-                <div style="font-weight:800">حروف صحیح</div>
-                <div id="correctLetters" class="chips" aria-live="polite"></div>
-              </div>
-              <div style="flex:1;min-width:140px">
-                <div style="font-weight:800">حروف غلط</div>
-                <div id="wrongLetters" class="chips" aria-live="polite"></div>
-              </div>
-            </div>
-          </div>
-
-          <div id="aboutPanel" class="panel" style="margin-top:16px;display:none">
-            <h3>درباره</h3>
-            <p class="muted">وردلی رقابتی — نسخهٔ حرفه‌ای، بهینه و واکنش‌گرا.</p>
-          </div>
-        </section>
-
-        <aside class="right">
-          <div class="panel score-card">
-            <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
-              <div style="font-weight:900">بازیکنان</div>
-              <div class="muted" style="font-size:13px">وضعیت</div>
-            </div>
-            <div id="playersList" style="width:100%;margin-top:8px"></div>
-          </div>
-
-          <div class="panel">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:900">امتیاز شما</div>
-              <div style="font-weight:700" id="scoreMe">۰</div>
-            </div>
-            <div style="margin-top:10px;font-weight:700">پیشرفت</div>
-            <div id="progressMe" class="muted">—</div>
-            <div id="progressOpp" class="muted" style="margin-top:6px">—</div>
-          </div>
-
-          <div class="panel">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:900">ابزارها</div>
-              <div class="muted" style="font-size:13px">سریع</div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-              <button id="openRoomsBtn" class="btn">مدیریت اتاق‌ها</button>
-              <button id="clearState" class="btn ghost">پاکسازی محلی</button>
-            </div>
-          </div>
-        </aside>
-      </main>
-
-      <footer>
-        <div class="muted">وردلی — نسخه وب اپ</div>
-        <div class="muted">موبایل اول</div>
-      </footer>
-    </div>
-  </div>
-
-  <!-- Modal (redesigned) -->
-  <div id="roomsModal" class="modal-backdrop" style="display:none" role="dialog" aria-hidden="true" aria-modal="true">
-    <div class="modal-card" role="document" aria-labelledby="roomsTitleModal">
-      <div class="modal-head">
+<div class="app">
+  <div class="shell" role="application" aria-label="وردلی رقابتی">
+    
+    <header class="appbar">
+      <div class="brand">
+        <div class="badge">و</div>
         <div>
-          <h3 id="roomsTitleModal" style="margin:0;font-weight:900">مدیریت اتاق‌ها</h3>
-          <div class="muted" style="font-size:13px;margin-top:6px">ساخت، پیوستن و مشاهده اتاق‌ها</div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button id="closeRooms" class="btn ghost">بستن</button>
+          <div class="title">وردلی</div>
+          <div class="subtitle">رقابت آنلاین کلمات</div>
         </div>
       </div>
-
-      <div class="modal-body">
-        <!-- Left: public rooms list -->
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <select id="filterLevel" style="padding:10px;border-radius:10px;border:1px solid var(--border);min-width:120px">
-              <option value="">همه سطوح</option>
-              <option value="easy">آسان</option>
-              <option value="medium">متوسط</option>
-              <option value="hard">سخت</option>
-            </select>
-            <button id="refreshRooms" class="btn">بارگذاری</button>
-            <div style="margin-left:auto" class="muted">اتاق‌ها: <span id="publicRoomsCount">—</span></div>
-          </div>
-
-          <div class="rooms-list" id="publicRoomsList" style="margin-top:12px"></div>
+      <div class="controls">
+        <div class="user-chip">
+          <div id="userName">مهمان</div>
+          <div id="userId">—</div>
         </div>
+        <button id="manageRoomsBtn" class="btn ghost">اتاق‌ها</button>
+      </div>
+    </header>
 
-        <!-- Right: create card + my rooms + modal letters -->
-        <div>
-          <div class="create-card" aria-label="ایجاد اتاق">
-            <div style="font-weight:900">ایجاد اتاق جدید</div>
+    <nav class="mini-tabs">
+      <button class="tab active" data-tab="dashboard">لابی</button>
+      <button class="tab" data-tab="play">بازی</button>
+      <button class="tab" data-tab="about">درباره</button>
+    </nav>
 
-            <div class="form-row" style="margin-top:10px">
-              <label class="small">نام اتاق</label>
-              <input id="newRoomName" placeholder="نام اتاق (اختیاری)" />
-            </div>
-
-            <div class="form-row">
-              <label class="small">سطح</label>
-              <select id="newRoomLevel">
+    <main class="content">
+      <section>
+        
+        <div class="panel hero">
+          <div class="left" style="justify-content: space-between; width: 100%;">
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+               <select id="levelSelect">
                 <option value="easy">آسان</option>
                 <option value="medium" selected>متوسط</option>
                 <option value="hard">سخت</option>
               </select>
+              <button id="quickJoin" class="btn primary">بازی سریع</button>
+              <button id="resumeGame" class="btn ghost">ادامه بازی</button>
             </div>
-
-            <div class="form-row">
-              <label class="small">حداکثر بازیکن</label>
-              <input id="newRoomMax" type="number" min="2" max="8" value="2" />
-            </div>
-
-            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
-              <button id="createRoomBtn" class="btn primary">ایجاد و پیوستن</button>
-              <button id="myRoomsBtn" class="btn">اتاق‌های من</button>
-            </div>
-
-            <div style="margin-top:14px">
-              <div style="font-weight:800">اتاق‌های من</div>
-              <div id="myRoomsList" style="max-height:160px;overflow:auto;margin-top:8px"></div>
-            </div>
-
-            <div style="margin-top:14px">
-              <div style="font-weight:800">حروف صحیح (بازی جاری)</div>
-              <div id="correctLettersModal" class="modal-chips"></div>
-              <div style="font-weight:800;margin-top:10px">حروف غلط (بازی جاری)</div>
-              <div id="wrongLettersModal" class="modal-chips"></div>
+            <div class="meta" style="display:flex; gap:8px; align-items:center;">
+               <div class="pill">وضعیت: <span id="roomStatus">—</span></div>
+               <div class="pill">بازیکنان: <span id="playersCount">0</span></div>
             </div>
           </div>
         </div>
-      </div>
+
+        <div id="dashboardPanel" class="panel">
+          <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+             <h3>اتاق‌های پیشنهادی</h3>
+             <button id="refreshRooms" class="btn ghost" style="padding:4px 8px; font-size:12px;">بروزرسانی</button>
+          </div>
+          <div id="roomsList" class="rooms-list"></div>
+        </div>
+
+        <div id="playPanel" class="panel" style="display:none">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+            <div>
+              <h3 style="margin-bottom:4px;">زمین بازی</h3>
+              <div id="playSubtitle" class="muted" style="font-size:12px;">کلمه را حدس بزنید</div>
+            </div>
+            <div style="text-align:left; display:flex; flex-direction:column; gap:4px; align-items:flex-end;">
+               <div class="timer" id="timer">۰۰:۰۰</div>
+               <div style="font-size:12px;" class="muted"><span id="categoryName">—</span> | <span id="levelName">—</span></div>
+               <div class="pill">مرحله <span id="wordIndex" style="margin:0 4px">1</span> / 10</div>
+            </div>
+          </div>
+
+          <div id="wordSlots" class="word-slots">
+            </div>
+
+          <div class="controls-row">
+            <input id="letterInput" class="letter" maxlength="1" inputmode="text" placeholder="؟" autocomplete="off" />
+            <button id="guessBtn" class="btn primary" style="height:50px; min-width:80px;">ثبت</button>
+            <button id="hintBtn" class="btn" style="height:50px;">راهنما</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:20px;">
+            <div>
+              <div style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--success);">حروف صحیح شما</div>
+              <div id="correctLetters" class="chips"></div>
+            </div>
+            <div>
+              <div style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--danger);">حروف غلط شما</div>
+              <div id="wrongLetters" class="chips"></div>
+            </div>
+          </div>
+          
+          <div style="margin-top:16px; text-align:center;">
+             <button id="leaveBtn" class="btn ghost" style="color:var(--danger);">ترک بازی</button>
+          </div>
+        </div>
+
+        <div id="aboutPanel" class="panel" style="display:none">
+          <h3>درباره بازی</h3>
+          <p class="muted" style="line-height:1.8;">
+            نسخه بهینه شده بازی کلمات. با دوستان خود رقابت کنید و دایره لغات خود را بسنجید.
+          </p>
+        </div>
+
+      </section>
+
+      <aside class="right">
+        <div class="panel">
+           <h3>جدول امتیازات</h3>
+           <div id="playersList" style="display:flex; flex-direction:column; gap:12px;"></div>
+        </div>
+
+        <div class="panel" style="background: linear-gradient(180deg, #fff, #f8fafc);">
+           <div style="display:flex; justify-content:space-between; align-items:center;">
+             <span class="muted">امتیاز شما</span>
+             <span id="scoreMe" style="font-size:24px; font-weight:900; color:var(--primary);">0</span>
+           </div>
+           <hr style="border:0; border-top:1px solid #eee; margin:12px 0;">
+           <div style="font-size:13px;">
+             <div style="margin-bottom:4px;">پیشرفت شما: <span id="progressMe" style="float:left; font-weight:700;">—</span></div>
+             <div class="muted">پیشرفت حریف: <span id="progressOpp" style="float:left;">—</span></div>
+           </div>
+        </div>
+
+        <div class="panel">
+           <h3>تنظیمات</h3>
+           <div style="display:flex; flex-wrap:wrap; gap:8px;">
+             <button id="openRoomsBtn" class="btn" style="flex:1; font-size:12px;">مدیریت اتاق</button>
+             <button id="clearState" class="btn ghost" style="flex:1; font-size:12px;">ریست</button>
+           </div>
+        </div>
+      </aside>
+
+    </main>
+
+    <footer>
+      <div>نسخه وب‌اپلیکیشن</div>
+      <div>طراحی واکنش‌گرا</div>
+    </footer>
+
+  </div>
+</div>
+
+<div id="roomsModal" class="modal-backdrop" style="display:none">
+  <div class="modal-card">
+    <div class="modal-head">
+       <h3>مدیریت اتاق‌ها</h3>
+       <button id="closeRooms" class="btn ghost">بستن</button>
+    </div>
+    <div class="modal-body">
+       <div>
+         <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <select id="filterLevel" style="flex:1;">
+               <option value="">همه سطوح</option>
+               <option value="easy">آسان</option>
+               <option value="medium">متوسط</option>
+               <option value="hard">سخت</option>
+            </select>
+            <span class="muted" style="align-self:center; font-size:12px;">تعداد: <span id="publicRoomsCount">0</span></span>
+         </div>
+         <div id="publicRoomsList" class="rooms-list" style="max-height:300px; overflow-y:auto; padding:2px;"></div>
+       </div>
+
+       <div style="display:flex; flex-direction:column; gap:16px;">
+          <div class="panel" style="border:1px solid var(--primary); margin:0;">
+             <h4 style="margin-top:0;">ساخت اتاق جدید</h4>
+             <div style="display:flex; flex-direction:column; gap:10px;">
+               <input id="newRoomName" placeholder="نام اتاق" style="padding:10px; border:1px solid #cbd5e1; border-radius:8px;">
+               <div style="display:flex; gap:8px;">
+                 <select id="newRoomLevel" style="flex:1;"><option value="medium">متوسط</option><option value="easy">آسان</option><option value="hard">سخت</option></select>
+                 <input id="newRoomMax" type="number" value="2" min="2" max="8" style="width:60px; padding:10px; border:1px solid #cbd5e1; border-radius:8px;">
+               </div>
+               <button id="createRoomBtn" class="btn primary" style="width:100%;">ایجاد</button>
+             </div>
+          </div>
+          
+          <div>
+             <h4 style="margin-bottom:8px;">اتاق‌های من</h4>
+             <button id="myRoomsBtn" class="btn ghost" style="width:100%; margin-bottom:8px; display:none;">بروزرسانی لیست</button>
+             <div id="myRoomsList" class="rooms-list" style="max-height:150px; overflow-y:auto;"></div>
+          </div>
+
+          <div style="display:none;">
+             <div id="correctLettersModal"></div>
+             <div id="wrongLettersModal"></div>
+          </div>
+       </div>
     </div>
   </div>
+</div>
 
-  <!-- external libs (optional) -->
-  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+/* ----------------------------------------------------------------
+   CORE UTILITIES & HELPERS
+---------------------------------------------------------------- */
+const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 
-  <script>
-    /* ---------- Helpers (unchanged behavior) ---------- */
-    const toFaDigits = s => String(s).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
-    function normalizeFaLetter(ch){ if (!ch) return ''; const map = {'\u064A':'\u06CC','\u0643':'\u06A9'}; return (map[ch] || ch).normalize('NFC'); }
-    function normalizeFaWordKeepSpaces(word){ if (!word) return ''; const removeMarks = /[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g; let w = String(word).replace(removeMarks,''); w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9'); return w.normalize('NFC'); }
-    function normalizeDisplayPreserveSpaces(word){ const out = []; for (let ch of String(word)) { if (ch === '\u200c' || ch === ' ') out.push(' '); else out.push(ch); } return out; }
-    function buildIndexMap(word){ const map = []; let disp = 0; for (let i=0;i<word.length;i++){ const ch = word[i]; if (ch === '\u200c' || ch === ' ') { map[i] = null; continue; } map[i] = disp++; } return map; }
-    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-    function generateRoomCode(len = 4){ const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; let out = ''; for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]; return out; }
+function normalizeFaLetter(ch){
+  if (!ch) return '';
+  const map = {'\u064A':'\u06CC','\u0643':'\u06A9'};
+  return (map[ch] || ch).normalize('NFC');
+}
 
-    /* ---------- State and socket ---------- */
-    const state = { myId: null, initData: null, roomId: null, gameId: null, deck: [], gameState: null, timerMs: 0, indexMap: [], revealMode: 'shared', composing:false };
-    const socket = (typeof io !== 'undefined') ? io() : { emit(){}, on(){}, off(){} };
+// Aggressive normalization for comparison
+function normalizeFaWord(word){
+  if (!word) return '';
+  // Remove tashkeel, tatweel, etc.
+  let w = String(word).replace(/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
+  // Normalize yeh/kaf
+  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+  // Remove ALL whitespace for logic check
+  w = w.replace(/\s/g, '').replace(/\u200c/g, '');
+  return w.normalize('NFC');
+}
 
-    /* ---------- DOM refs ---------- */
-    const tabs = document.querySelectorAll('.tab');
-    const manageRoomsBtn = document.getElementById('manageRoomsBtn');
-    const roomsModal = document.getElementById('roomsModal');
-    const closeRooms = document.getElementById('closeRooms');
-    const openRoomsBtn = document.getElementById('openRoomsBtn');
+// Normalization for display (keeps spaces as placeholders)
+function normalizeForDisplay(word){
+  const out = [];
+  let w = String(word).replace(/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
+  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+  for (let ch of w) {
+    if (ch === '\u200c' || ch === ' ') out.push(' ');
+    else out.push(ch);
+  }
+  return out;
+}
 
-    const userNameEl = document.getElementById('userName');
-    const userIdEl = document.getElementById('userId');
+function buildIndexMap(rawWord){
+  // Maps original string index to display slot index (skipping spaces)
+  // But wait, our slots include gaps. Let's map: 
+  // If char is letter -> new index. If space -> null (or gap handling).
+  // For simple logic: map[original_index] = display_slot_index
+  const map = [];
+  let disp = 0;
+  // Pre-normalize purely for length checks
+  let w = String(rawWord).replace(/[\u0640\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g,'');
+  w = w.replace(/\u064A/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+  
+  const charArr = normalizeForDisplay(w);
+  for(let i=0; i<w.length; i++){
+     // The logic in original code was slightly fuzzy. 
+     // We will trust `normalizeForDisplay` array length matching visual slots.
+     map[i] = i; 
+  }
+  return map;
+}
 
-    const levelSelect = document.getElementById('levelSelect');
-    const quickJoin = document.getElementById('quickJoin');
-    const resumeGameBtn = document.getElementById('resumeGame');
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-    const roomStatus = document.getElementById('roomStatus');
-    const playersCount = document.getElementById('playersCount');
+/* ----------------------------------------------------------------
+   STATE & REFERENCES
+---------------------------------------------------------------- */
+const state = { 
+  myId: null, roomId: null, gameId: null, 
+  deck: [], gameState: {}, timerMs: 0, indexMap: [], 
+  composing: false 
+};
 
-    const dashboardPanel = document.getElementById('dashboardPanel');
-    const roomsList = document.getElementById('roomsList');
-    const publicRoomsList = document.getElementById('publicRoomsList');
-    const myRoomsList = document.getElementById('myRoomsList');
-    const refreshRooms = document.getElementById('refreshRooms');
-    const filterLevel = document.getElementById('filterLevel');
-    const createRoomBtn = document.getElementById('createRoomBtn');
-    const newRoomName = document.getElementById('newRoomName');
-    const newRoomLevel = document.getElementById('newRoomLevel');
-    const newRoomMax = document.getElementById('newRoomMax');
+const socket = (typeof io !== 'undefined') ? io() : { emit(){}, on(){}, off(){} };
 
-    const playPanel = document.getElementById('playPanel');
-    const categoryName = document.getElementById('categoryName');
-    const levelName = document.getElementById('levelName');
-    const wordIndex = document.getElementById('wordIndex');
-    const timerEl = document.getElementById('timer');
-    const wordSlots = document.getElementById('wordSlots');
-    const letterInput = document.getElementById('letterInput');
-    const guessBtn = document.getElementById('guessBtn');
-    const hintBtn = document.getElementById('hintBtn');
-    const leaveBtn = document.getElementById('leaveBtn');
-    const correctLetters = document.getElementById('correctLetters');
-    const wrongLetters = document.getElementById('wrongLetters');
+// DOM Elements (Preserving IDs)
+const els = {
+  tabs: document.querySelectorAll('.tab'),
+  manageRoomsBtn: document.getElementById('manageRoomsBtn'),
+  roomsModal: document.getElementById('roomsModal'),
+  closeRooms: document.getElementById('closeRooms'),
+  openRoomsBtn: document.getElementById('openRoomsBtn'),
+  userName: document.getElementById('userName'),
+  userId: document.getElementById('userId'),
+  levelSelect: document.getElementById('levelSelect'),
+  quickJoin: document.getElementById('quickJoin'),
+  resumeGame: document.getElementById('resumeGame'),
+  roomStatus: document.getElementById('roomStatus'),
+  playersCount: document.getElementById('playersCount'),
+  dashboardPanel: document.getElementById('dashboardPanel'),
+  roomsList: document.getElementById('roomsList'),
+  publicRoomsList: document.getElementById('publicRoomsList'),
+  myRoomsList: document.getElementById('myRoomsList'),
+  refreshRooms: document.getElementById('refreshRooms'),
+  filterLevel: document.getElementById('filterLevel'),
+  createRoomBtn: document.getElementById('createRoomBtn'),
+  newRoomName: document.getElementById('newRoomName'),
+  newRoomLevel: document.getElementById('newRoomLevel'),
+  newRoomMax: document.getElementById('newRoomMax'),
+  playPanel: document.getElementById('playPanel'),
+  categoryName: document.getElementById('categoryName'),
+  levelName: document.getElementById('levelName'),
+  wordIndex: document.getElementById('wordIndex'),
+  timer: document.getElementById('timer'),
+  wordSlots: document.getElementById('wordSlots'),
+  letterInput: document.getElementById('letterInput'),
+  guessBtn: document.getElementById('guessBtn'),
+  hintBtn: document.getElementById('hintBtn'),
+  leaveBtn: document.getElementById('leaveBtn'),
+  correctLetters: document.getElementById('correctLetters'),
+  wrongLetters: document.getElementById('wrongLetters'),
+  playersList: document.getElementById('playersList'),
+  scoreMe: document.getElementById('scoreMe'),
+  progressMe: document.getElementById('progressMe'),
+  progressOpp: document.getElementById('progressOpp'),
+  publicRoomsCount: document.getElementById('publicRoomsCount'),
+  myRoomsBtn: document.getElementById('myRoomsBtn'),
+  correctLettersModal: document.getElementById('correctLettersModal'),
+  wrongLettersModal: document.getElementById('wrongLettersModal')
+};
 
-    const playersList = document.getElementById('playersList');
-    const scoreMe = document.getElementById('scoreMe');
-    const progressMe = document.getElementById('progressMe');
-    const progressOpp = document.getElementById('progressOpp');
+/* ----------------------------------------------------------------
+   INITIALIZATION
+---------------------------------------------------------------- */
+// User ID Setup
+(function initUser(){
+  let uid = localStorage.getItem('w_uid');
+  if(!uid) { uid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', uid); }
+  state.myId = uid;
+  els.userId.textContent = toFaDigits(uid);
+  els.userName.textContent = 'کاربر ' + toFaDigits(String(uid).slice(-3));
+  loadSuggestedRooms();
+})();
 
-    const correctLettersModal = document.getElementById('correctLettersModal');
-    const wrongLettersModal = document.getElementById('wrongLettersModal');
-    const publicRoomsCount = document.getElementById('publicRoomsCount');
+/* ----------------------------------------------------------------
+   TAB & MODAL LOGIC
+---------------------------------------------------------------- */
+els.tabs.forEach(t => t.addEventListener('click', () => {
+  els.tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
+  const tab = t.dataset.tab;
+  document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
+  els.playPanel.style.display = (tab === 'play') ? 'block' : 'none';
+  els.dashboardPanel.style.display = (tab === 'dashboard') ? 'block' : 'none';
+}));
 
-    /* ---------- Tabs and modal handlers ---------- */
-    tabs.forEach(t => t.addEventListener('click', () => {
-      tabs.forEach(x => x.classList.remove('active')); t.classList.add('active');
-      const tab = t.dataset.tab;
-      document.getElementById('aboutPanel').style.display = (tab === 'about') ? 'block' : 'none';
-      playPanel.style.display = (tab === 'play') ? 'block' : 'none';
-      dashboardPanel.style.display = (tab === 'dashboard') ? 'block' : 'none';
-    }));
+function openModal(){ 
+  els.roomsModal.style.display = 'flex'; 
+  loadPublicRooms(); 
+  loadMyRooms(); 
+}
+function closeModal(){ els.roomsModal.style.display = 'none'; }
 
-    function openModal(){ roomsModal.style.display = 'flex'; roomsModal.setAttribute('aria-hidden','false'); document.body.style.overflow='hidden'; loadPublicRooms(); loadMyRooms(); populateModalLetters(); }
-    function closeModal(){ roomsModal.style.display = 'none'; roomsModal.setAttribute('aria-hidden','true'); document.body.style.overflow='auto'; }
-    manageRoomsBtn.addEventListener('click', openModal);
-    if (openRoomsBtn) openRoomsBtn.addEventListener('click', openModal);
-    closeRooms.addEventListener('click', closeModal);
-    window.addEventListener('keydown', (e)=> { if (e.key === 'Escape' && roomsModal.style.display === 'flex') closeModal(); });
+els.manageRoomsBtn.addEventListener('click', openModal);
+if(els.openRoomsBtn) els.openRoomsBtn.addEventListener('click', openModal);
+els.closeRooms.addEventListener('click', closeModal);
 
-    /* ---------- Telegram WebApp init (best-effort) ---------- */
-    (async function initTelegram(){
-      function waitForTelegram(timeout = 2000){
-        return new Promise(resolve => {
-          const start = Date.now();
-          (function check(){
-            try { if (window.Telegram && window.Telegram.WebApp) return resolve(window.Telegram.WebApp); } catch(e){}
-            if (Date.now() - start > timeout) return resolve(null);
-            setTimeout(check,50);
-          })();
-        });
+/* ----------------------------------------------------------------
+   GAME LOGIC: NEXT WORD CHECK
+---------------------------------------------------------------- */
+let _nextLock = false;
+
+function isCurrentWordComplete(){
+  if (!state.gameState || !state.deck || !state.deck.length) return false;
+  
+  const idx = Number(state.gameState.current_index) || 0;
+  const item = state.deck[idx];
+  if (!item || !item.word) return false;
+
+  // Use rigorous normalization
+  const targetWord = normalizeFaWord(item.word); // e.g. "کتابخانه"
+  
+  // Get correct letters array safely
+  let correct = [];
+  try {
+     correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : 
+               JSON.parse(state.gameState.correct_letters || '[]');
+  } catch(e){ correct = []; }
+
+  // Check if every unique letter in targetWord exists in correct array
+  const uniqueChars = [...new Set(targetWord.split(''))];
+  const allFound = uniqueChars.every(ch => correct.includes(ch));
+
+  return allFound;
+}
+
+function scheduleNextWord(triggerId){
+  if (_nextLock) return;
+  _nextLock = true;
+  
+  // UI Feedback: Show completed word for a moment
+  setTimeout(() => {
+    // Only emit if WE are the ones detecting it to avoid storm, 
+    // but ensuring at least one client sends it.
+    if(socket && socket.emit) {
+      console.log(">> Emitting game:next");
+      socket.emit('game:next', { game_id: state.gameId, user_id: state.myId, triggered_by: triggerId || state.myId });
+    }
+    _nextLock = false;
+  }, 1000);
+}
+
+/* ----------------------------------------------------------------
+   RENDERER
+---------------------------------------------------------------- */
+function renderGame(){
+  if (!state.gameState || !state.deck || !state.deck.length) return;
+
+  const idx = Number(state.gameState.current_index) || 0;
+  const item = state.deck[idx] || { word:'', category:'', level:'' };
+  
+  // Update Header Info
+  els.categoryName.textContent = item.category || 'عمومی';
+  els.levelName.textContent = item.level === 'easy' ? 'آسان' : (item.level==='hard'?'سخت':'متوسط');
+  els.wordIndex.textContent = toFaDigits(idx + 1);
+
+  // Build Slots
+  const charArr = normalizeForDisplay(item.word); // Includes spaces
+  const logicWord = normalizeFaWord(item.word);   // Clean for checking correctness
+
+  // Safe correct letters
+  let correct = [];
+  try {
+     correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : 
+               JSON.parse(state.gameState.correct_letters || '[]');
+  } catch(e){ correct=[]; }
+
+  // Build UI if empty or length mismatch
+  // Note: we rebuild to ensure fresh animations
+  els.wordSlots.innerHTML = '';
+  
+  let pureCharIndex = 0;
+  
+  charArr.forEach((ch, i) => {
+    if (ch === ' ') {
+      const gap = document.createElement('div');
+      gap.className = 'slot gap';
+      els.wordSlots.appendChild(gap);
+    } else {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      // Check if this specific letter is revealed
+      const isRevealed = correct.includes(ch);
+      
+      if (isRevealed) {
+        slot.textContent = ch;
+        slot.classList.add('revealed', 'correct');
+      } else {
+        slot.textContent = '';
       }
-      const tg = await waitForTelegram(2000);
-      if (tg) {
-        try {
-          state.initData = tg.initData || '';
-          const user = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : null;
-          if (user && user.id) {
-            state.myId = user.id;
-            const fullname = `${user.first_name||''}${user.last_name ? ' ' + user.last_name : ''}`.trim() || ('#' + state.myId);
-            userNameEl.textContent = fullname;
-            userIdEl.textContent = toFaDigits(state.myId);
-            try { fetch('/auth/telegram', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ initData: state.initData, user }) }).catch(()=>{}); tg.expand && tg.expand(); } catch(e){}
-          } else fallbackGuest();
-        } catch(e){ fallbackGuest(); }
-      } else fallbackGuest();
-      loadSuggestedRooms();
-    })();
-
-    function fallbackGuest(){ if (!state.myId) state.myId = Math.floor(100000 + Math.random()*899999); userNameEl.textContent = 'کاربر مهمان'; userIdEl.textContent = toFaDigits(state.myId); }
-
-    /* ---------- Rooms loading ---------- */
-    levelSelect.addEventListener('change', loadSuggestedRooms);
-    if (refreshRooms) refreshRooms.addEventListener('click', loadPublicRooms);
-    if (filterLevel) filterLevel.addEventListener('change', loadPublicRooms);
-
-    async function loadSuggestedRooms(){
-      try {
-        const lvl = levelSelect.value;
-        const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
-        const d = await res.json();
-        roomsList.innerHTML = '';
-        if (!d.ok || !d.rooms || !d.rooms.length) { roomsList.innerHTML = '<div class="muted">اتاقی برای نمایش نیست</div>'; publicRoomsCount.textContent = '۰'; return; }
-        d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className = 'room-row';
-          el.innerHTML = `<div class="room-meta"><div class="room-title">${escapeHtml(r.name||'اتاق')}</div><div class="room-sub muted">${escapeHtml(r.level||'—')} · ${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)}</div></div>`;
-          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
-          btn.addEventListener('click', ()=> joinRoom(r.id));
-          el.appendChild(btn); roomsList.appendChild(el);
-        });
-        publicRoomsCount.textContent = toFaDigits(d.rooms.length || 0);
-      } catch (e) { roomsList.innerHTML = '<div class="muted">خطا در بارگذاری</div>'; publicRoomsCount.textContent = '—'; }
+      els.wordSlots.appendChild(slot);
+      pureCharIndex++;
     }
+  });
 
-    async function loadPublicRooms(){
-      try {
-        const lvl = filterLevel.value;
-        const res = await fetch('/rooms/list' + (lvl ? '?level=' + encodeURIComponent(lvl) : ''));
-        const d = await res.json();
-        publicRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms || !d.rooms.length) { publicRoomsList.innerHTML = '<div class="muted">هیچ اتاقی یافت نشد</div>'; publicRoomsCount.textContent = '۰'; return; }
-        d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room-row';
-          const meta = document.createElement('div'); meta.className='room-meta';
-          meta.innerHTML = `<div class="room-title">${escapeHtml(r.name||'اتاق')}</div><div class="room-sub muted">${toFaDigits(r.players||0)}/${toFaDigits(r.max_players||2)} · ${escapeHtml(r.level||'—')}</div>`;
-          el.appendChild(meta);
-          const btn = document.createElement('button'); btn.className='btn'; btn.textContent='پیوستن';
-          btn.addEventListener('click', () => { joinRoom(r.id); closeModal(); });
-          el.appendChild(btn); publicRoomsList.appendChild(el);
-        });
-        publicRoomsCount.textContent = toFaDigits(d.rooms.length || 0);
-      } catch (e) { publicRoomsList.innerHTML = '<div class="muted">خطا</div>'; publicRoomsCount.textContent = '—'; }
+  // Render Chips
+  renderChips(correct, state.gameState.wrong_letters);
+
+  // Stats
+  els.scoreMe.textContent = toFaDigits(state.gameState.score || 0);
+  els.progressMe.textContent = toFaDigits(idx + 1) + ' از ' + toFaDigits(state.deck.length);
+  
+  // Check completion immediately after render
+  if (isCurrentWordComplete()) {
+    scheduleNextWord(state.myId);
+  }
+}
+
+function renderChips(correctArr, wrongArr){
+  // Ensure arrays
+  let c = Array.isArray(correctArr) ? correctArr : JSON.parse(correctArr||'[]');
+  let w = Array.isArray(wrongArr) ? wrongArr : JSON.parse(wrongArr||'[]');
+  
+  els.correctLetters.innerHTML = '';
+  els.wrongLetters.innerHTML = '';
+
+  c.forEach(l => {
+    const el = document.createElement('div'); el.className = 'chip-letter correct'; el.textContent = l;
+    els.correctLetters.appendChild(el);
+  });
+  
+  w.forEach(l => {
+    const el = document.createElement('div'); el.className = 'chip-letter wrong'; el.textContent = l;
+    els.wrongLetters.appendChild(el);
+  });
+}
+
+function updatePlayersList(list){
+  els.playersList.innerHTML = '';
+  (list || []).forEach(p => {
+    const row = document.createElement('div');
+    row.style.cssText = "display:flex; justify-content:space-between; font-size:13px; padding:8px; background:#f8fafc; border-radius:8px;";
+    const isMe = String(p.user_id) === String(state.myId);
+    const name = (p.fullname || 'کاربر ' + toFaDigits(String(p.user_id).slice(-3))) + (isMe ? ' (شما)' : '');
+    
+    row.innerHTML = `<div><b>${name}</b></div><div class="muted">امتیاز: ${toFaDigits(p.score||0)}</div>`;
+    els.playersList.appendChild(row);
+    
+    if(!isMe) {
+       els.progressOpp.textContent = toFaDigits((p.current_index||0)+1) + ' از ' + toFaDigits(state.deck.length);
     }
+  });
+}
 
-    async function loadMyRooms(){
-      try {
-        const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: state.myId })});
-        const d = await res.json();
-        myRoomsList.innerHTML = '';
-        if (!d.ok || !d.rooms || !d.rooms.length) { myRoomsList.innerHTML = '<div class="muted">شما اتاقی ندارید</div>'; return; }
-        d.rooms.forEach(r => {
-          const el = document.createElement('div'); el.className='room-row';
-          const meta = document.createElement('div'); meta.className='room-meta';
-          meta.innerHTML = `<div class="room-title">${escapeHtml(r.name||r.id)}</div><div class="room-sub muted">${escapeHtml(r.level||'')}</div>`;
-          el.appendChild(meta);
-          const open = document.createElement('button'); open.className='btn'; open.textContent='باز کردن';
-          open.addEventListener('click', () => { state.roomId = r.id; socket.emit('join-room', { room_id: r.id, user_id: state.myId }); loadRoomStateAndResume(r.id); closeModal(); document.querySelector('.tab[data-tab="play"]').click(); });
-          const leave = document.createElement('button'); leave.className='btn ghost'; leave.textContent='خروج';
-          leave.addEventListener('click', async () => { await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: r.id, user_id: state.myId })}); loadMyRooms(); loadPublicRooms(); });
-          el.appendChild(open); el.appendChild(leave); myRoomsList.appendChild(el);
-        });
-      } catch (e) { myRoomsList.innerHTML = '<div class="muted">خطا</div>'; }
+/* ----------------------------------------------------------------
+   SOCKET EVENTS
+---------------------------------------------------------------- */
+socket.on('game:started', ({ game_id, deck, reveal_mode, players }) => {
+  state.gameId = game_id;
+  state.deck = deck || [];
+  state.gameState = { current_index: 0, correct_letters: [], wrong_letters: [], score: 0 };
+  
+  // Auto Switch Tab
+  document.querySelector('.tab[data-tab="play"]').click();
+  renderGame();
+  updatePlayersList(players);
+  startTimer();
+});
+
+socket.on('game:state', ({ state: gs, deck, players }) => {
+  if(deck) state.deck = deck;
+  if(gs) {
+    state.gameState = gs;
+    // Force Parse Correct Letters Here to avoid bugs downstream
+    if(typeof state.gameState.correct_letters === 'string') {
+      try { state.gameState.correct_letters = JSON.parse(state.gameState.correct_letters); } catch(e){ state.gameState.correct_letters=[]; }
     }
-
-    /* ---------- Create / Join flows ---------- */
-    if (createRoomBtn) {
-      createRoomBtn.addEventListener('click', async () => {
-        try {
-          const name = (newRoomName.value || '').trim();
-          const level = (newRoomLevel.value || 'medium');
-          let maxPlayers = parseInt(newRoomMax.value || '2', 10);
-          if (!maxPlayers || maxPlayers < 2) maxPlayers = 2;
-          if (!state.myId) { alert('شناسه کاربر موجود نیست. صفحه را دوباره بارگیری کنید.'); return; }
-
-          createRoomBtn.disabled = true;
-          createRoomBtn.textContent = 'در حال ایجاد...';
-
-          const res = await fetch('/rooms/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: state.myId, name: name || 'اتاق خصوصی', level, max_players: maxPlayers })
-          });
-          const d = await res.json();
-          if (!d.ok) { alert('خطا در ایجاد اتاق'); createRoomBtn.disabled = false; createRoomBtn.textContent = 'ایجاد و پیوستن'; return; }
-
-          state.roomId = d.room_id;
-          socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-
-          document.querySelector('.tab[data-tab="play"]').click();
-          playPanel.style.display = 'block';
-
-          await loadMyRooms();
-          await loadPublicRooms();
-          closeModal();
-
-        } catch (err) {
-          alert('خطا در ایجاد اتاق');
-        } finally {
-          createRoomBtn.disabled = false;
-          createRoomBtn.textContent = 'ایجاد و پیوستن';
-        }
-      });
+    if(typeof state.gameState.wrong_letters === 'string') {
+      try { state.gameState.wrong_letters = JSON.parse(state.gameState.wrong_letters); } catch(e){ state.gameState.wrong_letters=[]; }
     }
+    state.timerMs = Number(gs.timer_ms) || 0;
+  }
+  
+  document.querySelector('.tab[data-tab="play"]').click();
+  els.playPanel.style.display = 'block';
+  
+  renderGame();
+  updatePlayersList(players);
+});
 
-    /* ---------- quickJoin ---------- */
-    quickJoin.addEventListener('click', async () => {
-      try {
-        const code = generateRoomCode(4);
-        const roomName = `اتاق ${code}`;
+socket.on('game:letter:correct', ({ user_id, letter, scoreDelta, player }) => {
+  const isMe = String(user_id) === String(state.myId);
+  
+  // Update Local State
+  let cur = state.gameState.correct_letters || [];
+  if(!Array.isArray(cur)) cur = []; // safety
+  if(!cur.includes(letter)) {
+    cur.push(letter);
+    state.gameState.correct_letters = cur;
+  }
+  
+  // Update Score if me
+  if(isMe && player) state.gameState.score = player.score;
 
-        const res = await fetch('/rooms/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user_id: state.myId,
-            name: roomName,
-            level: levelSelect.value || 'medium',
-            max_players: 2
-          })
-        });
+  // Re-render to update slots and chips
+  renderGame();
 
-        const d = await res.json();
-        if (!d.ok){ alert('خطا در ایجاد اتاق'); return; }
-        state.roomId = d.room_id;
-        socket.emit && socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        document.querySelector('.tab[data-tab="play"]').click();
-        playPanel.style.display = 'block';
-        loadMyRooms();
-      } catch (e) { alert('خطا'); }
-    });
+  if(isMe) {
+     // Flash input green?
+  }
+});
 
-    async function joinRoom(roomId){
-      try {
-        const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId, user_id: state.myId })});
-        const d = await res.json();
-        if (!d.ok){ alert('امکان پیوستن نیست'); return; }
-        state.roomId = d.room_id;
-        socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-        if (d.status === 'ready' && d.game_id){ state.gameId = d.game_id; setTimeout(() => resumeGame(), 160); }
-        else { document.querySelector('.tab[data-tab="play"]').click(); playPanel.style.display = 'block'; categoryName.textContent = 'در انتظار حریف'; wordSlots.innerHTML = '<div class="muted" style="padding:12px">در انتظار...</div>'; }
-        loadMyRooms(); loadPublicRooms();
-      } catch (e) { alert('خطا'); }
+socket.on('game:letter:wrong', ({ user_id, letter }) => {
+  if(String(user_id) === String(state.myId)) {
+     let w = state.gameState.wrong_letters || [];
+     if(!Array.isArray(w)) w = [];
+     if(!w.includes(letter)) {
+       w.push(letter);
+       state.gameState.wrong_letters = w;
+     }
+     renderGame(); // Updates chips
+     
+     els.letterInput.classList.add('shake');
+     setTimeout(()=> els.letterInput.classList.remove('shake'), 400);
+  }
+});
+
+socket.on('game:next', ({ game_id }) => {
+  if(state.gameId !== game_id) return;
+  // Visually indicate loading next word
+  els.wordSlots.style.opacity = '0.5';
+  setTimeout(()=> els.wordSlots.style.opacity = '1', 500);
+});
+
+/* ----------------------------------------------------------------
+   INPUT & ACTIONS
+---------------------------------------------------------------- */
+els.letterInput.addEventListener('input', () => {
+  const v = els.letterInput.value;
+  if(v) {
+     const n = normalizeFaLetter(v);
+     if(/^[\u0600-\u06FF]$/.test(n)) {
+        els.letterInput.value = n;
+     } else {
+        els.letterInput.value = '';
+     }
+  }
+});
+
+els.letterInput.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter') els.guessBtn.click();
+});
+
+els.guessBtn.addEventListener('click', () => {
+  const val = els.letterInput.value;
+  if(!val) return els.letterInput.focus();
+  
+  socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: val });
+  els.letterInput.value = '';
+  els.letterInput.focus();
+});
+
+/* ----------------------------------------------------------------
+   TIMER
+---------------------------------------------------------------- */
+let timerInt = null;
+function startTimer(){
+  if(timerInt) clearInterval(timerInt);
+  timerInt = setInterval(() => {
+    state.timerMs += 1000;
+    const s = Math.floor(state.timerMs / 1000);
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    els.timer.textContent = toFaDigits(String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'));
+  }, 1000);
+}
+
+/* ----------------------------------------------------------------
+   ROOMS API (Keep functionality, just clean up)
+---------------------------------------------------------------- */
+async function loadSuggestedRooms(){
+  try {
+    const lvl = els.levelSelect.value;
+    const res = await fetch('/rooms/list?level=' + lvl);
+    const data = await res.json();
+    els.roomsList.innerHTML = '';
+    if(data.rooms && data.rooms.length) {
+       data.rooms.forEach(r => {
+         const d = document.createElement('div'); d.className='room-row';
+         d.innerHTML = `<div class="room-title">${escapeHtml(r.name)} <span class="muted" style="font-weight:400; font-size:12px;">(${toFaDigits(r.players)}/${toFaDigits(r.max_players)})</span></div><button class="btn small" onclick="joinRoom('${r.id}')">پیوستن</button>`;
+         els.roomsList.appendChild(d);
+       });
+    } else {
+       els.roomsList.innerHTML = '<div class="muted" style="text-align:center; padding:10px;">اتاقی یافت نشد</div>';
     }
+  } catch(e){}
+}
 
-    async function loadRoomStateAndResume(roomId){
-      try {
-        const res = await fetch('/rooms/state', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: roomId })});
-        const d = await res.json();
-        if (!d.ok) return;
-        if (d.game && d.game.id) { state.gameId = d.game.id; socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId }); }
-        else { categoryName.textContent = 'در انتظار'; wordSlots.innerHTML = '<div class="muted" style="padding:12px">در انتظار...</div>'; }
-      } catch (e) {}
-    }
-
-    resumeGameBtn.addEventListener('click', resumeGame);
-    function resumeGame(){
-      if (!state.gameId){ alert('بازی هنوز آغاز نشده'); return; }
-      socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+async function joinRoom(rid){
+  const res = await fetch('/rooms/join', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({room_id:rid, user_id:state.myId}) });
+  const d = await res.json();
+  if(d.ok) {
+    state.roomId = d.room_id;
+    socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
+    if(d.game_id) {
+      state.gameId = d.game_id;
       socket.emit('game:resume', { game_id: state.gameId, user_id: state.myId });
+    } else {
+      // Waiting mode
       document.querySelector('.tab[data-tab="play"]').click();
-      playPanel.style.display = 'block';
+      els.wordSlots.innerHTML = '<div style="padding:20px;">در انتظار شروع بازی...</div>';
     }
+    closeModal();
+  } else {
+    alert('خطا در پیوستن');
+  }
+}
 
-    /* ---------- Next-word logic: detection + debounce ---------- */
-    let _nextScheduled = false;
-    function scheduleNextWord(sourceUserId){
-      if (_nextScheduled) return;
-      _nextScheduled = true;
-      // short delay so UI shows revealed letters before changing
-      setTimeout(() => {
-        try {
-          socket.emit && socket.emit('game:next', { game_id: state.gameId, user_id: state.myId, triggered_by: sourceUserId || state.myId });
-        } catch(e){}
-        _nextScheduled = false;
-      }, 850); // 850ms gives user a short feedback window
-    }
+window.joinRoom = joinRoom; // Global expose for inline onclick
 
-    // check completion by comparing unique non-space letters with correct_letters
-    function isCurrentWordComplete(){
-      if (!state.gameState || !state.deck || !state.deck.length) return false;
-      const idx = Number(state.gameState.current_index) || 0;
-      const item = state.deck[idx] || { word:'' };
-      const wordNorm = normalizeFaWordKeepSpaces(item.word || '');
-      if (!wordNorm) return false;
-      const letters = [];
-      for (let ch of wordNorm){
-        if (ch === ' ' || ch === '\u200c') continue;
-        if (!letters.includes(ch)) letters.push(ch);
-      }
-      const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : (state.gameState.correct_letters ? JSON.parse(state.gameState.correct_letters||'[]') : []);
-      // if every unique letter appears in correct array => complete
-      return letters.length > 0 && letters.every(l => correct.includes(l));
-    }
+/* ----------------------------------------------------------------
+   OTHER LISTENERS
+---------------------------------------------------------------- */
+els.levelSelect.addEventListener('change', loadSuggestedRooms);
+els.refreshRooms.addEventListener('click', loadSuggestedRooms);
 
-    /* ---------- Socket handlers (merge updates) ---------- */
-    socket.on && socket.on('room:presence', ({ room_id, count, players }) => {
-      playersCount.textContent = toFaDigits(count || 0);
-      roomStatus.textContent = 'فعال';
-      if (players) updatePlayersList(players);
-    });
+els.quickJoin.addEventListener('click', async () => {
+  const name = 'اتاق ' + toFaDigits(Math.floor(Math.random()*1000));
+  const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id:state.myId, name, level: els.levelSelect.value, max_players:2 }) });
+  const d = await res.json();
+  if(d.ok) joinRoom(d.room_id);
+});
 
-    socket.on && socket.on('game:started', ({ game_id, deck, reveal_mode, players }) => {
-      state.gameId = game_id; state.deck = deck || []; state.revealMode = reveal_mode || 'shared';
-      if (state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.myId });
-      setTimeout(() => resumeGame(), 160);
-    });
+els.createRoomBtn.addEventListener('click', async () => {
+  const name = els.newRoomName.value || 'اتاق من';
+  const res = await fetch('/rooms/create', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ user_id:state.myId, name, level: els.newRoomLevel.value, max_players: els.newRoomMax.value }) });
+  const d = await res.json();
+  if(d.ok) joinRoom(d.room_id);
+});
 
-    socket.on && socket.on('game:state', ({ state: gs, deck, reveal_mode, players }) => {
-      if (!gs) return;
-      state.gameState = gs;
-      state.deck = deck || state.deck || [];
-      state.timerMs = Number(gs.timer_ms)||0;
-      if (reveal_mode) state.revealMode = reveal_mode;
-      if (typeof state.gameState.correct_letters === 'string') state.gameState.correct_letters = JSON.parse(state.gameState.correct_letters || '[]');
-      if (typeof state.gameState.wrong_letters === 'string') state.gameState.wrong_letters = JSON.parse(state.gameState.wrong_letters || '[]');
+// Load Public Rooms for Modal
+async function loadPublicRooms(){
+  const res = await fetch('/rooms/list');
+  const d = await res.json();
+  els.publicRoomsList.innerHTML = '';
+  els.publicRoomsCount.textContent = toFaDigits(d.rooms ? d.rooms.length : 0);
+  if(d.rooms) d.rooms.forEach(r => {
+     const row = document.createElement('div'); row.className='room-row';
+     row.innerHTML = `<div class="room-title">${escapeHtml(r.name)}</div><button class="btn small" onclick="joinRoom('${r.id}')">ورود</button>`;
+     els.publicRoomsList.appendChild(row);
+  });
+}
 
-      renderGame();
-      startTimer();
-      document.querySelector('.tab[data-tab="play"]').click();
-      playPanel.style.display = 'block';
-      updatePlayersList(players || []);
-      populateModalLetters();
-      try { letterInput.focus({preventScroll:true}); } catch(e){}
-      // if server already advanced to next word, nothing else needed
-    });
+async function loadMyRooms(){
+  const res = await fetch('/rooms/myrooms', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:state.myId}) });
+  const d = await res.json();
+  els.myRoomsList.innerHTML = '';
+  if(d.rooms) d.rooms.forEach(r => {
+     const row = document.createElement('div'); row.className='room-row';
+     row.innerHTML = `<div>${escapeHtml(r.name)}</div><button class="btn small" onclick="joinRoom('${r.id}')">بازگشت</button>`;
+     els.myRoomsList.appendChild(row);
+  });
+}
 
-    socket.on && socket.on('game:states', ({ game_id, states }) => {
-      if (state.gameId !== game_id) return;
-      updatePlayersList(states || []);
-      const opp = (states || []).find(s => Number(s.user_id) !== Number(state.myId));
-      if (opp) progressOpp.textContent = `${toFaDigits((opp.current_index||0)+1)} / ${toFaDigits(state.deck.length||10)}`;
-    });
+if(els.myRoomsBtn) els.myRoomsBtn.addEventListener('click', loadMyRooms);
 
-    socket.on && socket.on('game:letter:correct', ({ user_id, letter, positions, scoreDelta, shared, player }) => {
-      const isMe = Number(user_id) === Number(state.myId);
-      positions.forEach(origIdx => {
-        const dispIdx = state.indexMap[origIdx];
-        if (dispIdx !== null && dispIdx !== undefined){
-          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = letter; s.classList.add('revealed','correct'); s.classList.remove('wrong'); if (!isMe) s.classList.add('opponent'); }
-        }
-      });
-
-      if (!state.gameState) state.gameState = {};
-      try {
-        const cur = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
-        if (!cur.includes(letter)) { cur.push(letter); state.gameState.correct_letters = cur; }
-      } catch(e){ state.gameState.correct_letters = [letter]; }
-
-      if (isMe && player && typeof player.score !== 'undefined') scoreMe.textContent = toFaDigits(player.score || 0);
-      populateModalLetters();
-
-      // if word complete now, schedule next word
-      try { if (isCurrentWordComplete()) scheduleNextWord(user_id); } catch(e){}
-    });
-
-    socket.on && socket.on('game:letter:wrong', ({ user_id, letter }) => {
-      if (Number(user_id) === Number(state.myId)) addChip(wrongLetters, letter, 'wrong');
-      else flashMessage('حریف حرف اشتباهی زد');
-      populateModalLetters();
-    });
-
-    socket.on && socket.on('game:opponentEvent', (evt) => { if (evt.type === 'opponent_correct') flashMessage('حریف حرفی را حدس زد'); });
-
-    socket.on && socket.on('game:hint:reveal', ({ user_id, letter, positions, penalty, player }) => {
-      const isMe = Number(user_id) === Number(state.myId);
-      positions.forEach(origIdx => {
-        const dispIdx = state.indexMap[origIdx];
-        if (dispIdx !== null && dispIdx !== undefined){
-          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = letter; s.classList.add('revealed','correct'); s.classList.remove('wrong'); if (!isMe) s.classList.add('opponent'); }
-        }
-      });
-
-      if (!state.gameState) state.gameState = {};
-      try {
-        const cur = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
-        if (!cur.includes(letter)) { cur.push(letter); state.gameState.correct_letters = cur; }
-      } catch(e){ state.gameState.correct_letters = [letter]; }
-
-      if (isMe) {
-        addChip(correctLetters, letter, 'correct');
-        state.gameState.score = Math.max(0, (Number(state.gameState.score)||0) - (penalty||0));
-        scoreMe.textContent = toFaDigits(state.gameState.score);
-      }
-      populateModalLetters();
-
-      // hint might complete the word: schedule next if so
-      try { if (isCurrentWordComplete()) scheduleNextWord(user_id); } catch(e){}
-    });
-
-    socket.on && socket.on('game:next', ({ game_id }) => {
-      // server indicates next word; client will receive 'game:state' soon
-      // keep UI ready (clear temporary states if any)
-      if (state.gameId !== game_id) return;
-      // small visual reset (slots will be rebuilt by renderGame once server sends state)
-    });
-
-    socket.on && socket.on('game:finished', ({ game_id }) => { if (state.gameId === game_id) { alert('بازی به پایان رسید'); document.querySelector('.tab[data-tab="dashboard"]').click(); } });
-
-    /* ---------- Render ---------- */
-    function renderGame(){
-      if (!state.gameState || !state.deck || !state.deck.length) return;
-      const idx = Number(state.gameState.current_index) || 0;
-      const item = state.deck[idx] || { word:'', category:'', level:'medium' };
-      const wordNorm = normalizeFaWordKeepSpaces(item.word);
-      state.indexMap = buildIndexMap(wordNorm);
-
-      categoryName.textContent = item.category || '';
-      levelName.textContent = item.level === 'easy' ? 'آسان' : item.level === 'hard' ? 'سخت' : 'متوسط';
-      wordIndex.textContent = toFaDigits(idx + 1);
-
-      const charArr = normalizeDisplayPreserveSpaces(wordNorm);
-      wordSlots.innerHTML = '';
-      let dispIdxCounter = 0;
-      for (let i=0;i<charArr.length;i++){
-        const ch = charArr[i];
-        if (ch === ' ') {
-          const gap = document.createElement('div'); gap.className = 'slot gap'; gap.setAttribute('aria-hidden','true'); wordSlots.appendChild(gap);
-          continue;
-        }
-        const slot = document.createElement('div'); slot.className='slot'; slot.dataset.dispIndex = dispIdxCounter; slot.textContent = '_';
-        wordSlots.appendChild(slot);
-        dispIdxCounter++;
-      }
-
-      correctLetters.innerHTML = ''; wrongLetters.innerHTML = '';
-      const correct = Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : JSON.parse(state.gameState.correct_letters || '[]');
-      const wrong = Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : JSON.parse(state.gameState.wrong_letters || '[]');
-      correct.forEach(l => addChip(correctLetters, l, 'correct'));
-      wrong.forEach(l => addChip(wrongLetters, l, 'wrong'));
-
-      for (let origIdx=0; origIdx<wordNorm.length; origIdx++){
-        const ch = wordNorm[origIdx];
-        const dispIdx = state.indexMap[origIdx];
-        if (dispIdx === null || dispIdx === undefined) continue;
-        if (correct.includes(ch)){
-          const s = wordSlots.querySelector(`.slot[data-disp-index="${dispIdx}"]`);
-          if (s){ s.textContent = ch; s.classList.add('revealed','correct'); }
-        }
-      }
-
-      scoreMe.textContent = toFaDigits(Number(state.gameState.score) || 0);
-      progressMe.textContent = `${toFaDigits((Number(state.gameState.current_index)||0)+1)} / ${toFaDigits(state.deck.length || 10)}`;
-
-      // Immediately check: if by server state the word already complete, schedule next
-      try { if (isCurrentWordComplete()) scheduleNextWord(); } catch(e){}
-    }
-
-    function addChip(container, letter, type){
-      if (![...container.children].some(x => x.textContent === letter && x.classList.contains(type))) {
-        const c = document.createElement('div'); c.className='chip-letter'; c.textContent = letter;
-        if (type === 'correct') c.classList.add('correct');
-        if (type === 'wrong') c.classList.add('wrong');
-        container.appendChild(c);
-      }
-    }
-
-    function updatePlayersList(list){
-      playersList.innerHTML = '';
-      (list || []).forEach(p => {
-        const row = document.createElement('div'); row.className='player-row';
-        const name = document.createElement('div'); name.style.fontWeight='800'; name.textContent = p.fullname || ('#' + toFaDigits(p.user_id));
-        const meta = document.createElement('div'); meta.className='muted'; meta.style.fontSize='13px'; meta.textContent = `امتیاز: ${toFaDigits(p.score||0)} · حدس‌ها: ${toFaDigits(p.guessed_count||0)} · ایندکس: ${toFaDigits((p.current_index||0)+1)}`;
-        row.appendChild(name); row.appendChild(meta); playersList.appendChild(row);
-      });
-    }
-
-    function flashMessage(s){
-      const el = document.createElement('div'); el.className='panel muted'; el.style.marginTop='8px'; el.textContent = s;
-      document.querySelector('.shell').insertBefore(el, document.querySelector('.shell').children[1]);
-      setTimeout(()=> el.remove(), 1400);
-    }
-
-    /* ---------- populate modal letters ---------- */
-    function populateModalLetters(){
-      try {
-        const correct = state.gameState && Array.isArray(state.gameState.correct_letters) ? state.gameState.correct_letters : (state.gameState && state.gameState.correct_letters ? JSON.parse(state.gameState.correct_letters||'[]') : []);
-        const wrong = state.gameState && Array.isArray(state.gameState.wrong_letters) ? state.gameState.wrong_letters : (state.gameState && state.gameState.wrong_letters ? JSON.parse(state.gameState.wrong_letters||'[]') : []);
-        correctLettersModal.innerHTML = ''; wrongLettersModal.innerHTML = '';
-        (correct || []).forEach(l => { const c = document.createElement('div'); c.className='chip-letter correct'; c.textContent = l; correctLettersModal.appendChild(c); });
-        (wrong || []).forEach(l => { const c = document.createElement('div'); c.className='chip-letter wrong'; c.textContent = l; wrongLettersModal.appendChild(c); });
-      } catch(e){}
-    }
-
-    /* ---------- input handling ---------- */
-    letterInput.addEventListener('compositionstart', () => { state.composing = true; });
-    letterInput.addEventListener('compositionend', () => { state.composing = false; sanitizeInput(); });
-    letterInput.addEventListener('input', () => { if (!state.composing) sanitizeInput(); });
-    letterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); guessBtn.click(); } });
-
-    function sanitizeInput(){ const raw = (letterInput.value || '').trim(); const normalized = normalizeFaLetter(raw.replace(/\s/g,'')); letterInput.value = normalized.slice(0,1); }
-
-    /* ---------- actions ---------- */
-    guessBtn.addEventListener('click', () => {
-      if (state.composing) return;
-      const vRaw = (letterInput.value||'').trim();
-      if (!vRaw || vRaw.length !== 1) { try{ letterInput.focus(); }catch(e){} return; }
-      const v = normalizeFaLetter(vRaw);
-      if (!/^[\u0600-\u06FF]$/.test(v)) { letterInput.classList.add('shake'); setTimeout(()=> letterInput.classList.remove('shake'),200); return; }
-      socket.emit && socket.emit('game:guess', { game_id: state.gameId, user_id: state.myId, letter: v });
-      letterInput.value = '';
-      try{ letterInput.focus(); }catch(e){}
-    });
-
-    hintBtn.addEventListener('click', ()=> socket.emit && socket.emit('game:hint', { game_id: state.gameId, user_id: state.myId }));
-    leaveBtn.addEventListener('click', async () => {
-      if (!state.roomId) return;
-      await fetch('/rooms/leave', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ room_id: state.roomId, user_id: state.myId })});
-      document.querySelector('.tab[data-tab="dashboard"]').click();
-    });
-
-    /* ---------- timer ---------- */
-    let timerHandle = null;
-    function startTimer(){
-      if (timerHandle) clearInterval(timerHandle);
-      timerHandle = setInterval(()=>{
-        state.timerMs = (Number(state.timerMs)||0) + 1000;
-        timerEl.textContent = formatTimer(state.timerMs || 0);
-        socket.emit && socket.emit('game:timer', { game_id: state.gameId, user_id: state.myId, timer_ms: Math.trunc(state.timerMs || 0) });
-      }, 1000);
-    }
-    function formatTimer(ms){
-      const s = Math.max(0, Math.floor(ms/1000));
-      const m = Math.floor(s/60), r = s%60;
-      return toFaDigits(String(m).padStart(2,'0') + ':' + String(r).padStart(2,'0'));
-    }
-
-    /* ---------- misc ---------- */
-    document.getElementById('clearState').addEventListener('click', () => { try{ localStorage.clear(); }catch(e){} alert('وضعیت محلی پاک شد'); });
-
-    // initial load
-    loadSuggestedRooms();
-  </script>
+</script>
 </body>
 </html>
