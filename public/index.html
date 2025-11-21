@@ -1368,6 +1368,259 @@
     .pulse-effect {
       animation: pulse 1.5s infinite;
     }
+
+    /* بهبود نمایش بازیکنان در حالت موبایل */
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 16px;
+        height: auto;
+        overflow-y: auto;
+      }
+      
+      .player-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px;
+      }
+      
+      .player-card .p-score {
+        font-size: 24px;
+        margin-top: 8px;
+        align-self: flex-end;
+      }
+      
+      .player-card .p-status {
+        font-size: 13px;
+        margin-top: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      
+      .player-card .p-status span {
+        background: #f1f5f9;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+      }
+      
+      #playersListContainer {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      
+      /* بهبود نمایش اطلاعات بازیکن */
+      .player-info-mobile {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+      }
+      
+      .player-stats-mobile {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+      
+      .player-stat-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: #f8fafc;
+        padding: 4px 8px;
+        border-radius: 6px;
+      }
+
+      .app-container {
+        height: 100vh;
+        overflow: hidden;
+      }
+      
+      header {
+        padding: 12px 16px;
+      }
+      
+      .logo {
+        font-size: 18px;
+      }
+      
+      .logo i {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+      }
+      
+      .nav-tabs {
+        padding: 0 16px;
+        overflow-x: auto;
+      }
+      
+      .tab-btn {
+        padding: 12px 14px;
+        font-size: 13px;
+      }
+      
+      .main-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 16px;
+        height: calc(100vh - 120px);
+      }
+      
+      .panel {
+        padding: 20px;
+      }
+      
+      /* بهبود نمایش بازی در موبایل */
+      .game-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      
+      .timer-box {
+        align-self: flex-end;
+        font-size: 18px;
+        min-width: 80px;
+      }
+      
+      .slots-area {
+        gap: 8px;
+      }
+      
+      .slot {
+        width: 40px;
+        height: 48px;
+        font-size: 20px;
+      }
+      
+      .input-area {
+        flex-direction: column;
+        gap: 12px;
+      }
+      
+      .letter-input {
+        width: 100%;
+        height: 56px;
+        font-size: 20px;
+      }
+      
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+      
+      /* بهبود نمایش بازیکنان در موبایل */
+      #playersListContainer {
+        max-height: 250px;
+      }
+      
+      .player-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+      }
+      
+      .player-card > div {
+        width: 100%;
+      }
+      
+      .p-score {
+        align-self: center;
+        font-size: 22px;
+      }
+      
+      .player-progress-info {
+        justify-content: space-between;
+      }
+      
+      .player-stat {
+        flex: 1;
+        justify-content: center;
+        min-width: 70px;
+      }
+    }
+
+    /* نمایش بهینه برای موبایل‌های بسیار کوچک */
+    @media (max-width: 360px) {
+      .player-progress-info {
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .player-stat {
+        min-width: auto;
+        justify-content: flex-start;
+      }
+      
+      .slot {
+        width: 35px;
+        height: 42px;
+        font-size: 18px;
+      }
+    }
+
+    /* استایل‌های عمومی برای نمایش بهتر اطلاعات بازیکنان */
+    .player-card {
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .player-card .p-name {
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .player-card .p-status {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .player-progress-info {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .player-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      background: #f8fafc;
+      padding: 3px 8px;
+      border-radius: 12px;
+      color: var(--text-muted);
+    }
+
+    .player-stat i {
+      font-size: 10px;
+    }
+
+    /* انیمیشن برای به روزرسانی امتیاز */
+    @keyframes scoreUpdate {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    .score-updated {
+      animation: scoreUpdate 0.6s ease;
+    }
   </style>
 </head>
 <body>
@@ -2148,8 +2401,7 @@ socket.on('room:reset', () => { if(state.roomId) enterRoomMode(state.roomId, tru
 // --- Socket Events برای به‌روزرسانی real-time ---
 socket.on('game:states', (data) => { 
   if(data.game_id === state.gameId) { 
-    state.allStates = data.states; 
-    updatePlayersUI(); 
+    efficientPlayersUpdate(data.states);
     
     // به‌روزرسانی امتیاز کاربر جاری
     const currentUserState = data.states.find(s => String(s.user_id) === String(state.user.id));
@@ -2163,7 +2415,11 @@ socket.on('game:states', (data) => {
 socket.on('game:letter:correct', (data) => {
   const isMe = String(data.user_id) === String(state.user.id);
   const pIndex = state.allStates.findIndex(p => String(p.user_id) === String(data.user_id));
-  if(pIndex >= 0 && data.player) state.allStates[pIndex] = { ...state.allStates[pIndex], ...data.player };
+  if(pIndex >= 0 && data.player) {
+    state.allStates[pIndex] = { ...state.allStates[pIndex], ...data.player };
+    // به‌روزرسانی امتیاز با انیمیشن
+    updatePlayerScoreWithAnimation(data.user_id, data.player.score);
+  }
   updatePlayersUI();
   
   if(isMe) {
@@ -2205,6 +2461,9 @@ socket.on('game:hint:reveal', (data) => {
     // نمایش پیام استفاده از راهنما
     showHintUsedMessage(data.hints_used, state.gameState.hints_allowed);
   }
+  
+  // به‌روزرسانی UI بازیکنان
+  updatePlayersUI();
 });
 
 // --- توابع کمکی برای نمایش انیمیشن‌ها ---
@@ -2274,6 +2533,50 @@ function showHintMessage(message) {
   }, 3000);
 }
 
+// تابع کمکی برای به روزرسانی امتیاز با انیمیشن
+function updatePlayerScoreWithAnimation(userId, newScore) {
+  const playerCards = document.querySelectorAll('.player-card');
+  playerCards.forEach(card => {
+    const scoreElement = card.querySelector('.p-score');
+    if (scoreElement && String(card.dataset.userId) === String(userId)) {
+      scoreElement.textContent = toFaDigits(newScore);
+      scoreElement.classList.add('score-updated');
+      setTimeout(() => {
+        scoreElement.classList.remove('score-updated');
+      }, 600);
+    }
+  });
+}
+
+// تابع برای به‌روزرسانی کارآمدتر
+function efficientPlayersUpdate(newStates) {
+  const currentStates = state.allStates;
+  let needsFullUpdate = false;
+  
+  // بررسی تغییرات اساسی
+  if (newStates.length !== currentStates.length) {
+    needsFullUpdate = true;
+  } else {
+    for (let i = 0; i < newStates.length; i++) {
+      const newState = newStates[i];
+      const currentState = currentStates.find(s => String(s.user_id) === String(newState.user_id));
+      
+      if (!currentState || 
+          newState.score !== currentState.score ||
+          newState.current_index !== currentState.current_index ||
+          newState.hints_used !== currentState.hints_used) {
+        needsFullUpdate = true;
+        break;
+      }
+    }
+  }
+  
+  if (needsFullUpdate) {
+    state.allStates = newStates;
+    updatePlayersUI();
+  }
+}
+
 function updateState(gid, deck, localState, allPlayers) {
   state.gameId = gid; 
   state.deck = deck; 
@@ -2305,6 +2608,95 @@ socket.on('room:presence', (data) => {
     updatePlayersUI(data.players);
   }
 });
+
+// --- تابع به روزرسانی لیست بازیکنان ---
+function updatePlayersUI(rawList) {
+  const list = rawList || state.allStates || [];
+  const cont = $('playersListContainer'); 
+  cont.innerHTML = '';
+  
+  if(!list.length) {
+    cont.innerHTML = `
+      <div style="text-align:center; color:#94a3b8; font-size:13px; padding:20px;">
+        <div style="font-size:32px; margin-bottom:8px; color: var(--primary);"><i class="fas fa-user-clock"></i></div>
+        در انتظار بازیکنان...
+      </div>`;
+    return;
+  }
+  
+  // مرتب‌سازی بازیکنان بر اساس امتیاز (نزولی)
+  const sortedPlayers = [...list].sort((a, b) => (b.score || 0) - (a.score || 0));
+  
+  sortedPlayers.forEach((p, index) => {
+    const isMe = String(p.user_id) === String(state.user.id);
+    const div = document.createElement('div'); 
+    div.className = 'player-card' + (isMe ? ' me' : '');
+    div.dataset.userId = p.user_id;
+    
+    // استفاده از fullname اگر موجود باشد، در غیر این صورت از user_id
+    const displayName = p.fullname || `کاربر ${String(p.user_id).slice(-4)}`;
+    
+    // محاسبه پیشرفت
+    const currentWordIndex = p.current_index || 0;
+    const totalWords = state.deck ? state.deck.length : 0;
+    const progress = totalWords > 0 ? Math.round(((currentWordIndex + 1) / totalWords) * 100) : 0;
+    
+    // اطلاعات بازیکن
+    const score = p.score || 0;
+    const hintsUsed = p.hints_used || 0;
+    const hintsAllowed = p.hints_allowed || 0;
+    const wrongCount = Array.isArray(p.wrong_letters) ? p.wrong_letters.length : 
+                     (typeof p.wrong_letters === 'string' ? JSON.parse(p.wrong_letters || '[]').length : 0);
+    
+    // محاسبه تعداد مجاز خطا برای کلمه فعلی
+    const currentWord = state.deck?.[currentWordIndex]?.word || '';
+    const wordLength = currentWord.replace(/[\s\u200c]/g, '').length;
+    const allowedWrong = Math.max(1, Math.ceil(wordLength * 1.5));
+    
+    div.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="flex: 1;">
+          <div class="p-name">
+            ${esc(displayName)} 
+            ${isMe ? '<span style="color:var(--primary); font-size:12px;">(شما)</span>' : ''}
+            ${index === 0 ? '<i class="fas fa-crown" style="color: #f59e0b;"></i>' : ''}
+          </div>
+          <div class="p-status">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+              <span style="font-weight: 600;">کلمه ${toFaDigits(currentWordIndex + 1)} از ${toFaDigits(totalWords)}</span>
+              <div style="flex: 1; max-width: 80px; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+                <div style="width: ${progress}%; background: var(--primary); height: 100%; transition: width 0.3s ease;"></div>
+              </div>
+            </div>
+            <div class="player-progress-info">
+              <div class="player-stat">
+                <i class="fas fa-star"></i>
+                <span>${toFaDigits(score)}</span>
+              </div>
+              <div class="player-stat">
+                <i class="fas fa-lightbulb"></i>
+                <span>${toFaDigits(hintsUsed)}/${toFaDigits(hintsAllowed)}</span>
+              </div>
+              <div class="player-stat">
+                <i class="fas fa-times"></i>
+                <span>${toFaDigits(wrongCount)}/${toFaDigits(allowedWrong)}</span>
+              </div>
+              <div class="player-stat">
+                <i class="fas fa-list"></i>
+                <span>${toFaDigits(p.guessed_count || 0)} حدس</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="p-score" style="font-size: 24px; font-weight: 900; color: var(--primary);">
+          ${toFaDigits(score)}
+        </div>
+      </div>
+    `;
+    
+    cont.appendChild(div);
+  });
+}
 
 async function enterRoomMode(roomId, skipApi = false) {
   if(!skipApi) {
@@ -2432,47 +2824,6 @@ function renderChips(id, arr, cls) {
     c.textContent=l; 
     el.appendChild(c); 
   }); 
-}
-
-// --- تابع به روزرسانی لیست بازیکنان ---
-function updatePlayersUI(rawList) {
-  const list = rawList || state.allStates || [];
-  const cont = $('playersListContainer'); 
-  cont.innerHTML = '';
-  
-  if(!list.length) {
-    cont.innerHTML = `
-      <div style="text-align:center; color:#94a3b8; font-size:13px; padding:20px;">
-        <div style="font-size:32px; margin-bottom:8px; color: var(--primary);"><i class="fas fa-user-clock"></i></div>
-        در انتظار بازیکنان...
-      </div>`;
-    return;
-  }
-  
-  list.forEach(p => {
-    const isMe = String(p.user_id) === String(state.user.id);
-    const div = document.createElement('div'); 
-    div.className = 'player-card' + (isMe ? ' me' : '');
-    
-    // استفاده از fullname اگر موجود باشد، در غیر این صورت از user_id
-    const displayName = p.fullname || `کاربر ${String(p.user_id).slice(-4)}`;
-    
-    let progressTxt = 'لابی';
-    if(typeof p.current_index !== 'undefined') {
-      progressTxt = `کلمه ${toFaDigits((p.current_index||0)+1)} از ${toFaDigits(state.deck ? state.deck.length : 0)}`;
-    }
-    
-    // نمایش تعداد راهنماهای استفاده شده
-    const hintsInfo = p.hints_used !== undefined ? ` | راهنما: ${toFaDigits(p.hints_used)}/${toFaDigits(p.hints_allowed || 0)}` : '';
-    
-    div.innerHTML = `
-      <div>
-        <div class="p-name">${esc(displayName)} ${isMe?'<span style="color:var(--primary);">(شما)</span>':''}</div>
-        <div class="p-status">${progressTxt}${hintsInfo}</div>
-      </div>
-      <div class="p-score">${toFaDigits(p.score||0)}</div>`;
-    cont.appendChild(div);
-  });
 }
 
 function startAutoCloseTimer() {
