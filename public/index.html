@@ -1436,6 +1436,7 @@
         background: #f8fafc;
         padding: 4px 8px;
         border-radius: 6px;
+        font-size: 11px;
       }
 
       .app-container {
@@ -1621,6 +1622,146 @@
 
     .score-updated {
       animation: scoreUpdate 0.6s ease;
+    }
+
+    /* استایل‌های جدید برای نمایش بهتر در موبایل */
+    .player-info-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .player-stats-mobile {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .player-stat-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: #f8fafc;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .player-progress-mobile {
+      width: 100%;
+    }
+
+    .score-display {
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--primary);
+      align-self: center;
+    }
+
+    /* انیمیشن‌های جدید */
+    @keyframes floatUp {
+      0% { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      70% {
+        opacity: 1;
+        transform: translate(-50%, -100%) scale(1.2);
+      }
+      100% { 
+        opacity: 0;
+        transform: translate(-50%, -120%) scale(1);
+      }
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      20% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      80% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    }
+
+    .score-animation {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+      font-weight: 900;
+      z-index: 1000;
+      animation: floatUp 1.5s ease-out forwards;
+      pointer-events: none;
+    }
+
+    .score-animation.positive {
+      color: #10b981;
+      text-shadow: 0 2px 10px rgba(16, 185, 129, 0.5);
+    }
+
+    .score-animation.negative {
+      color: #ef4444;
+      text-shadow: 0 2px 10px rgba(239, 68, 68, 0.5);
+    }
+
+    .hint-message {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      z-index: 1000;
+      animation: fadeInOut 2s ease-in-out forwards;
+      backdrop-filter: blur(10px);
+    }
+
+    /* بهبود responsive برای موبایل */
+    @media (max-width: 768px) {
+      .player-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 16px;
+      }
+      
+      .player-card .p-score {
+        font-size: 24px;
+        margin-top: 8px;
+        align-self: center;
+      }
+      
+      #playersListContainer {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      
+      .player-stats-mobile {
+        justify-content: space-between;
+      }
+      
+      .player-stat-item {
+        flex: 1;
+        justify-content: center;
+        min-width: 70px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .player-stats-mobile {
+        flex-direction: column;
+        gap: 6px;
+      }
+      
+      .player-stat-item {
+        min-width: auto;
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
@@ -2337,7 +2478,7 @@ document.querySelectorAll('.tab-btn').forEach(b => b.onclick = () => showTab(b.d
 const socket = io();
 socket.on('connect', () => { if(state.roomId) socket.emit('join-room', { room_id: state.roomId, user_id: state.user.id }); });
 
-// اضافه کردن event listener جدید برای game:word:advanced
+// --- اضافه کردن event listener جدید برای game:word:advanced ---
 socket.on('game:word:advanced', (data) => {
   if (data.game_id === state.gameId) {
     // به‌روزرسانی state فعلی کاربر
@@ -2472,19 +2613,6 @@ function showScoreAnimation(scoreDelta, isPositive) {
   const animation = document.createElement('div');
   animation.className = `score-animation ${isPositive ? 'positive' : 'negative'}`;
   animation.textContent = `${isPositive ? '+' : ''}${scoreDelta}`;
-  animation.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 24px;
-    font-weight: 900;
-    color: ${isPositive ? '#10b981' : '#ef4444'};
-    z-index: 1000;
-    animation: floatUp 1.5s ease-out forwards;
-    pointer-events: none;
-  `;
-  
   document.body.appendChild(animation);
   
   setTimeout(() => {
@@ -2496,24 +2624,8 @@ function showHintUsedMessage(hintsUsed, hintsAllowed) {
   const message = document.createElement('div');
   message.className = 'hint-message';
   message.innerHTML = `
-    <div style="
-      position: fixed;
-      top: 20%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 12px 20px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      z-index: 1000;
-      animation: fadeInOut 2s ease-in-out forwards;
-    ">
-      <i class="fas fa-lightbulb"></i> راهنما استفاده شد (${hintsUsed}/${hintsAllowed})
-    </div>
+    <i class="fas fa-lightbulb"></i> راهنما استفاده شد (${hintsUsed}/${hintsAllowed})
   `;
-  
   document.body.appendChild(message);
   
   setTimeout(() => {
@@ -2521,16 +2633,14 @@ function showHintUsedMessage(hintsUsed, hintsAllowed) {
   }, 2000);
 }
 
-function showHintMessage(message) {
-  const hintEl = document.createElement('div');
-  hintEl.className = 'hint-message';
-  hintEl.textContent = message;
-  document.body.appendChild(hintEl);
+function showHintMessage(text) {
+  const message = document.createElement('div');
+  message.className = 'hint-message';
+  message.textContent = text;
+  document.body.appendChild(message);
   
   setTimeout(() => {
-    if (document.body.contains(hintEl)) {
-      document.body.removeChild(hintEl);
-    }
+    document.body.removeChild(message);
   }, 3000);
 }
 
@@ -2610,7 +2720,7 @@ socket.on('room:presence', (data) => {
   }
 });
 
-// --- تابع به روزرسانی لیست بازیکنان ---
+// --- تابع به روزرسانی لیست بازیکنان (بهبود یافته برای موبایل) ---
 function updatePlayersUI(rawList) {
   const list = rawList || state.allStates || [];
   const cont = $('playersListContainer'); 
@@ -2654,45 +2764,40 @@ function updatePlayersUI(rawList) {
     const wordLength = currentWord.replace(/[\s\u200c]/g, '').length;
     const allowedWrong = Math.max(1, Math.ceil(wordLength * 1.5));
     
+    // ساختار جدید برای نمایش بهتر در موبایل
     div.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-        <div style="flex: 1;">
-          <div class="p-name">
-            ${esc(displayName)} 
-            ${isMe ? '<span style="color:var(--primary); font-size:12px;">(شما)</span>' : ''}
-            ${index === 0 ? '<i class="fas fa-crown" style="color: #f59e0b;"></i>' : ''}
-          </div>
-          <div class="p-status">
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span style="font-weight: 600;">کلمه ${toFaDigits(currentWordIndex + 1)} از ${toFaDigits(totalWords)}</span>
-              <div style="flex: 1; max-width: 80px; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
-                <div style="width: ${progress}%; background: var(--primary); height: 100%; transition: width 0.3s ease;"></div>
-              </div>
-            </div>
-            <div class="player-progress-info">
-              <div class="player-stat">
-                <i class="fas fa-star"></i>
-                <span>${toFaDigits(score)}</span>
-              </div>
-              <div class="player-stat">
-                <i class="fas fa-lightbulb"></i>
-                <span>${toFaDigits(hintsUsed)}/${toFaDigits(hintsAllowed)}</span>
-              </div>
-              <div class="player-stat">
-                <i class="fas fa-times"></i>
-                <span>${toFaDigits(wrongCount)}/${toFaDigits(allowedWrong)}</span>
-              </div>
-              <div class="player-stat">
-                <i class="fas fa-list"></i>
-                <span>${toFaDigits(p.guessed_count || 0)} حدس</span>
-              </div>
+      <div class="player-info-mobile">
+        <div class="p-name">
+          ${esc(displayName)} 
+          ${isMe ? '<span style="color:var(--primary); font-size:12px;">(شما)</span>' : ''}
+          ${index === 0 ? '<i class="fas fa-crown" style="color: #f59e0b;"></i>' : ''}
+        </div>
+        
+        <div class="player-progress-mobile">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <span style="font-weight: 600; font-size: 12px;">کلمه ${toFaDigits(currentWordIndex + 1)} از ${toFaDigits(totalWords)}</span>
+            <div style="flex: 1; max-width: 80px; background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${progress}%; background: var(--primary); height: 100%; transition: width 0.3s ease;"></div>
             </div>
           </div>
         </div>
-        <div class="p-score" style="font-size: 24px; font-weight: 900; color: var(--primary);">
-          ${toFaDigits(score)}
+        
+        <div class="player-stats-mobile">
+          <div class="player-stat-item">
+            <i class="fas fa-star"></i>
+            <span>${toFaDigits(score)}</span>
+          </div>
+          <div class="player-stat-item">
+            <i class="fas fa-lightbulb"></i>
+            <span>${toFaDigits(hintsUsed)}/${toFaDigits(hintsAllowed)}</span>
+          </div>
+          <div class="player-stat-item">
+            <i class="fas fa-times"></i>
+            <span>${toFaDigits(wrongCount)}/${toFaDigits(allowedWrong)}</span>
+          </div>
         </div>
       </div>
+      <div class="p-score score-display">${toFaDigits(score)}</div>
     `;
     
     cont.appendChild(div);
