@@ -7,7 +7,6 @@ const { Server } = require('socket.io');
 const { Pool } = require('pg');
 const crypto = require('crypto');
 
-// --- IMPORT WORDS ---
 const wordsData = require('./words'); 
 
 const PORT = process.env.PORT || 3000;
@@ -45,17 +44,16 @@ const newGameDeck = (level) => {
       });
     });
   }
-  // Shuffle & Pick 10
   return all.sort(() => 0.5 - Math.random()).slice(0, 10);
 };
 
-// --- FORMULAS ---
+// --- FORMULAS (Corrected) ---
 function getWordLimits(word) {
   const cleanWord = normalizeFaWordStrict(word);
   const len = cleanWord.length;
   return {
-    allowedWrong: Math.max(1, Math.ceil(len * 1.5)), // 1.5 برابر طول کلمه
-    allowedHints: Math.max(0, Math.floor(len * 0.4)) // 0.4 برابر طول کلمه (FIXED)
+    allowedWrong: Math.max(1, Math.ceil(len * 1.5)), // 1.5x
+    allowedHints: Math.max(0, Math.floor(len * 0.4)) // 0.4x (Fixed)
   };
 }
 
@@ -166,7 +164,7 @@ app.post('/rooms/join', async (req, res) => {
     
     const limits = getWordLimits(deck[0].word);
     const gps = await getGamePlayers(gameId);
-    // Pass started_at for client timer sync
+    // Send started_at for timer sync
     const game = (await pool.query(`SELECT started_at FROM games WHERE id=$1`, [gameId])).rows[0];
     io.to(room_id).emit('game:started', { game_id: gameId, deck, players: gps, first_limits: limits, started_at: game.started_at });
   }
@@ -228,6 +226,7 @@ io.on('connection', (socket) => {
     if(!game) return;
     let state = (await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id])).rows[0];
     if(!state) { await createGameState(game_id, user_id, game.deck); state = (await pool.query(`SELECT * FROM game_states WHERE game_id=$1 AND user_id=$2`, [game_id, user_id])).rows[0]; }
+    // Include 'game' object to pass started_at
     socket.emit('game:state', { state, deck: game.deck, players: await getGamePlayers(game_id), game });
   });
 
@@ -247,10 +246,7 @@ io.on('connection', (socket) => {
     if(target.includes(input)) {
       correct.push(input);
       const delta = 10 * (target.split(input).length - 1);
-      
-      await pool.query(`UPDATE game_states SET correct_letters=$1, score=score+$2 WHERE game_id=$3 AND user_id=$4`, 
-        [JSON.stringify(correct), delta, game_id, user_id]);
-      
+      await pool.query(`UPDATE game_states SET correct_letters=$1, score=score+$2 WHERE game_id=$3 AND user_id=$4`, [JSON.stringify(correct), delta, game_id, user_id]);
       socket.emit('game:letter:correct', { user_id, letter: input, scoreDelta: delta });
       
       const distinctChars = [...new Set(target.split(''))];
@@ -262,10 +258,7 @@ io.on('connection', (socket) => {
     } else {
       wrong.push(input);
       const WRONG_PENALTY = 2;
-      
-      await pool.query(`UPDATE game_states SET wrong_letters=$1, score=GREATEST(score-$2, 0) WHERE game_id=$3 AND user_id=$4`, 
-        [JSON.stringify(wrong), WRONG_PENALTY, game_id, user_id]);
-      
+      await pool.query(`UPDATE game_states SET wrong_letters=$1, score=GREATEST(score-$2, 0) WHERE game_id=$3 AND user_id=$4`, [JSON.stringify(wrong), WRONG_PENALTY, game_id, user_id]);
       socket.emit('game:letter:wrong', { user_id, letter: input, scoreDelta: -WRONG_PENALTY });
 
       if(wrong.length >= gs.allowed_wrong) {
