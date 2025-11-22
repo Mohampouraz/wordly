@@ -54,11 +54,11 @@
     .slot.correct { background: var(--success); border-color: var(--success); color: white; transform: translateY(-4px); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); }
     .slot.gap { width: 10px; border: none; background: transparent; }
     
-    /* Wrong Letters Area */
+    /* Wrong Letters */
     .wrong-letters-area { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px; min-height: 24px; }
     .wrong-chip { background: #fee2e2; color: #ef4444; font-size: 14px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid #fca5a5; animation: shake 0.4s ease; }
 
-    /* Fixed Input Width 180px */
+    /* Input Fixed 180px */
     .input-area { display: flex; gap: 8px; justify-content: center; margin: 0 auto; }
     .char-input { width: 180px !important; flex: none; height: 50px; border: 2px solid var(--primary); border-radius: 12px; text-align: center; font-size: 20px; font-weight: 700; }
 
@@ -66,7 +66,6 @@
     .room-item.active { border-color: var(--primary); background: var(--primary-light); }
     .player-item.me { border: 2px solid var(--primary); background: #f0f9ff; }
     
-    /* Progress Bar with Text */
     .p-bar-container { position: relative; width: 80px; height: 14px; background: #e2e8f0; border-radius: 7px; overflow: hidden; margin-top: 4px; }
     .p-bar-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s; }
     .p-bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: #334155; text-shadow: 0 0 2px white; }
@@ -145,7 +144,6 @@
       <div id="lblDescription" class="card" style="text-align:center; font-size:14px; line-height:1.6; color:var(--text-secondary); min-height:80px; display:grid; place-items:center;">...</div>
       
       <div id="slotsContainer" class="slots-area"></div>
-      
       <div id="wrongLettersBox" class="wrong-letters-area"></div>
       
       <div class="input-area">
@@ -257,14 +255,14 @@ socket.on('connect', () => { if(state.roomId) socket.emit('join-room', {room_id:
 
 socket.on('game:started', d => { 
   state.deck=d.deck; 
-  state.gameStartTime = new Date(d.started_at).getTime(); // Sync Timer
+  state.gameStartTime = new Date(d.started_at).getTime(); 
   updateLocalState(d.game_id, {correct_letters:[], wrong_letters:[], current_index:0, score:0, hints_used:0, allowed_wrong:d.first_limits.allowedWrong, hints_allowed:d.first_limits.allowedHints}, d.players); 
   switchTab('game'); showToast('بازی شروع شد!', 'success'); 
 });
 
 socket.on('game:state', d => { 
   state.deck=d.deck; 
-  state.gameStartTime = new Date(d.game.started_at).getTime(); // Sync Timer
+  state.gameStartTime = new Date(d.game.started_at).getTime();
   updateLocalState(d.state.game_id, d.state, d.players); 
   switchTab('game'); 
 });
@@ -281,7 +279,8 @@ socket.on('game:next', d => {
 
 socket.on('game:letter:correct', d => {
   if(String(d.user_id)===String(state.user.id)) {
-    if(!state.gameState.correct_letters.includes(d.letter)) state.gameState.correct_letters.push(d.letter);
+    if(d.hintsUsed !== undefined) state.gameState.hints_used = d.hintsUsed; // Update Hint Count
+    if(d.letter && !state.gameState.correct_letters.includes(d.letter)) state.gameState.correct_letters.push(d.letter);
     renderGame(); if(d.scoreDelta) showScoreAnim(d.scoreDelta, $('txtLetter'));
   }
 });
@@ -316,19 +315,16 @@ function renderGame() {
   const wObj=state.deck[idx];
   $('lblWordIndex').textContent=toFa(idx+1); $('lblTotalWords').textContent=toFa(state.deck.length);
   $('lblCategory').textContent=wObj.category; $('lblDescription').textContent=wObj.description;
-  $('lblWrong').textContent=toFa((state.gameState.wrong_letters||[]).length); $('lblMaxWrong').textContent=toFa(state.gameState.allowed_wrong||5);
   
-  // Render correct hint stats
+  $('lblWrong').textContent=toFa((state.gameState.wrong_letters||[]).length); 
+  $('lblMaxWrong').textContent=toFa(state.gameState.allowed_wrong||5);
   $('lblHints').textContent=toFa(state.gameState.hints_used||0); 
   $('lblMaxHints').textContent=toFa(state.gameState.hints_allowed||0);
   
   const word=wObj.word.replace(/[\u064A\u0643]/g, c=>c=='\u064A'?'\u06CC':'\u06A9').normalize('NFC');
   const cl=state.gameState.correct_letters||[];
   
-  // Slots
   $('slotsContainer').innerHTML=[...word].map(c=>(c===' '||c==='\u200c')?`<div class="slot gap"></div>`:`<div class="slot ${cl.includes(c)?'correct':''}">${cl.includes(c)?c:''}</div>`).join('');
-  
-  // Wrong Box
   $('wrongLettersBox').innerHTML = (state.gameState.wrong_letters||[]).map(l=>`<span class="wrong-chip">${l}</span>`).join('');
   
   $('txtLetter').value=''; $('txtLetter').focus();
@@ -406,12 +402,30 @@ async function loadHistory() {
   const res = await fetch('/stats/history', {method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:state.user.id})});
   const d = await res.json();
   if(!d.games || d.games.length===0) { $('historyContent').innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;">سابقه‌ای یافت نشد</div>'; return; }
+  
+  // فیلتر کردن کلمات تکراری و نمایش صحیح (Fixed Logic)
   $('historyContent').innerHTML = d.games.map(g => {
       const date = new Date(g.finished_at).toLocaleDateString('fa-IR');
-      const wordsHtml = (g.results||[]).map(r => {
+      
+      // Unique Words logic
+      const uniqueWords = [];
+      const seenIndices = new Set();
+      (g.results || []).forEach(r => {
+          if(!seenIndices.has(r.index)) {
+              seenIndices.add(r.index);
+              uniqueWords.push(r);
+          }
+      });
+
+      const wordsHtml = uniqueWords.map(r => {
           const win = r.winners && r.winners.some(id => String(id) === String(state.user.id));
-          return `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${win?'#dcfce7':'#fee2e2'}; color:${win?'#166534':'#991b1b'}; margin:2px;">${r.word}</span>`;
+          // رنگ: اگر من بردم سبز، اگر نبردم (باختم) قرمز
+          const color = win ? '#166534' : '#991b1b';
+          const bg = win ? '#dcfce7' : '#fee2e2';
+          const border = win ? '#bbf7d0' : '#fecaca';
+          return `<span style="font-size:10px; padding:2px 6px; border-radius:4px; background:${bg}; color:${color}; border:1px solid ${border}; margin:2px;">${r.word}</span>`;
       }).join('');
+      
       return `
       <div class="card" style="margin-bottom:10px; padding:12px;">
         <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:bold; margin-bottom:6px;">
@@ -453,7 +467,6 @@ async function loadLeaderboard() {
 }
 
 async function joinRoom(rid) {
-  // SEND FULLNAME TO SERVER
   const res=await fetch('/rooms/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_id:rid,user_id:state.user.id, fullname:state.user.name})}); 
   const d=await res.json();
   if(d.ok) {
