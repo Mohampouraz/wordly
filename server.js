@@ -55,7 +55,7 @@ function getWordLimits(word) {
   const len = cleanWord.length;
   return {
     allowedWrong: Math.max(1, Math.ceil(len * 1.5)), // 1.5 برابر
-    allowedHints: Math.max(0, Math.floor(len * 1.3)) // 1.3 برابر
+    allowedHints: Math.max(0, Math.floor(len * 0.25)) // 1.3 برابر
   };
 }
 
