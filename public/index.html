@@ -12,213 +12,70 @@
   <style>
     :root {
       --font-main: 'Vazirmatn', sans-serif;
-      
-      /* Color Palette - Professional Blue/Slate */
-      --primary: #3b82f6;       /* Blue 500 */
-      --primary-dark: #1d4ed8;  /* Blue 700 */
-      --primary-light: #eff6ff; /* Blue 50 */
-      --bg-app: #f1f5f9;        /* Slate 100 */
-      --bg-surface: #ffffff;
-      --text-primary: #0f172a;  /* Slate 900 */
-      --text-secondary: #64748b;/* Slate 500 */
-      --border: #e2e8f0;
-      
-      /* Game States */
-      --success: #10b981;
-      --success-bg: #d1fae5;
-      --error: #ef4444;
-      --error-bg: #fee2e2;
-      --warning: #f59e0b;
-      
-      /* Dimensions */
-      --nav-height: 70px;
-      --header-height: 60px;
-      --radius: 16px;
+      --primary: #3b82f6; --primary-dark: #1d4ed8; --primary-light: #eff6ff;
+      --bg-app: #f1f5f9; --bg-surface: #ffffff;
+      --text-primary: #0f172a; --text-secondary: #64748b; --border: #e2e8f0;
+      --success: #10b981; --error: #ef4444; --warning: #f59e0b;
+      --nav-height: 70px; --header-height: 60px; --radius: 16px;
     }
-
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; outline: none; user-select: none; }
+    body { font-family: var(--font-main); background-color: var(--bg-app); color: var(--text-primary); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
     
-    body {
-      font-family: var(--font-main);
-      background-color: var(--bg-app);
-      color: var(--text-primary);
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    /* --- HEADER --- */
-    header {
-      height: var(--header-height);
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
+    header { height: var(--header-height); background: var(--bg-surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
     .brand { font-weight: 900; font-size: 20px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
     .user-profile { display: flex; align-items: center; gap: 10px; }
     .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: grid; place-items: center; font-size: 16px; }
     .user-details { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
     .user-name { font-size: 13px; font-weight: 700; }
-    .user-id { font-size: 11px; color: var(--text-secondary); }
-
-    /* --- MAIN CONTENT AREA --- */
-    main {
-      flex: 1;
-      margin-top: var(--header-height);
-      margin-bottom: var(--nav-height);
-      overflow-y: auto;
-      padding: 20px;
-      scroll-behavior: smooth;
-    }
-
-    /* --- BOTTOM NAVIGATION --- */
-    .bottom-nav {
-      height: var(--nav-height);
-      background: var(--bg-surface);
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      padding-bottom: env(safe-area-inset-bottom);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
-    }
-    .nav-item {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 4px; color: var(--text-secondary); font-size: 10px; font-weight: 500;
-      width: 100%; height: 100%; cursor: pointer; transition: all 0.2s ease;
-    }
-    .nav-item i { font-size: 22px; margin-bottom: 2px; transition: 0.2s; }
+    
+    main { flex: 1; margin-top: var(--header-height); margin-bottom: var(--nav-height); overflow-y: auto; padding: 20px; scroll-behavior: smooth; }
+    
+    .bottom-nav { height: var(--nav-height); background: var(--bg-surface); border-top: 1px solid var(--border); display: flex; justify-content: space-around; align-items: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--text-secondary); font-size: 10px; width: 100%; height: 100%; cursor: pointer; transition: 0.2s; }
     .nav-item.active { color: var(--primary); font-weight: 700; }
-    .nav-item.active i { transform: translateY(-3px); }
-
-    /* --- UI COMPONENTS --- */
-    .card {
-      background: var(--bg-surface);
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .section-title {
-      font-size: 16px; font-weight: 800; margin-bottom: 16px;
-      display: flex; align-items: center; gap: 8px; color: var(--text-primary);
-    }
     
-    .btn {
-      height: 54px; border: none; border-radius: 14px;
-      font-family: var(--font-main); font-weight: 700; font-size: 15px;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      cursor: pointer; transition: 0.2s active; position: relative; overflow: hidden;
-    }
-    .btn:active { transform: scale(0.96); }
-    .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+    .card { background: var(--bg-surface); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.02); padding: 16px; margin-bottom: 16px; }
+    .section-title { font-size: 16px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
+    .btn { height: 50px; border: none; border-radius: 14px; font-family: var(--font-main); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
     .btn-secondary { background: white; color: var(--text-secondary); border: 2px solid var(--border); }
-    .btn-danger { background: var(--error-bg); color: var(--error); }
-
-    /* --- GAME UI --- */
-    .stats-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;
-    }
-    .stat-box {
-      background: white; padding: 10px; border-radius: 12px;
-      text-align: center; border: 1px solid var(--border);
-      display: flex; flex-direction: column; justify-content: center;
-    }
-    .stat-val { font-weight: 900; font-size: 18px; color: var(--text-primary); }
-    .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
-
-    .word-desc {
-      text-align: center; background: #fff; padding: 20px;
-      border-radius: var(--radius); border: 1px solid var(--border);
-      font-size: 15px; line-height: 1.6; color: var(--text-secondary);
-      margin-bottom: 24px; min-height: 80px; display: grid; place-items: center;
-    }
-
-    .slots-area {
-      display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
-      margin-bottom: 30px; min-height: 60px;
-    }
-    .slot {
-      width: 44px; height: 52px;
-      border: 2px solid var(--border); border-radius: 12px;
-      background: var(--bg-surface);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; font-weight: 700; color: var(--text-primary);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .slot.correct {
-      background: var(--primary); border-color: var(--primary); color: white;
-      transform: translateY(-5px); box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
-    }
-    .slot.gap { width: 10px; border: none; background: transparent; }
-
-    .input-area {
-      display: flex; gap: 10px; max-width: 400px; margin: 0 auto;
-    }
-    .char-input {
-      flex: 1; height: 54px; border: 2px solid var(--primary);
-      border-radius: 14px; text-align: center; font-size: 22px; font-weight: 700;
-      background: white; color: var(--text-primary);
-    }
-    .char-input:focus { box-shadow: 0 0 0 4px var(--primary-light); }
-
-    /* --- PLAYER LIST --- */
-    .player-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px; background: var(--bg-surface); border: 1px solid var(--border);
-      border-radius: 12px; margin-bottom: 8px; transition: 0.3s;
-    }
-    .player-item.me { border: 2px solid var(--primary); background: #f0f9ff; }
-    .p-info { display: flex; align-items: center; gap: 10px; }
-    .p-avatar { width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: grid; place-items: center; font-size: 12px; }
-    .p-score { font-weight: 900; color: var(--primary); font-size: 16px; }
-    .p-bar-bg { width: 80px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 4px; }
-    .p-bar-fill { height: 100%; background: var(--success); width: 0%; transition: width 0.5s ease; }
-
-    /* --- ANIMATIONS & UTILS --- */
-    .hidden { display: none !important; }
+    .btn-danger { background: var(--error); color: white; }
     
+    /* Game UI */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-box { background: white; padding: 10px; border-radius: 12px; text-align: center; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center; }
+    .stat-val { font-weight: 900; font-size: 18px; }
+    .stat-label { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+    .word-desc { text-align: center; background: #fff; padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 15px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 24px; min-height: 80px; display: grid; place-items: center; }
+    .slots-area { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 30px; min-height: 60px; }
+    .slot { width: 44px; height: 52px; border: 2px solid var(--border); border-radius: 12px; background: var(--bg-surface); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; transition: 0.3s; }
+    .slot.correct { background: var(--primary); border-color: var(--primary); color: white; transform: translateY(-5px); }
+    .slot.gap { width: 10px; border: none; background: transparent; }
+    .input-area { display: flex; gap: 10px; max-width: 400px; margin: 0 auto; }
+    .char-input { flex: 1; height: 54px; border: 2px solid var(--primary); border-radius: 14px; text-align: center; font-size: 22px; font-weight: 700; }
+    
+    /* History Items */
+    .history-item { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 12px; padding: 12px; background: #fff; }
+    .h-header { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
+    .h-words { display: flex; flex-wrap: wrap; gap: 6px; }
+    .h-word { font-size: 11px; padding: 4px 8px; border-radius: 6px; background: #f1f5f9; color: #64748b; }
+    .h-word.win { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    
+    /* Utils */
+    .hidden { display: none !important; }
     .shake { animation: shake 0.4s ease; }
     @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+    .score-pop { position: absolute; font-weight: 900; font-size: 24px; animation: floatUp 1s forwards; pointer-events: none; z-index: 999; }
+    .score-pop.pos { color: var(--success); } .score-pop.neg { color: var(--error); }
+    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
     
-    .score-pop {
-      position: absolute; font-weight: 900; font-size: 24px;
-      animation: floatUp 1s forwards; pointer-events: none; z-index: 999;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .score-pop.pos { color: var(--success); }
-    .score-pop.neg { color: var(--error); }
-    @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(0.8); } 50% { transform: translateY(-20px) scale(1.2); } 100% { opacity: 0; transform: translateY(-50px) scale(1); } }
-
-    /* --- MODAL & TOAST --- */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
-      display: none; align-items: center; justify-content: center; z-index: 100;
-    }
-    .modal {
-      background: white; width: 90%; max-width: 400px; padding: 24px;
-      border-radius: 20px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; }
+    .modal { background: white; width: 90%; max-width: 400px; padding: 24px; border-radius: 20px; animation: slideUp 0.3s ease; }
     @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-    .toast {
-      position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-      background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px;
-      font-size: 14px; font-weight: 500; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 200;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; gap: 8px; align-items: center;
-    }
+    
+    .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 24px; border-radius: 50px; font-size: 14px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 200; display: flex; gap: 8px; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
-
-    /* Form */
-    .form-input { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; font-family: inherit; font-size: 14px; background: #f8fafc; }
+    .form-input { width: 100%; padding: 14px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 16px; background: #f8fafc; }
   </style>
 </head>
 <body>
@@ -228,7 +85,7 @@
     <div class="user-profile">
       <div class="user-details">
         <span class="user-name" id="headerUsername">...</span>
-        <span class="user-id" id="headerUserId">ID: ...</span>
+        <span class="user-id" id="headerUserId">...</span>
       </div>
       <div class="user-avatar"><i class="fas fa-user"></i></div>
     </div>
@@ -239,74 +96,45 @@
   <main>
     <div id="view-lobby">
       <div class="card">
-        <div class="section-title"><i class="fas fa-rocket" style="color:var(--primary);"></i> شروع سریع</div>
+        <div class="section-title"><i class="fas fa-rocket"></i> شروع سریع</div>
         <button onclick="openCreateModal()" class="btn btn-primary" style="width:100%;">ساخت اتاق جدید</button>
       </div>
-
       <div class="section-title" style="justify-content:space-between; margin-top:24px;">
         <span>اتاق‌های فعال</span>
         <button onclick="refreshLobby()" style="background:none; border:none; color:var(--primary);"><i class="fas fa-sync-alt"></i></button>
       </div>
-      
       <select id="filterLevel" class="form-input" style="padding:10px;">
         <option value="">همه سطوح</option>
         <option value="easy">آسان</option>
         <option value="medium">متوسط</option>
         <option value="hard">سخت</option>
       </select>
-
-      <div id="roomsContainer" style="display:flex; flex-direction:column; gap:10px;">
-        <div style="text-align:center; padding:40px; color:var(--text-secondary);">در حال بارگذاری...</div>
-      </div>
+      <div id="roomsContainer" style="display:flex; flex-direction:column; gap:10px;"></div>
     </div>
 
     <div id="view-game" class="hidden">
       <div class="stats-grid">
-        <div class="stat-box">
-          <span id="lblTimer" class="stat-val">00:00</span>
-          <span class="stat-label">زمان</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-val" style="color:var(--error);">
-            <span id="lblWrong">0</span>/<span id="lblMaxWrong">0</span>
-          </span>
-          <span class="stat-label">خطا مجاز</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-val" style="color:var(--warning);">
-            <span id="lblHints">0</span>/<span id="lblMaxHints">0</span>
-          </span>
-          <span class="stat-label">راهنما مجاز</span>
-        </div>
+        <div class="stat-box"><span id="lblTimer" class="stat-val">00:00</span><span class="stat-label">زمان</span></div>
+        <div class="stat-box"><span class="stat-val" style="color:var(--error);"><span id="lblWrong">0</span>/<span id="lblMaxWrong">0</span></span><span class="stat-label">خطا</span></div>
+        <div class="stat-box"><span class="stat-val" style="color:var(--warning);"><span id="lblHints">0</span>/<span id="lblMaxHints">0</span></span><span class="stat-label">راهنما</span></div>
       </div>
-
       <div style="text-align:center; font-size:13px; color:var(--text-secondary); margin-bottom:8px;">
         مرحله <span id="lblWordIndex" style="font-weight:bold; color:var(--text-primary);">1</span> | <span id="lblCategory">...</span>
       </div>
       <div id="lblDescription" class="word-desc">...</div>
-
       <div id="slotsContainer" class="slots-area"></div>
-
       <div class="input-area">
-        <input id="txtLetter" class="char-input" maxlength="1" placeholder="؟" autocomplete="off" inputmode="text">
+        <input id="txtLetter" class="char-input" maxlength="1" placeholder="؟" autocomplete="off">
         <button id="btnGuess" class="btn btn-primary" style="flex:2;">ثبت</button>
         <button id="btnHint" class="btn btn-secondary" style="flex:1;"><i class="fas fa-lightbulb"></i></button>
       </div>
-
       <div class="card" style="margin-top:24px; border:none; background:transparent; box-shadow:none; padding:0;">
-        <div class="section-title">بازیکنان آنلاین</div>
+        <div class="section-title">بازیکنان</div>
         <div id="playersListContainer"></div>
-        <button onclick="leaveGame()" class="btn btn-danger" style="width:100%; margin-top:10px; height:44px; font-size:13px;">خروج از بازی</button>
+        <button onclick="leaveGame()" class="btn btn-danger" style="width:100%; margin-top:10px;">خروج</button>
       </div>
     </div>
 
-    <div id="view-leaderboard" class="hidden">
-      <div class="card">
-        <div class="section-title">رتبه‌بندی جهانی</div>
-        <div id="leaderboardContent"></div>
-      </div>
-    </div>
-    
     <div id="view-history" class="hidden">
       <div class="card">
         <div class="section-title">تاریخچه بازی‌ها</div>
@@ -316,24 +144,15 @@
   </main>
 
   <nav class="bottom-nav">
-    <div class="nav-item active" data-target="lobby" onclick="switchTab('lobby')">
-      <i class="fas fa-home"></i><span>لابی</span>
-    </div>
-    <div class="nav-item" id="navGame" data-target="game" onclick="switchTab('game')" style="display:none;">
-      <i class="fas fa-gamepad"></i><span>بازی</span>
-    </div>
-    <div class="nav-item" data-target="leaderboard" onclick="switchTab('leaderboard')">
-      <i class="fas fa-trophy"></i><span>رتبه‌ها</span>
-    </div>
-    <div class="nav-item" data-target="history" onclick="switchTab('history')">
-      <i class="fas fa-history"></i><span>سوابق</span>
-    </div>
+    <div class="nav-item active" data-target="lobby" onclick="switchTab('lobby')"><i class="fas fa-home"></i><span>لابی</span></div>
+    <div class="nav-item" id="navGame" data-target="game" onclick="switchTab('game')" style="display:none;"><i class="fas fa-gamepad"></i><span>بازی</span></div>
+    <div class="nav-item" data-target="history" onclick="switchTab('history')"><i class="fas fa-history"></i><span>سوابق</span></div>
   </nav>
 
   <div id="modalCreate" class="modal-overlay">
     <div class="modal">
-      <div class="section-title">ساخت اتاق جدید</div>
-      <input id="inpRoomName" class="form-input" placeholder="نام اتاق (مثلا: دوستانه)">
+      <div class="section-title">ساخت اتاق</div>
+      <input id="inpRoomName" class="form-input" placeholder="نام اتاق">
       <select id="inpRoomLevel" class="form-input">
         <option value="easy">آسان</option>
         <option value="medium" selected>متوسط</option>
@@ -351,229 +170,189 @@
       <div style="font-size:48px; margin-bottom:10px;">🏆</div>
       <h3 style="color:var(--primary); margin-bottom:16px;">پایان بازی</h3>
       <div id="resultsBody" style="max-height:250px; overflow-y:auto; text-align:right; background:#f8fafc; padding:10px; border-radius:12px; margin-bottom:16px;"></div>
-      <button onclick="closeModal('modalResults'); switchTab('lobby');" class="btn btn-primary" style="width:100%;">بازگشت به خانه</button>
+      <button onclick="closeGameAndShowHistory()" class="btn btn-primary" style="width:100%;">بستن و مشاهده تاریخچه</button>
     </div>
   </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-/* --- UTILITIES --- */
 const $ = id => document.getElementById(id);
 const toFa = n => String(n).replace(/[0-9]/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
 const showToast = (msg, type='info') => {
-  const t = $('toast');
-  const icon = type==='error' ? 'fa-circle-exclamation' : (type==='success' ? 'fa-circle-check' : 'fa-circle-info');
-  const color = type==='error' ? '#ef4444' : (type==='success' ? '#10b981' : '#1e293b');
-  t.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
-  t.style.backgroundColor = color;
-  t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 3000);
+  const t = $('toast'); const icon = type==='error'?'fa-circle-exclamation':(type==='success'?'fa-circle-check':'fa-circle-info');
+  const color = type==='error'?'#ef4444':(type==='success'?'#10b981':'#1e293b');
+  t.innerHTML=`<i class="fas ${icon}"></i> ${msg}`; t.style.backgroundColor=color; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000);
 };
 const showScoreAnim = (val, el) => {
-  const div = document.createElement('div');
-  div.className = `score-pop ${val>=0?'pos':'neg'}`;
-  div.textContent = (val>0?'+':'') + toFa(val);
-  const rect = el.getBoundingClientRect();
-  div.style.left = (rect.left + rect.width/2 - 15) + 'px';
-  div.style.top = rect.top + 'px';
-  document.body.appendChild(div);
-  setTimeout(()=>div.remove(), 1000);
+  const d = document.createElement('div'); d.className = `score-pop ${val>=0?'pos':'neg'}`; d.textContent = (val>0?'+':'') + toFa(val);
+  const r = el.getBoundingClientRect(); d.style.left = (r.left+r.width/2-15)+'px'; d.style.top = r.top+'px';
+  document.body.appendChild(d); setTimeout(()=>d.remove(),1000);
 };
 
 const state = { user:null, roomId:null, gameId:null, deck:[], gameState:{}, allStates:[], timerInterval:null, timerMs:0 };
 
-/* --- INIT --- */
 (async function init() {
-  let uid = localStorage.getItem('w_uid');
-  if(!uid) { uid = Math.floor(100000 + Math.random()*900000); localStorage.setItem('w_uid', uid); }
+  let uid = localStorage.getItem('w_uid'); if(!uid) { uid = Math.floor(100000+Math.random()*900000); localStorage.setItem('w_uid', uid); }
   state.user = { id: uid, name: 'کاربر ' + String(uid).slice(-4) };
-  
   if(window.Telegram?.WebApp?.initDataUnsafe?.user) {
     const u = window.Telegram.WebApp.initDataUnsafe.user;
-    state.user = { id: u.id, name: (u.first_name+' '+(u.last_name||'')).trim(), photo: u.photo_url };
+    state.user = { id: u.id, name: (u.first_name+' '+(u.last_name||'')).trim() };
     await fetch('/auth/telegram', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user:u})});
   }
-  $('headerUsername').textContent = state.user.name;
-  $('headerUserId').textContent = toFa(state.user.id);
+  $('headerUsername').textContent = state.user.name; $('headerUserId').textContent = toFa(state.user.id);
   refreshLobby();
 })();
 
-/* --- SOCKETS --- */
 const socket = io();
 socket.on('connect', () => { if(state.roomId) socket.emit('join-room', {room_id:state.roomId, user_id:state.user.id}); });
 
-// 1. GAME STARTED
-socket.on('game:started', d => {
-  state.deck = d.deck;
-  updateLocalState(d.game_id, {correct_letters:[], wrong_letters:[], current_index:0, score:0, hints_used:0, allowed_wrong:d.first_limits.allowedWrong, hints_allowed:d.first_limits.allowedHints}, d.players);
-  switchTab('game'); showToast('بازی شروع شد!', 'success');
-});
+socket.on('game:started', d => { state.deck=d.deck; updateLocalState(d.game_id, {correct_letters:[], wrong_letters:[], current_index:0, score:0, hints_used:0, allowed_wrong:d.first_limits.allowedWrong, hints_allowed:d.first_limits.allowedHints}, d.players); switchTab('game'); showToast('بازی شروع شد!', 'success'); });
+socket.on('game:state', d => { state.deck=d.deck; updateLocalState(d.state.game_id, d.state, d.players); state.timerMs=Number(d.state.timer_ms)||0; switchTab('game'); });
+socket.on('game:states', d => { if(d.game_id===state.gameId) { state.allStates=d.states; updatePlayersUI(); } });
 
-// 2. FULL STATE RELOAD
-socket.on('game:state', d => {
-  state.deck = d.deck;
-  updateLocalState(d.state.game_id, d.state, d.players);
-  state.timerMs = Number(d.state.timer_ms)||0;
-  switchTab('game');
-});
-
-// 3. REAL-TIME STATS SYNC
-socket.on('game:states', d => {
-  if(d.game_id === state.gameId) {
-    state.allStates = d.states;
-    updatePlayersUI();
-  }
-});
-
-// 4. NEXT WORD (REAL-TIME TRANSITION)
 socket.on('game:next', d => {
-  if(d.game_id !== state.gameId) return;
-  if(String(d.user_id) === String(state.user.id)) {
+  if(d.game_id!==state.gameId) return;
+  if(String(d.user_id)===String(state.user.id)) {
     state.gameState = {...state.gameState, ...d.newState};
-    renderGame();
-    showToast(`مرحله ${toFa(d.newState.current_index+1)}`, 'success');
+    renderGame(); showToast(`مرحله ${toFa(d.newState.current_index+1)}`, 'success');
   }
 });
 
-// 5. FEEDBACK EVENTS
 socket.on('game:letter:correct', d => {
-  if(String(d.user_id) === String(state.user.id)) {
+  if(String(d.user_id)===String(state.user.id)) {
     if(!state.gameState.correct_letters.includes(d.letter)) state.gameState.correct_letters.push(d.letter);
-    renderGame();
-    if(d.scoreDelta) showScoreAnim(d.scoreDelta, $('txtLetter'));
+    renderGame(); if(d.scoreDelta) showScoreAnim(d.scoreDelta, $('txtLetter'));
   }
 });
+
 socket.on('game:letter:wrong', d => {
-  if(String(d.user_id) === String(state.user.id)) {
+  if(String(d.user_id)===String(state.user.id)) {
     if(!state.gameState.wrong_letters.includes(d.letter)) state.gameState.wrong_letters.push(d.letter);
-    renderGame();
-    $('txtLetter').parentElement.classList.add('shake'); setTimeout(()=>$('txtLetter').parentElement.classList.remove('shake'), 400);
-    showToast('اشتباه بود!', 'error');
+    renderGame(); $('txtLetter').parentElement.classList.add('shake'); setTimeout(()=>$('txtLetter').parentElement.classList.remove('shake'), 400);
     if(d.scoreDelta) showScoreAnim(d.scoreDelta, $('txtLetter'));
   }
 });
+
 socket.on('game:finished', d => {
+  // بستن صفحه بازی و نمایش مودال
+  $('view-game').classList.add('hidden');
+  $('navGame').style.display = 'none';
+  state.gameId = null;
+  state.roomId = null;
+
   $('resultsBody').innerHTML = (d.results||[]).map((r,i)=>`
     <div style="padding:8px; border-bottom:1px solid #eee; display:flex; justify-content:space-between;">
       <span>${toFa(i+1)}. ${r.word}</span>
       <span style="color:var(--success); font-weight:bold;">${toFa(r.winners.length)} برنده</span>
     </div>`).join('');
   $('modalResults').style.display='flex';
-  state.roomId = null;
 });
 
-/* --- LOGIC FUNCTIONS --- */
 function updateLocalState(gid, local, players) {
-  state.gameId = gid; state.gameState = local;
+  state.gameId=gid; state.gameState=local;
   if(typeof state.gameState.correct_letters==='string') state.gameState.correct_letters=JSON.parse(state.gameState.correct_letters);
   if(typeof state.gameState.wrong_letters==='string') state.gameState.wrong_letters=JSON.parse(state.gameState.wrong_letters);
-  state.allStates = players||[];
-  startTimer(); renderGame(); updatePlayersUI();
+  state.allStates=players||[]; startTimer(); renderGame(); updatePlayersUI();
 }
 
 function renderGame() {
-  const idx = Number(state.gameState.current_index)||0;
-  if(!state.deck[idx]) return;
-
-  const wObj = state.deck[idx];
-  $('lblWordIndex').textContent = toFa(idx+1);
-  $('lblCategory').textContent = wObj.category;
-  $('lblDescription').textContent = wObj.description;
-  
-  // Update Limit Counters
-  $('lblWrong').textContent = toFa((state.gameState.wrong_letters||[]).length);
-  $('lblMaxWrong').textContent = toFa(state.gameState.allowed_wrong || 5);
-  $('lblHints').textContent = toFa(state.gameState.hints_used || 0);
-  $('lblMaxHints').textContent = toFa(state.gameState.hints_allowed || 0);
-
-  // Normalize & Render Slots
-  const word = wObj.word.replace(/[\u064A\u0643]/g, c => c=='\u064A'?'\u06CC':'\u06A9').normalize('NFC');
-  const cl = state.gameState.correct_letters || [];
-  $('slotsContainer').innerHTML = [...word].map(c => 
-    (c===' '||c==='\u200c') ? `<div class="slot gap"></div>` : `<div class="slot ${cl.includes(c)?'correct':''}">${cl.includes(c)?c:''}</div>`
-  ).join('');
-  
-  $('txtLetter').value = ''; $('txtLetter').focus();
+  const idx=Number(state.gameState.current_index)||0; if(!state.deck[idx]) return;
+  const wObj=state.deck[idx];
+  $('lblWordIndex').textContent=toFa(idx+1); $('lblCategory').textContent=wObj.category; $('lblDescription').textContent=wObj.description;
+  $('lblWrong').textContent=toFa((state.gameState.wrong_letters||[]).length); $('lblMaxWrong').textContent=toFa(state.gameState.allowed_wrong||5);
+  $('lblHints').textContent=toFa(state.gameState.hints_used||0); $('lblMaxHints').textContent=toFa(state.gameState.hints_allowed||0);
+  const word=wObj.word.replace(/[\u064A\u0643]/g, c=>c=='\u064A'?'\u06CC':'\u06A9').normalize('NFC');
+  const cl=state.gameState.correct_letters||[];
+  $('slotsContainer').innerHTML=[...word].map(c=>(c===' '||c==='\u200c')?`<div class="slot gap"></div>`:`<div class="slot ${cl.includes(c)?'correct':''}">${cl.includes(c)?c:''}</div>`).join('');
+  $('txtLetter').value=''; $('txtLetter').focus();
 }
 
 function updatePlayersUI() {
-  const sorted = [...state.allStates].sort((a,b) => (b.score||0)-(a.score||0));
-  const tot = state.deck.length||1;
-  
-  $('playersListContainer').innerHTML = sorted.map(p => {
-    const isMe = String(p.user_id)===String(state.user.id);
-    const prog = Math.round(((p.current_index||0)/tot)*100);
-    return `
-      <div class="player-item ${isMe?'me':''}">
-        <div class="p-info">
-          <div class="p-avatar"><i class="fas fa-user"></i></div>
-          <div>
-            <div style="font-size:13px; font-weight:700;">${p.fullname||'User'} ${isMe?'(شما)':''}</div>
-            <div class="p-bar-bg"><div class="p-bar-fill" style="width:${prog}%"></div></div>
-          </div>
-        </div>
-        <div class="p-score">${toFa(p.score||0)}</div>
-      </div>`;
+  const sorted=[...state.allStates].sort((a,b)=>(b.score||0)-(a.score||0)); const tot=state.deck.length||1;
+  $('playersListContainer').innerHTML=sorted.map(p=>{
+    const isMe=String(p.user_id)===String(state.user.id); const prog=Math.round(((p.current_index||0)/tot)*100);
+    return `<div class="player-item ${isMe?'me':''}">
+      <div class="p-info">
+        <div class="p-avatar"><i class="fas fa-user"></i></div>
+        <div><div style="font-size:13px; font-weight:700;">${p.fullname||'کاربر'} ${isMe?'(شما)':''}</div>
+        <div class="p-bar-bg"><div class="p-bar-fill" style="width:${prog}%"></div></div></div>
+      </div>
+      <div class="p-score">${toFa(p.score||0)}</div>
+    </div>`;
   }).join('');
 }
 
 function startTimer() {
   if(state.timerInterval) clearInterval(state.timerInterval);
-  state.timerInterval = setInterval(() => {
-    state.timerMs += 1000; const s = Math.floor(state.timerMs/1000);
-    $('lblTimer').textContent = toFa(String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'));
-  }, 1000);
+  state.timerInterval=setInterval(()=>{ state.timerMs+=1000; const s=Math.floor(state.timerMs/1000); $('lblTimer').textContent=toFa(String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')); },1000);
 }
 
-/* --- CONTROLS --- */
-$('btnGuess').onclick = () => { const v=$('txtLetter').value; if(v) socket.emit('game:guess', {game_id:state.gameId, user_id:state.user.id, letter:v}); $('txtLetter').focus(); };
-$('txtLetter').onkeydown = e => { if(e.key==='Enter') $('btnGuess').click(); };
-$('btnHint').onclick = () => socket.emit('game:hint', {game_id:state.gameId, user_id:state.user.id});
+$('btnGuess').onclick=()=>{const v=$('txtLetter').value; if(v) socket.emit('game:guess',{game_id:state.gameId,user_id:state.user.id,letter:v}); $('txtLetter').focus();};
+$('txtLetter').onkeydown=e=>{if(e.key==='Enter')$('btnGuess').click();};
+$('btnHint').onclick=()=>socket.emit('game:hint',{game_id:state.gameId,user_id:state.user.id});
 
 function switchTab(t) {
-  document.querySelectorAll('main > div').forEach(e => e.classList.add('hidden'));
-  $(`view-${t}`).classList.remove('hidden');
-  document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-  document.querySelector(`.nav-item[data-target="${t}"]`).classList.add('active');
-  
+  document.querySelectorAll('main>div').forEach(e=>e.classList.add('hidden')); $(`view-${t}`).classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); document.querySelector(`.nav-item[data-target="${t}"]`).classList.add('active');
   if(t==='lobby') refreshLobby();
-  $('navGame').style.display = (t==='game' || state.gameId) ? 'flex' : 'none';
+  if(t==='history') loadHistory();
+  $('navGame').style.display=(t==='game'||state.gameId)?'flex':'none';
 }
 
 async function refreshLobby() {
-  const res = await fetch('/rooms/list?level='+$('filterLevel').value);
+  const res=await fetch('/rooms/list?level='+$('filterLevel').value); const d=await res.json();
+  $('roomsContainer').innerHTML=(d.rooms||[]).length ? d.rooms.map(r=>`
+    <div class="card" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div><div style="font-weight:700;font-size:14px;">${r.name}</div><div style="font-size:11px;color:#64748b;margin-top:4px;">${toFa(r.players)}/${toFa(r.max_players)} بازیکن</div></div>
+      <button onclick="joinRoom('${r.id}')" class="btn btn-primary" style="height:36px;font-size:12px;padding:0 14px;" ${r.status==='finished'?'disabled':''}>پیوستن</button>
+    </div>`).join('') : '<div style="text-align:center;padding:20px;color:#94a3b8;">اتاقی نیست</div>';
+}
+
+async function loadHistory() {
+  $('historyContent').innerHTML='<div style="text-align:center;padding:20px;">در حال بارگذاری...</div>';
+  const res = await fetch('/stats/history', {method:'POST',headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:state.user.id})});
   const d = await res.json();
-  $('roomsContainer').innerHTML = (d.rooms||[]).length ? d.rooms.map(r => `
-    <div class="card" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <div>
-        <div style="font-weight:700; font-size:14px;">${r.name}</div>
-        <div style="font-size:11px; color:#64748b; margin-top:4px;">${toFa(r.players)}/${toFa(r.max_players)} بازیکن</div>
+  
+  if(!d.games || d.games.length===0) {
+     $('historyContent').innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;">هنوز بازی نکرده‌اید</div>';
+     return;
+  }
+  
+  $('historyContent').innerHTML = d.games.map(g => {
+      const date = new Date(g.finished_at).toLocaleDateString('fa-IR');
+      let wordsHtml = '';
+      if(g.results && Array.isArray(g.results)) {
+          wordsHtml = g.results.map(r => {
+              const isWin = r.winners && r.winners.some(id => String(id) === String(state.user.id));
+              return `<span class="h-word ${isWin?'win':''}">${r.word}</span>`;
+          }).join('');
+      }
+      return `
+      <div class="history-item">
+        <div class="h-header">
+          <span>${g.room_name}</span>
+          <span>${toFa(g.score||0)} امتیاز</span>
+        </div>
+        <div style="font-size:11px; color:#94a3b8; margin-bottom:8px;">${date}</div>
+        <div class="h-words">${wordsHtml}</div>
       </div>
-      <button onclick="joinRoom('${r.id}')" class="btn btn-primary" style="height:36px; font-size:12px; padding:0 14px;" ${r.status==='finished'?'disabled':''}>پیوستن</button>
-    </div>`).join('') : '<div style="text-align:center; padding:20px; color:#94a3b8;">اتاقی یافت نشد</div>';
+      `;
+  }).join('');
 }
 
 async function joinRoom(rid) {
-  const res = await fetch('/rooms/join', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({room_id:rid, user_id:state.user.id})});
-  const d = await res.json();
+  const res=await fetch('/rooms/join',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_id:rid,user_id:state.user.id})}); const d=await res.json();
   if(d.ok) {
-    state.roomId = rid; socket.emit('join-room', {room_id:rid});
-    if(d.game_id) {
-      fetch('/rooms/state', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({room_id:rid})})
-      .then(r=>r.json()).then(sd => socket.emit('game:resume', {game_id:sd.game.id, user_id:state.user.id}));
-    } else {
-      switchTab('game'); $('lblDescription').textContent='منتظر سایر بازیکنان...'; $('slotsContainer').innerHTML='<i class="fas fa-spinner fa-spin"></i>';
-    }
-  } else showToast(d.error==='full'?'اتاق پر است':'خطا در ورود', 'error');
+    state.roomId=rid; socket.emit('join-room',{room_id:rid});
+    if(d.game_id) fetch('/rooms/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_id:rid})}).then(r=>r.json()).then(sd=>socket.emit('game:resume',{game_id:sd.game.id,user_id:state.user.id}));
+    else { switchTab('game'); $('lblDescription').textContent='منتظر سایرین...'; $('slotsContainer').innerHTML='<i class="fas fa-spinner fa-spin"></i>'; }
+  } else showToast(d.error==='full'?'پر است':'خطا', 'error');
 }
-
-const openCreateModal = () => $('modalCreate').style.display='flex';
-const closeModal = id => $(id).style.display='none';
-async function submitCreateRoom() {
-  const res = await fetch('/rooms/create', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id:state.user.id, name:$('inpRoomName').value, level:$('inpRoomLevel').value})});
-  const d = await res.json(); if(d.ok) { closeModal('modalCreate'); joinRoom(d.room_id); }
-}
-$('filterLevel').onchange = refreshLobby;
-function leaveGame() { if(confirm('خروج از بازی؟')) { fetch('/rooms/leave', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({room_id:state.roomId, user_id:state.user.id})}); state.roomId=null; state.gameId=null; switchTab('lobby'); } }
+const openCreateModal=()=>$('modalCreate').style.display='flex'; const closeModal=id=>$(id).style.display='none';
+const closeGameAndShowHistory=()=>{ closeModal('modalResults'); switchTab('history'); };
+async function submitCreateRoom(){const res=await fetch('/rooms/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:state.user.id,name:$('inpRoomName').value,level:$('inpRoomLevel').value})}); const d=await res.json(); if(d.ok){closeModal('modalCreate');joinRoom(d.room_id);}}
+$('filterLevel').onchange=refreshLobby;
+function leaveGame(){if(confirm('خروج؟')){fetch('/rooms/leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({room_id:state.roomId,user_id:state.user.id})});state.roomId=null;state.gameId=null;switchTab('lobby');}}
 </script>
 </body>
 </html>
