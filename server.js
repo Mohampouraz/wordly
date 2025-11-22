@@ -145,7 +145,13 @@ app.post('/rooms/create', async (req, res) => {
 });
 
 app.post('/rooms/join', async (req, res) => {
-  const { room_id, user_id } = req.body;
+  const { room_id, user_id, fullname } = req.body; // Receive fullname
+  
+  // UPSERT User Name (Bug Fix)
+  if(fullname) {
+    await pool.query(`INSERT INTO users (id, fullname) VALUES ($1, $2) ON CONFLICT (id) DO UPDATE SET fullname = EXCLUDED.fullname`, [user_id, fullname]);
+  }
+
   await pool.query(`INSERT INTO room_players (room_id, user_id, role) VALUES ($1,$2,'player') ON CONFLICT DO NOTHING`, [room_id, user_id]);
   
   const room = (await pool.query(`SELECT * FROM rooms WHERE id=$1`, [room_id])).rows[0];
